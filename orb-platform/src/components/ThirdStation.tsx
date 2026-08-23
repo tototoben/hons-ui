@@ -8,6 +8,8 @@ import {
   type RefObject,
 } from 'react'
 import { mirrorSettings } from '../dev/mirrorSettingsStore'
+import { getDeviceQuality } from '../lib/deviceQuality'
+import { useStationVibe } from '../hooks/useStationVibe'
 import { MirrorGuideOrb } from './MirrorGuideOrb'
 import { MirrorHeadline } from './MirrorHeadline'
 import { CodePanel, MiniBar } from './HudDebris'
@@ -26,7 +28,14 @@ type Phase = ThirdStationVoicePhase
 
 const LIVE_POLL_MS = 150
 
-const STATUS_LABEL: Record<Phase, string> = {
+const STATUS_LABEL_WARM: Record<Phase, string> = {
+  intro: 'Ready',
+  prompt: 'Listening',
+  recording: 'Recording',
+  loading: 'Working',
+}
+
+const STATUS_LABEL_ORIGINAL: Record<Phase, string> = {
   intro: 'STANDBY',
   prompt: 'LISTENING',
   recording: 'RECORDING',
@@ -42,17 +51,22 @@ const STATUS_LABEL: Record<Phase, string> = {
  */
 function useLiveMirrorTheme(rootRef: RefObject<HTMLElement | null>) {
   useEffect(() => {
+    const apply = () => {
+      const root = rootRef.current
+      if (!root) return
+      root.style.setProperty('--mirror-bg-top', mirrorSettings.background.top)
+      root.style.setProperty('--mirror-bg-bottom', mirrorSettings.background.bottom)
+      root.style.setProperty('--mirror-accent', mirrorSettings.accent.color)
+    }
+    apply()
+    if (!import.meta.env.DEV) return
+
     let raf = 0
     let last = 0
     const tick = (now: number) => {
       if (now - last >= LIVE_POLL_MS) {
         last = now
-        const root = rootRef.current
-        if (root) {
-          root.style.setProperty('--mirror-bg-top', mirrorSettings.background.top)
-          root.style.setProperty('--mirror-bg-bottom', mirrorSettings.background.bottom)
-          root.style.setProperty('--mirror-accent', mirrorSettings.accent.color)
-        }
+        apply()
       }
       raf = requestAnimationFrame(tick)
     }
@@ -335,6 +349,8 @@ function RecordingFrame({ secondsLeft, totalSeconds }: { secondsLeft: number; to
 }
 
 export function ThirdStation() {
+  const [vibe] = useStationVibe()
+  const warm = vibe === 'warm'
   const rootRef = useRef<HTMLElement>(null)
   useLiveMirrorTheme(rootRef)
 
@@ -423,9 +439,9 @@ export function ThirdStation() {
       <div className="mirror-frame">
         <div className="mirror-status-label" aria-hidden="true">
           <span className="mirror-status-marker" />
-          {STATUS_LABEL[phase]}
+          {(warm ? STATUS_LABEL_WARM : STATUS_LABEL_ORIGINAL)[phase]}
         </div>
-        <HudDebrisField phase={phase} key={phase} />
+        {getDeviceQuality() === 'kiosk' ? null : <HudDebrisField phase={phase} key={phase} />}
 
         {phase === 'intro' ? (
           <div className="mirror-screen mirror-screen-intro">
@@ -456,10 +472,15 @@ export function ThirdStation() {
 
         {phase === 'loading' ? (
           <div className="mirror-screen mirror-screen-loading">
-            <MirrorHeadline lines={['Creating', 'match']} className="mirror-headline" />
+            <MirrorHeadline
+              lines={warm ? ['Finding', 'your match'] : ['Creating', 'match']}
+              className="mirror-headline"
+            />
             <GuideOrb variant="loading" progress={loadingProgress} />
             <div className="mirror-loading-readout">
-              COMPILING MATCH DATA — {Math.round(loadingProgress * 100)}%
+              {warm
+                ? `Putting it together, ${Math.round(loadingProgress * 100)}%`
+                : `COMPILING MATCH DATA — ${Math.round(loadingProgress * 100)}%`}
             </div>
           </div>
         ) : null}

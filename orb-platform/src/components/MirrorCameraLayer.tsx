@@ -1,8 +1,15 @@
 import { lazy, Suspense, useEffect, useRef, type CSSProperties } from 'react'
 import { FaceLandmarker } from '@mediapipe/tasks-vision'
 import { useMirrorCamera } from '../hooks/useMirrorCamera'
+import { useStationVibe } from '../hooks/useStationVibe'
+import {
+  formatMorphometricLine,
+  type FaceAppearance,
+} from '../lib/mirrorFaceAppearance'
 import type { MirrorFaceSignals } from '../lib/mirrorFaceSignals'
 import { sampleFaceTopologyConnections } from '../lib/mirrorFaceTopology'
+import { TRACKING_RGB } from '../lib/stationVibe'
+import { canvasPixelRatio, isKioskQuality } from '../lib/deviceQuality'
 import {
   computeCameraFocus,
   landmarkBounds,
@@ -33,7 +40,9 @@ const SPARSE_FACE_TOPOLOGY = sampleFaceTopologyConnections(
 )
 
 export function MirrorCameraLayer({ mode }: { mode: MirrorOverlayMode }) {
-  const camera = useMirrorCamera()
+  const [vibe] = useStationVibe()
+  const trackingRgb = TRACKING_RGB[vibe]
+  const camera = useMirrorCamera({ tracking: mode !== 'none' })
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const focusMode: CameraFocusMode = mode === 'eyes' ? 'eyes' : mode === 'none' ? 'full' : 'face'
   const focus = computeCameraFocus(camera.landmarks, focusMode)
@@ -55,11 +64,11 @@ export function MirrorCameraLayer({ mode }: { mode: MirrorOverlayMode }) {
     if (!canvas || !video || mode === 'none') return
 
     const draw = () =>
-      drawLandmarks(canvas, video, camera.landmarks, camera.signals, mode)
+      drawLandmarks(canvas, video, camera.landmarks, camera.signals, mode, trackingRgb)
     draw()
     window.addEventListener('resize', draw)
     return () => window.removeEventListener('resize', draw)
-  }, [camera.landmarks, camera.signals, camera.videoRef, mode])
+  }, [camera.landmarks, camera.signals, camera.videoRef, mode, trackingRgb])
 
   return (
     <>
@@ -78,9 +87,13 @@ export function MirrorCameraLayer({ mode }: { mode: MirrorOverlayMode }) {
         ) : null}
       </div>
       {/* Outside the zoom-transformed stage above on purpose — this HUD
-          chrome (fake profile panel + debris) should stay put as the
-          camera focus zooms in/out on eyes vs. face, not scale with it. */}
+          chrome (decorative debris + the real trait readout) should stay
+          put as the camera focus zooms in/out on eyes vs. face, not scale
+          with it. */}
       <MirrorScanOverlay mode={mode} />
+      {mode !== 'none' ? (
+        <AppearanceReadout appearance={camera.appearance} dissolving={mode === 'dissolve'} />
+      ) : null}
       {/* Also excluded in Vitest (MODE === 'test'): leva's stitches-based
           styling can't run in jsdom, and MirrorCameraLayer.runtime.test.tsx/
           StationOne.runtime.test.tsx both fully mount this component. */}
@@ -99,10 +112,11 @@ function drawLandmarks(
   landmarks: NormalizedLandmark[],
   signals: MirrorFaceSignals,
   mode: MirrorOverlayMode,
+  trackingRgb: string,
 ) {
   const width = canvas.clientWidth
   const height = canvas.clientHeight
-  const ratio = Math.min(window.devicePixelRatio || 1, 2)
+  const ratio = canvasPixelRatio()
   canvas.width = Math.max(1, Math.round(width * ratio))
   canvas.height = Math.max(1, Math.round(height * ratio))
   const context = canvas.getContext('2d')
@@ -127,13 +141,14 @@ function drawLandmarks(
     context.moveTo(points[0].x, points[0].y)
     points.slice(1).forEach((item) => context.lineTo(item.x, item.y))
     context.closePath()
-    context.strokeStyle = `rgba(185, 220, 235, ${alpha})`
+    context.strokeStyle = `rgba(${trackingRgb}, ${alpha})`
     context.lineWidth = lineWidth
     context.stroke()
   }
 
   const dissolve = mode === 'dissolve'
-  if (mode !== 'none') {
+  const drawMesh = mode !== 'none' && !isKioskQuality()
+  if (drawMesh) {
     context.beginPath()
     let topologyEdges = 0
     SPARSE_FACE_TOPOLOGY.forEach(({ start, end }) => {
@@ -145,7 +160,7 @@ function drawLandmarks(
       topologyEdges += 1
     })
     if (topologyEdges > 0) {
-      context.strokeStyle = `rgba(185, 220, 235, ${dissolve ? 0.04 : 0.16})`
+      context.strokeStyle = `rgba(${trackingRgb}, ${dissolve ? 0.04 : 0.16})`
       context.lineWidth = 0.55
       context.stroke()
     }
@@ -163,7 +178,7 @@ function drawLandmarks(
     context.beginPath()
     context.moveTo(left.x, left.y - 20)
     context.lineTo(right.x, right.y - 20)
-    context.strokeStyle = 'rgba(185, 220, 235, .84)'
+    context.strokeStyle = `rgba(${trackingRgb}, .84)`
     context.setLineDash([4, 7])
     context.stroke()
     context.setLineDash([])
@@ -182,7 +197,7 @@ function drawLandmarks(
       0,
       Math.PI * 2,
     )
-    context.strokeStyle = 'rgba(185, 220, 235, .76)'
+    context.strokeStyle = `rgba(${trackingRgb}, .76)`
     context.lineWidth = 1.2
     context.stroke()
   })
@@ -255,6 +270,65 @@ function drawTrackingBox(
   context.font = '9px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace'
   context.fillStyle = `rgba(185, 220, 235, ${alpha * 0.95})`
   context.fillText(label, x, Math.max(9, y - 5))
+}
+
+function AppearanceReadout({
+  appearance,
+  dissolving,
+}: {
+  appearance: FaceAppearance | null
+  dissolving: boolean
+}) {
+  if (!appearance) return null
+
+  return (
+    <aside
+      className={`journey-appearance${dissolving ? ' is-dissolving' : ''}`}
+      aria-live="polite"
+    >
+      <dl>
+        <AppearanceColor label="Hair color" swatch={appearance.hair} />
+        <AppearanceColor label="Skin tone" swatch={appearance.skin} swatchId="skin" />
+        <AppearanceColor label="Eye color" swatch={appearance.eyes} swatchId="eyes" />
+      </dl>
+      {appearance.morphometrics.length > 0 ? (
+        <ul>
+          {appearance.morphometrics.map((reading) => (
+            <li key={reading.term}>{formatMorphometricLine(reading)}</li>
+          ))}
+        </ul>
+      ) : null}
+    </aside>
+  )
+}
+
+function AppearanceColor({
+  label,
+  swatch,
+  swatchId,
+}: {
+  label: string
+  swatch: FaceAppearance['skin']
+  swatchId?: 'skin' | 'eyes'
+}) {
+  const showSwatch = swatch.label !== 'undetected'
+
+  return (
+    <div>
+      <dt>{label}</dt>
+      <dd>
+        {showSwatch ? (
+          <i
+            className="journey-appearance-swatch"
+            data-swatch={swatchId ?? 'hair'}
+            style={{ background: swatch.hex }}
+            aria-hidden="true"
+          />
+        ) : null}
+        {swatchId === 'skin' && showSwatch ? null : swatch.label}
+      </dd>
+    </div>
+  )
 }
 
 function clamp(value: number, minimum: number, maximum: number) {

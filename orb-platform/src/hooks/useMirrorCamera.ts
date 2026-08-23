@@ -2,6 +2,18 @@ import { useEffect, useRef, useState, type RefObject } from 'react'
 import { FaceLandmarker, FilesetResolver } from '@mediapipe/tasks-vision'
 import { PARALLAX } from '../config'
 import {
+  detectIntervalMs,
+  getDeviceQuality,
+  mirrorCameraConstraints,
+} from '../lib/deviceQuality'
+import {
+  deriveFaceAppearance,
+  readVideoFrame,
+  sampleFaceColorRegions,
+  smoothAppearance,
+  type FaceAppearance,
+} from '../lib/mirrorFaceAppearance'
+import {
   deriveMirrorFaceSignals,
   NEUTRAL_MIRROR_FACE_SIGNALS,
   type MirrorFaceSignals,
@@ -9,24 +21,7 @@ import {
 import type { NormalizedLandmark } from '../lib/mirrorLandmarks'
 import { readSelectedCameraId, writeSelectedCameraId } from '../lib/mirrorCameraDevice'
 
-/**
- * Was requesting a portrait 1080x1920 (~2MP) stream with no frameRate
- * hint at all — most webcams, especially external USB ones, are
- * landscape-native and either fake portrait via a slow software
- * rotate/crop/scale, or only hit that pixel count at a low capped frame
- * rate, and with no frameRate constraint the browser has no signal to
- * prefer motion smoothness over resolution. mapLandmarkToMirror already
- * does cover-style cropping from the video's *actual* dimensions, so it
- * doesn't care whether the raw stream is portrait or landscape — asking
- * for a smaller, landscape, universally-supported mode with an explicit
- * frameRate floor fixes the lag without touching how the video is
- * displayed or tracked.
- */
-const VIDEO_QUALITY = {
-  width: { ideal: 1280 },
-  height: { ideal: 720 },
-  frameRate: { ideal: 30, min: 15 },
-}
+const MIN_APPEARANCE_LANDMARKS = 400
 
 export type MirrorCameraStatus =
   | 'starting'
@@ -41,6 +36,7 @@ export type MirrorCameraHandle = {
   status: MirrorCameraStatus
   landmarks: NormalizedLandmark[]
   signals: MirrorFaceSignals
+  appearance: FaceAppearance | null
   /** Enumerated video inputs — only has real labels once permission has
    * been granted at least once (browser privacy rule, not a bug here). */
   devices: MirrorCameraDeviceOption[]
@@ -54,13 +50,19 @@ export type MirrorCameraHandle = {
   selectDevice: (deviceId: string | null) => void
 }
 
-export function useMirrorCamera(): MirrorCameraHandle {
+export function useMirrorCamera({
+  tracking = true,
+}: {
+  tracking?: boolean
+} = {}): MirrorCameraHandle {
   const videoRef = useRef<HTMLVideoElement>(null)
   const [status, setStatus] = useState<MirrorCameraStatus>('starting')
   const [landmarks, setLandmarks] = useState<NormalizedLandmark[]>([])
   const [signals, setSignals] = useState<MirrorFaceSignals>(
     NEUTRAL_MIRROR_FACE_SIGNALS,
   )
+  const [appearance, setAppearance] = useState<FaceAppearance | null>(null)
+  const appearanceRef = useRef<FaceAppearance | null>(null)
   const [devices, setDevices] = useState<MirrorCameraDeviceOption[]>([])
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(
     () => readSelectedCameraId(),
@@ -75,58 +77,8 @@ export function useMirrorCamera(): MirrorCameraHandle {
   useEffect(() => {
     let cancelled = false
     let stream: MediaStream | null = null
-    let landmarker: FaceLandmarker | null = null
-    let raf = 0
-    let lastDetection = 0
     let permissionTimer: ReturnType<typeof setTimeout> | undefined
     let permissionTimedOut = false
-
-    const detect = (now: number) => {
-      if (cancelled) return
-      const video = videoRef.current
-      if (
-        video &&
-        landmarker &&
-        video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA &&
-        now - lastDetection >= PARALLAX.detectIntervalMs
-      ) {
-        lastDetection = now
-        const result = landmarker.detectForVideo(video, now)
-        const detectedLandmarks =
-          (result.faceLandmarks?.[0] as NormalizedLandmark[] | undefined) ?? []
-        setLandmarks(detectedLandmarks)
-        setSignals(
-          detectedLandmarks.length > 0
-            ? deriveMirrorFaceSignals(
-                result.faceBlendshapes?.[0]?.categories,
-                result.facialTransformationMatrixes?.[0]?.data,
-              )
-            : NEUTRAL_MIRROR_FACE_SIGNALS,
-        )
-      }
-      raf = requestAnimationFrame(detect)
-    }
-
-    const createLandmarker = async () => {
-      const vision = await FilesetResolver.forVisionTasks(PARALLAX.wasmBase)
-      try {
-        return await FaceLandmarker.createFromOptions(vision, {
-          baseOptions: { modelAssetPath: PARALLAX.modelUrl, delegate: 'GPU' },
-          runningMode: 'VIDEO',
-          numFaces: 1,
-          outputFaceBlendshapes: true,
-          outputFacialTransformationMatrixes: true,
-        })
-      } catch {
-        return FaceLandmarker.createFromOptions(vision, {
-          baseOptions: { modelAssetPath: PARALLAX.modelUrl, delegate: 'CPU' },
-          runningMode: 'VIDEO',
-          numFaces: 1,
-          outputFaceBlendshapes: true,
-          outputFacialTransformationMatrixes: true,
-        })
-      }
-    }
 
     const start = async () => {
       if (!navigator.mediaDevices?.getUserMedia) {
@@ -141,9 +93,10 @@ export function useMirrorCamera(): MirrorCameraHandle {
         }, 4_000)
         stream = await navigator.mediaDevices.getUserMedia({
           audio: false,
-          video: selectedDeviceId
-            ? { deviceId: { exact: selectedDeviceId }, ...VIDEO_QUALITY }
-            : { facingMode: 'user', ...VIDEO_QUALITY },
+          video: {
+            ...mirrorCameraConstraints(),
+            ...(selectedDeviceId ? { deviceId: { exact: selectedDeviceId } } : {}),
+          },
         })
         clearTimeout(permissionTimer)
         permissionTimer = undefined
@@ -190,16 +143,7 @@ export function useMirrorCamera(): MirrorCameraHandle {
           }
         }
 
-        try {
-          landmarker = await createLandmarker()
-        } catch {
-          landmarker = null
-        }
-
-        if (!cancelled) {
-          setStatus('active')
-          raf = requestAnimationFrame(detect)
-        }
+        if (!cancelled) setStatus('active')
       } catch (error) {
         clearTimeout(permissionTimer)
         permissionTimer = undefined
@@ -217,8 +161,6 @@ export function useMirrorCamera(): MirrorCameraHandle {
     return () => {
       cancelled = true
       clearTimeout(permissionTimer)
-      cancelAnimationFrame(raf)
-      landmarker?.close()
       stream?.getTracks().forEach((track) => track.stop())
       const video = videoRef.current
       if (video) {
@@ -228,14 +170,142 @@ export function useMirrorCamera(): MirrorCameraHandle {
     }
   }, [selectedDeviceId])
 
+  useEffect(() => {
+    if (!tracking || status !== 'active') {
+      if (!tracking) {
+        setLandmarks([])
+        setSignals(NEUTRAL_MIRROR_FACE_SIGNALS)
+        appearanceRef.current = null
+        setAppearance(null)
+      }
+      return
+    }
+
+    let cancelled = false
+    let landmarker: FaceLandmarker | null = null
+    let raf = 0
+    let lastDetection = 0
+    let missedFaces = 0
+    const interval = detectIntervalMs()
+    const quality = getDeviceQuality()
+
+    const detect = (now: number) => {
+      if (cancelled) return
+      const video = videoRef.current
+      if (
+        video &&
+        landmarker &&
+        video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA &&
+        now - lastDetection >= interval
+      ) {
+        lastDetection = now
+        const result = landmarker.detectForVideo(video, now)
+        const detectedLandmarks =
+          (result.faceLandmarks?.[0] as NormalizedLandmark[] | undefined) ?? []
+        setLandmarks(detectedLandmarks)
+        setSignals(
+          detectedLandmarks.length > 0
+            ? deriveMirrorFaceSignals(
+                result.faceBlendshapes?.[0]?.categories,
+                result.facialTransformationMatrixes?.[0]?.data,
+              )
+            : NEUTRAL_MIRROR_FACE_SIGNALS,
+        )
+        if (detectedLandmarks.length >= MIN_APPEARANCE_LANDMARKS) {
+          missedFaces = 0
+          const next = appearanceFromLandmarks(video, detectedLandmarks)
+          const smoothed = next
+            ? smoothAppearance(appearanceRef.current, next)
+            : null
+          appearanceRef.current = smoothed
+          setAppearance(smoothed)
+        } else {
+          missedFaces += 1
+          if (missedFaces > 8) {
+            appearanceRef.current = null
+            setAppearance(null)
+          }
+        }
+      }
+      raf = requestAnimationFrame(detect)
+    }
+
+    const createLandmarker = async () => {
+      const vision = await FilesetResolver.forVisionTasks(PARALLAX.wasmBase)
+      const options = {
+        runningMode: 'VIDEO' as const,
+        numFaces: 1,
+        outputFaceBlendshapes: true,
+        outputFacialTransformationMatrixes: true,
+      }
+      if (quality === 'kiosk') {
+        return FaceLandmarker.createFromOptions(vision, {
+          baseOptions: { modelAssetPath: PARALLAX.modelUrl, delegate: 'CPU' },
+          ...options,
+        })
+      }
+      try {
+        return await FaceLandmarker.createFromOptions(vision, {
+          baseOptions: { modelAssetPath: PARALLAX.modelUrl, delegate: 'GPU' },
+          ...options,
+        })
+      } catch {
+        return FaceLandmarker.createFromOptions(vision, {
+          baseOptions: { modelAssetPath: PARALLAX.modelUrl, delegate: 'CPU' },
+          ...options,
+        })
+      }
+    }
+
+    void createLandmarker()
+      .then((created) => {
+        if (cancelled) {
+          created.close()
+          return
+        }
+        landmarker = created
+        raf = requestAnimationFrame(detect)
+      })
+      .catch(() => {
+        landmarker = null
+      })
+
+    return () => {
+      cancelled = true
+      cancelAnimationFrame(raf)
+      landmarker?.close()
+    }
+  }, [status, tracking])
+
   return {
     videoRef,
     status,
     landmarks,
     signals,
+    appearance,
     devices,
     selectedDeviceId,
     activeDeviceId,
     selectDevice,
   }
+}
+
+function appearanceFromLandmarks(
+  video: HTMLVideoElement,
+  landmarks: NormalizedLandmark[],
+) {
+  const frame = {
+    width: video.videoWidth || 1080,
+    height: video.videoHeight || 1920,
+  }
+  const image = readVideoFrame(video)
+  const samples = image
+    ? sampleFaceColorRegions(image, landmarks)
+    : { hair: null, skin: null, eyes: null }
+
+  return deriveFaceAppearance({
+    ...samples,
+    landmarks,
+    frame,
+  })
 }

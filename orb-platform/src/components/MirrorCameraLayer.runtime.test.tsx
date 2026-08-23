@@ -19,6 +19,12 @@ const camera = vi.hoisted(() => ({
     headPitch: 0,
     headRoll: 0,
   },
+  appearance: null as null | {
+    hair: { label: string; hex: string }
+    skin: { label: string; hex: string }
+    eyes: { label: string; hex: string }
+    morphometrics: Array<{ term: string; finding: string }>
+  },
 }))
 
 vi.mock('../hooks/useMirrorCamera', () => ({
@@ -26,6 +32,7 @@ vi.mock('../hooks/useMirrorCamera', () => ({
 }))
 
 import { MirrorCameraLayer } from './MirrorCameraLayer'
+import { applyStationVibe } from '../lib/stationVibe'
 
 describe('MirrorCameraLayer', () => {
   let container: HTMLDivElement
@@ -65,6 +72,8 @@ describe('MirrorCameraLayer', () => {
     container = document.createElement('div')
     document.body.append(container)
     strokeOperations.length = 0
+    camera.appearance = null
+    applyStationVibe('original')
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(
       context as unknown as WebGL2RenderingContext,
     )
@@ -90,6 +99,34 @@ describe('MirrorCameraLayer', () => {
       strokeOperations.find((operation) => operation.lineWidth === 0.55)?.lineToCount,
     ).toBeGreaterThan(40)
     expect(fillText).not.toHaveBeenCalledWith('EYE VECTOR', expect.anything(), expect.anything())
+    expect(container.querySelector('.journey-appearance')).toBeNull()
+
+    act(() => root.unmount())
+  })
+
+  it('prints sampled hair, skin, and eye colors with morphometric terms', () => {
+    camera.appearance = {
+      hair: { label: 'blonde', hex: '#d6bc76' },
+      skin: { label: 'light', hex: '#e8c6b0' },
+      eyes: { label: 'green', hex: '#2e663a' },
+      morphometrics: [
+        { term: 'canthal tilt', finding: 'negative, −4.2°' },
+        { term: 'facial index', finding: 'leptoprosopic, 148.1' },
+      ],
+    }
+    const root = createRoot(container)
+    act(() => root.render(<MirrorCameraLayer mode="face" />))
+
+    const readout = container.querySelector('.journey-appearance')
+    expect(readout?.textContent).toContain('Hair color')
+    expect(readout?.textContent).toContain('blonde')
+    expect(readout?.textContent).not.toContain('#e8c6b0')
+    expect(readout?.textContent).not.toContain('light')
+    expect(readout?.textContent).toContain('green')
+    expect(readout?.textContent).toContain('negative canthal tilt')
+    expect(
+      container.querySelector<HTMLElement>('[data-swatch="skin"]')?.style.backgroundColor,
+    ).toBe('rgb(232, 198, 176)')
 
     act(() => root.unmount())
   })
