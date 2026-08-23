@@ -1,10 +1,36 @@
-import { useCallback, useEffect, useReducer, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useRef, useReducer, useState, type FormEvent } from 'react'
 import { useStationVibe } from '../hooks/useStationVibe'
-import { createStationOneState, stationOneReducer, type BinaryAnswer } from '../lib/mirrorJourney'
+import { firehoseReducer, publish } from '../lib/firehose'
+import {
+  createStationOneState,
+  stationOneReducer,
+  type BinaryAnswer,
+  type StationOneAction,
+  type StationOneState,
+} from '../lib/mirrorJourney'
 import { DebraVoiceClip, stationOneDebraClipFor } from './DebraVoice'
 import { JourneyHeadline } from './JourneyHeadline'
 import { MirrorChoice } from './MirrorChoice'
 import { MirrorStationShell } from './MirrorStationShell'
+
+const STATION_ID = 'station-1'
+
+function actionToEvent(action: StationOneAction): { event: string; data?: unknown } {
+  switch (action.type) {
+    case 'SUBMIT_NAME':
+      return { event: 'name_submitted', data: { name: action.value.trim() } }
+    case 'SUBMIT_AGE':
+      return { event: 'age_submitted', data: { age: action.value.trim() } }
+    case 'ANSWER':
+      return { event: 'self_check_answer', data: { answer: action.value } }
+    case 'ADVANCE':
+      return { event: 'phase_advance' }
+  }
+}
+
+function phaseEvent(phase: StationOneState['phase']): string {
+  return `phase:${phase}`
+}
 
 const AUTO_PHASES = new Set([
   'analysis-intro',
@@ -18,14 +44,39 @@ const AUTO_PHASES = new Set([
 export function StationOne({ phaseDurationMs = 2200 }: { phaseDurationMs?: number }) {
   const [vibe] = useStationVibe()
   const warm = vibe === 'warm'
-  const [state, dispatch] = useReducer(stationOneReducer, undefined, createStationOneState)
+  const [state, dispatch] = useReducer(
+    firehoseReducer(STATION_ID, stationOneReducer, actionToEvent),
+    undefined,
+    createStationOneState,
+  )
   const [draft, setDraft] = useState('')
+
+  // Publish phase transitions (fires after every state change that moves phases).
+  const prevPhaseRef = useRef<StationOneState['phase'] | null>(null)
+  useEffect(() => {
+    if (prevPhaseRef.current !== state.phase) {
+      if (prevPhaseRef.current !== null) {
+        publish(STATION_ID, phaseEvent(state.phase), { phase: state.phase })
+      }
+      prevPhaseRef.current = state.phase
+    }
+    // When the station reaches 'complete', publish the interview_done event
+    // that central listens for to advance the visit state machine.
+    if (state.phase === 'complete') {
+      publish(STATION_ID, 'interview_done', { name: state.name, age: state.age })
+    }
+  }, [state.phase, state.name, state.age])
 
   useEffect(() => {
     if (!AUTO_PHASES.has(state.phase)) return
     const timer = window.setTimeout(() => dispatch({ type: 'ADVANCE' }), phaseDurationMs)
     return () => window.clearTimeout(timer)
   }, [phaseDurationMs, state.phase])
+
+  // Announce station readiness on mount.
+  useEffect(() => {
+    publish(STATION_ID, 'station_mounted', { phase: 'name' })
+  }, [])
 
   const submit = (event: FormEvent) => {
     event.preventDefault()

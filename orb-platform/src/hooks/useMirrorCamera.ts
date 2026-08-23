@@ -59,7 +59,6 @@ export function useMirrorCamera({
       // We poll for it since the iframe may load before or after the parent
       // gets the stream.
       if (isEmbedded) {
-        console.log('[useMirrorCamera] embedded mode, polling for parent stream')
         const parentStream = await new Promise<MediaStream | null>((resolve) => {
           if (window.parent === window) return resolve(null)
           const check = () => {
@@ -74,27 +73,20 @@ export function useMirrorCamera({
           setTimeout(() => resolve(null), 30_000)
         })
         if (!parentStream || cancelled) {
-          console.warn('[useMirrorCamera] no parent stream available')
           if (!cancelled) setStatus('unavailable')
           return
         }
 
-        // Use the parent's stream directly — no getUserMedia call needed
-        // (which would require a user gesture inside this iframe).
-        console.log('[useMirrorCamera] got parent stream, attaching to video')
         stream = parentStream
         const video = videoRef.current
         if (!video) {
-          console.error('[useMirrorCamera] video element not ready')
           setStatus('unavailable')
           return
         }
         video.srcObject = stream
         try {
           await video.play()
-          console.log('[useMirrorCamera] video playing, status active')
-        } catch (playErr) {
-          console.error('[useMirrorCamera] video.play() failed:', playErr)
+        } catch {
           setStatus('unavailable')
           return
         }
