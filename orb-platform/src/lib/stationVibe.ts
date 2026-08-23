@@ -31,9 +31,9 @@ export function readStationVibe(
   storage: Pick<Storage, 'getItem'> | undefined = defaultStorage(),
 ): StationVibe {
   try {
-    return storage?.getItem(STORAGE_KEY) === 'original' ? 'original' : 'warm'
+    return storage?.getItem(STORAGE_KEY) === 'warm' ? 'warm' : 'original'
   } catch {
-    return 'warm'
+    return 'original'
   }
 }
 

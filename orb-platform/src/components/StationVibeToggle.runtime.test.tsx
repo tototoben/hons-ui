@@ -8,7 +8,7 @@ import { applyStationVibe } from '../lib/stationVibe'
 
 describe('StationVibeToggle', () => {
   afterEach(() => {
-    applyStationVibe('warm')
+    applyStationVibe('original')
   })
 
   it('switches the warm look back to the original chrome', () => {
@@ -23,6 +23,7 @@ describe('StationVibeToggle', () => {
       },
     })
 
+    applyStationVibe('warm')
     act(() => root.render(<StationVibeToggle />))
 
     const button = container.querySelector('button')!

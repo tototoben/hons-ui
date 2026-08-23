@@ -7,11 +7,20 @@ import {
   mirrorCameraConstraints,
 } from '../lib/deviceQuality'
 import {
+  deriveFaceAppearance,
+  readVideoFrame,
+  sampleFaceColorRegions,
+  smoothAppearance,
+  type FaceAppearance,
+} from '../lib/mirrorFaceAppearance'
+import {
   deriveMirrorFaceSignals,
   NEUTRAL_MIRROR_FACE_SIGNALS,
   type MirrorFaceSignals,
 } from '../lib/mirrorFaceSignals'
 import type { NormalizedLandmark } from '../lib/mirrorLandmarks'
+
+const MIN_APPEARANCE_LANDMARKS = 400
 
 export type MirrorCameraStatus =
   | 'starting'
@@ -24,6 +33,7 @@ export type MirrorCameraHandle = {
   status: MirrorCameraStatus
   landmarks: NormalizedLandmark[]
   signals: MirrorFaceSignals
+  appearance: FaceAppearance | null
 }
 
 export function useMirrorCamera({
@@ -37,6 +47,8 @@ export function useMirrorCamera({
   const [signals, setSignals] = useState<MirrorFaceSignals>(
     NEUTRAL_MIRROR_FACE_SIGNALS,
   )
+  const [appearance, setAppearance] = useState<FaceAppearance | null>(null)
+  const appearanceRef = useRef<FaceAppearance | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -108,6 +120,8 @@ export function useMirrorCamera({
       if (!tracking) {
         setLandmarks([])
         setSignals(NEUTRAL_MIRROR_FACE_SIGNALS)
+        appearanceRef.current = null
+        setAppearance(null)
       }
       return
     }
@@ -116,6 +130,7 @@ export function useMirrorCamera({
     let landmarker: FaceLandmarker | null = null
     let raf = 0
     let lastDetection = 0
+    let missedFaces = 0
     const interval = detectIntervalMs()
     const quality = getDeviceQuality()
 
@@ -141,6 +156,21 @@ export function useMirrorCamera({
               )
             : NEUTRAL_MIRROR_FACE_SIGNALS,
         )
+        if (detectedLandmarks.length >= MIN_APPEARANCE_LANDMARKS) {
+          missedFaces = 0
+          const next = appearanceFromLandmarks(video, detectedLandmarks)
+          const smoothed = next
+            ? smoothAppearance(appearanceRef.current, next)
+            : null
+          appearanceRef.current = smoothed
+          setAppearance(smoothed)
+        } else {
+          missedFaces += 1
+          if (missedFaces > 8) {
+            appearanceRef.current = null
+            setAppearance(null)
+          }
+        }
       }
       raf = requestAnimationFrame(detect)
     }
@@ -192,5 +222,25 @@ export function useMirrorCamera({
     }
   }, [status, tracking])
 
-  return { videoRef, status, landmarks, signals }
+  return { videoRef, status, landmarks, signals, appearance }
+}
+
+function appearanceFromLandmarks(
+  video: HTMLVideoElement,
+  landmarks: NormalizedLandmark[],
+) {
+  const frame = {
+    width: video.videoWidth || 1080,
+    height: video.videoHeight || 1920,
+  }
+  const image = readVideoFrame(video)
+  const samples = image
+    ? sampleFaceColorRegions(image, landmarks)
+    : { hair: null, skin: null, eyes: null }
+
+  return deriveFaceAppearance({
+    ...samples,
+    landmarks,
+    frame,
+  })
 }

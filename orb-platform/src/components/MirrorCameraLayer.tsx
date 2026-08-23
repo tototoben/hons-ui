@@ -2,6 +2,10 @@ import { useEffect, useRef, type CSSProperties } from 'react'
 import { FaceLandmarker } from '@mediapipe/tasks-vision'
 import { useMirrorCamera } from '../hooks/useMirrorCamera'
 import { useStationVibe } from '../hooks/useStationVibe'
+import {
+  formatMorphometricLine,
+  type FaceAppearance,
+} from '../lib/mirrorFaceAppearance'
 import type { MirrorFaceSignals } from '../lib/mirrorFaceSignals'
 import { sampleFaceTopologyConnections } from '../lib/mirrorFaceTopology'
 import { TRACKING_RGB } from '../lib/stationVibe'
@@ -60,20 +64,24 @@ export function MirrorCameraLayer({ mode }: { mode: MirrorOverlayMode }) {
   }, [camera.landmarks, camera.signals, camera.videoRef, mode, trackingRgb])
 
   return (
-    <div
-      className={`journey-camera-stage journey-camera-${mode}${mode === 'dissolve' ? ' is-dissolving' : ''}`}
-      style={style}
-      aria-hidden="true"
-    >
-      <video ref={camera.videoRef} className="journey-camera-video" muted playsInline autoPlay />
-      <div className="journey-camera-veil" />
-      <canvas ref={canvasRef} className="journey-landmarks" />
-      {camera.status !== 'active' ? (
-        <div className="journey-camera-fallback">
-          {camera.status === 'starting' ? 'Starting camera' : 'Camera unavailable'}
-        </div>
+    <>
+      <div
+        className={`journey-camera-stage journey-camera-${mode}${mode === 'dissolve' ? ' is-dissolving' : ''}`}
+        style={style}
+      >
+        <video ref={camera.videoRef} className="journey-camera-video" muted playsInline autoPlay />
+        <div className="journey-camera-veil" />
+        <canvas ref={canvasRef} className="journey-landmarks" />
+        {camera.status !== 'active' ? (
+          <div className="journey-camera-fallback">
+            {camera.status === 'starting' ? 'Starting camera' : 'Camera unavailable'}
+          </div>
+        ) : null}
+      </div>
+      {mode !== 'none' ? (
+        <AppearanceReadout appearance={camera.appearance} dissolving={mode === 'dissolve'} />
       ) : null}
-    </div>
+    </>
   )
 }
 
@@ -172,6 +180,65 @@ function drawLandmarks(
     context.lineWidth = 1.2
     context.stroke()
   })
+}
+
+function AppearanceReadout({
+  appearance,
+  dissolving,
+}: {
+  appearance: FaceAppearance | null
+  dissolving: boolean
+}) {
+  if (!appearance) return null
+
+  return (
+    <aside
+      className={`journey-appearance${dissolving ? ' is-dissolving' : ''}`}
+      aria-live="polite"
+    >
+      <dl>
+        <AppearanceColor label="Hair color" swatch={appearance.hair} />
+        <AppearanceColor label="Skin tone" swatch={appearance.skin} swatchId="skin" />
+        <AppearanceColor label="Eye color" swatch={appearance.eyes} swatchId="eyes" />
+      </dl>
+      {appearance.morphometrics.length > 0 ? (
+        <ul>
+          {appearance.morphometrics.map((reading) => (
+            <li key={reading.term}>{formatMorphometricLine(reading)}</li>
+          ))}
+        </ul>
+      ) : null}
+    </aside>
+  )
+}
+
+function AppearanceColor({
+  label,
+  swatch,
+  swatchId,
+}: {
+  label: string
+  swatch: FaceAppearance['skin']
+  swatchId?: 'skin' | 'eyes'
+}) {
+  const showSwatch = swatch.label !== 'undetected'
+
+  return (
+    <div>
+      <dt>{label}</dt>
+      <dd>
+        {showSwatch ? (
+          <i
+            className="journey-appearance-swatch"
+            data-swatch={swatchId ?? 'hair'}
+            style={{ background: swatch.hex }}
+            aria-hidden="true"
+          />
+        ) : null}
+        {swatchId === 'skin' && showSwatch ? null : swatch.label}
+      </dd>
+    </div>
+  )
 }
 
 function clamp(value: number, minimum: number, maximum: number) {

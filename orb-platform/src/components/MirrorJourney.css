@@ -103,6 +103,75 @@
   letter-spacing: 0.06em;
 }
 
+.journey-appearance {
+  position: absolute;
+  z-index: 4;
+  top: 78px;
+  left: 22px;
+  width: min(52%, 230px);
+  pointer-events: none;
+  color: var(--mirror-quiet);
+  font: 500 10px/1.35 "Helvetica Neue", "Nimbus Sans", sans-serif;
+  letter-spacing: 0.04em;
+  text-shadow: 0 1px 8px rgba(12, 8, 6, 0.55);
+  max-height: calc(100svh - 150px);
+  overflow: hidden;
+}
+
+.journey-appearance dl,
+.journey-appearance ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.journey-appearance dl {
+  display: grid;
+  gap: 5px;
+  margin-bottom: 14px;
+}
+
+.journey-appearance dl > div {
+  display: grid;
+  grid-template-columns: 78px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+}
+
+.journey-appearance dt {
+  color: color-mix(in srgb, var(--mirror-quiet) 72%, transparent);
+}
+
+.journey-appearance dd {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  color: var(--mirror-ink);
+}
+
+.journey-appearance-swatch {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  flex: 0 0 9px;
+  border: 1px solid rgba(255, 246, 235, 0.42);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+}
+
+.journey-appearance ul {
+  display: grid;
+  gap: 4px;
+}
+
+.journey-appearance li {
+  color: var(--mirror-ink);
+}
+
+.journey-appearance.is-dissolving {
+  opacity: 0.18;
+}
+
 .journey-status,
 .journey-folio {
   position: absolute;
@@ -492,6 +561,7 @@
   .journey-folio { bottom: 14px; }
   .journey-content { inset-block: 58px; }
   .journey-intake { margin-bottom: 8vh; }
+  .journey-appearance { top: 62px; }
 }
 
 :root[data-station-vibe="original"] {
@@ -517,7 +587,7 @@
 }
 
 :root[data-station-vibe="original"] .journey-camera-video {
-  filter: grayscale(1) contrast(1.42) brightness(0.78);
+  filter: contrast(1.1) brightness(0.92);
 }
 
 :root[data-station-vibe="original"] .journey-camera-veil {
@@ -532,6 +602,16 @@
   background: #000;
   letter-spacing: 0.18em;
   text-transform: uppercase;
+}
+
+:root[data-station-vibe="original"] .journey-appearance {
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.7);
+}
+
+:root[data-station-vibe="original"] .journey-appearance-swatch {
+  border-color: rgba(185, 220, 235, 0.55);
 }
 
 :root[data-station-vibe="original"] .journey-status,

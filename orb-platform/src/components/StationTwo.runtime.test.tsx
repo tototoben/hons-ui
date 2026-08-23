@@ -13,6 +13,7 @@ vi.mock('../hooks/useMirrorCamera', () => ({
       blink: 0, gazeX: 0, gazeY: 0, mouthOpen: 0, smile: 0,
       browLift: 0, headYaw: 0, headPitch: 0, headRoll: 0,
     },
+    appearance: null,
   }),
 }))
 

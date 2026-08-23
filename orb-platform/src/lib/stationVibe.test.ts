@@ -12,19 +12,19 @@ import {
 
 describe('station vibe', () => {
   afterEach(() => {
-    applyStationVibe('warm')
+    applyStationVibe('original')
   })
 
-  it('defaults to warm when no saved preference exists', () => {
-    expect(readStationVibe({ getItem: () => null })).toBe('warm')
+  it('defaults to the original look when no saved preference exists', () => {
+    expect(readStationVibe({ getItem: () => null })).toBe('original')
   })
 
-  it('restores original look from storage', () => {
-    expect(readStationVibe({ getItem: () => 'original' })).toBe('original')
+  it('restores the warm look from storage', () => {
+    expect(readStationVibe({ getItem: () => 'warm' })).toBe('warm')
   })
 
   it('rejects invalid saved values', () => {
-    expect(readStationVibe({ getItem: () => 'neon' })).toBe('warm')
+    expect(readStationVibe({ getItem: () => 'neon' })).toBe('original')
   })
 
   it('persists the selected vibe and restores the original palette', () => {
