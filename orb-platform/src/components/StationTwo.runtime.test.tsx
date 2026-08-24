@@ -23,6 +23,22 @@ vi.mock('./MirrorGuideOrb', () => ({
 
 import { StationTwo } from './StationTwo'
 import { applyStationVibe } from '../lib/stationVibe'
+import { setVisitorProfile } from '../lib/visitorProfile'
+
+function emptyProfile() {
+  return {
+    callName: '',
+    age: null,
+    identity: '',
+    orientation: '',
+    doubtedOrientation: null,
+    previousRelationships: null,
+    origin: '',
+    livesWhereBorn: null,
+    washFrequency: '',
+    lastInsecure: '',
+  }
+}
 
 describe('StationTwo', () => {
   let container: HTMLDivElement
@@ -36,9 +52,8 @@ describe('StationTwo', () => {
     document.body.append(container)
     root = createRoot(container)
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => null)
-    vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue()
-    vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {})
     applyStationVibe('warm')
+    setVisitorProfile({ ...emptyProfile(), age: 25, previousRelationships: 'yes' })
   })
 
   afterEach(() => {
@@ -47,119 +62,166 @@ describe('StationTwo', () => {
     vi.useRealTimers()
     vi.restoreAllMocks()
     container.remove()
+    setVisitorProfile(emptyProfile())
   })
 
-  it('moves from percentile result through questions and live height choice', async () => {
-    act(() => root.render(<StationTwo phaseDurationMs={20} visitorSeed="Ada:34" />))
+  it('moves from the category readout through the question set, height, and lightning round', async () => {
+    act(() => root.render(<StationTwo phaseDurationMs={20} />))
 
-    expect(container.textContent).toMatch(/percentile/i)
+    expect(container.textContent).toContain('category Rho106')
     expect(container.querySelector('.journey-message .journey-headline-canvas')).not.toBeNull()
-    expect(container.textContent).not.toContain('ASSESSMENT COMPLETE')
     expect(container.textContent).toContain('Listening')
     expect(container.querySelectorAll('.journey-status > span')).toHaveLength(1)
-    expect(container.textContent).not.toMatch(/\b\d{2}:\d{2}\b/)
     expect(container.querySelector('.journey-debra-introduction')).toBeNull()
-    expect(container.querySelector('audio')).toBeNull()
 
     await act(async () => {
       vi.advanceTimersByTime(20)
       await Promise.resolve()
     })
-    expect(container.textContent).not.toContain('MATCHING PROTOCOL')
     expect(container.querySelector('[aria-label="Debra, companion guide"]')).not.toBeNull()
-    expect(container.textContent).toContain('Debra')
-    expect(container.querySelector('audio')?.getAttribute('src')).toBe(
-      '/audio/debra/09-i-will-help-you-describe-the-companion-you-believe-you-want.mp3',
-    )
+    expect(container.textContent).toContain('AI partner')
     const introduction = container.querySelector('.journey-debra-introduction')
     expect(introduction?.textContent).toBe(
-      'I will help you describe the companion you believe you want.',
+      'I will help you describe the partner you believe you want.',
     )
-    expect(introduction?.closest('.journey-debra')).not.toBeNull()
+
     await act(async () => {
       vi.advanceTimersByTime(20)
       await Promise.resolve()
     })
-    expect(container.textContent).toContain("Let's get started")
-    expect(container.querySelector('.journey-debra-introduction')).not.toBeNull()
-    expect(container.querySelector('audio')?.getAttribute('src')).toBe(
-      '/audio/debra/09-i-will-help-you-describe-the-companion-you-believe-you-want.mp3',
-    )
+    expect(container.textContent).toContain('But first we need you')
 
     await act(async () => {
       vi.advanceTimersByTime(20)
       await Promise.resolve()
     })
     expect(container.textContent).toContain('Is attractiveness important to you?')
-    expect(container.querySelector('.journey-debra-introduction')).toBeNull()
-    expect(container.querySelector('.journey-question h1 .journey-headline-canvas')).not.toBeNull()
-    expect(container.querySelector('.journey-question-index')).toBeNull()
-    expect(container.querySelector('audio')?.getAttribute('src')).toBe(
-      '/audio/debra/01-is-attractiveness-important-to-you.mp3',
-    )
 
-    for (const [prompt, clip] of [
-      [
-        'Should your companion challenge you?',
-        '/audio/debra/02-should-your-companion-challenge-you.mp3',
-      ],
-      [
-        'Would you choose companionship over independence?',
-        '/audio/debra/03-would-you-choose-companionship-over-independence.mp3',
-      ],
-    ]) {
+    const answerYesNo = () => {
       act(() => container.querySelector<HTMLButtonElement>('.journey-choice button')!.click())
-      expect(container.textContent).toContain(prompt)
-      expect(container.querySelector('audio')?.getAttribute('src')).toBe(clip)
     }
-    act(() => container.querySelector<HTMLButtonElement>('.journey-choice button')!.click())
 
-    const slider = container.querySelector<HTMLInputElement>('input[type="range"]')!
-    expect(slider).not.toBeNull()
+    answerYesNo() // attractiveness
+    expect(container.textContent).toContain("Do you think you're a smart person?")
+    answerYesNo() // selfSmart
+    expect(container.textContent).toContain('Should your partner be smart?')
+    answerYesNo() // partnerSmart -> yes, so "How smart?" should follow
+    expect(container.textContent).toContain('How smart?')
+
+    const smartSlider = container.querySelector<HTMLInputElement>('input[type="range"]')!
+    expect(smartSlider).not.toBeNull()
+    act(() => container.querySelector<HTMLButtonElement>('.journey-height-confirm')!.click())
+    expect(container.textContent).toContain('Do you want a traditional relationship?')
+
+    answerYesNo() // traditional
+    expect(container.textContent).toContain('Have you ever watched pornography?')
+    answerYesNo() // pornography -> yes, unlocks the AI-porn follow-up
+    expect(container.textContent).toContain('Have you knowingly watched AI pornography?')
+    answerYesNo() // aiPornography
+    expect(container.textContent).toContain('Do you have a high libido?')
+    answerYesNo() // libido
+    expect(container.textContent).toContain('Have you ever thought about cheating?')
+    answerYesNo() // cheating
+    expect(container.textContent).toContain('Do you believe in a higher power?')
+    answerYesNo() // higherPower -> yes, unlocks "God?"
+    expect(container.textContent).toContain('God?')
+
+    // Answer "no" to God, which should ask the open "Something else?" text question.
+    act(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'n' })))
+    expect(container.textContent).toContain('Something else?')
+    const somethingElseInput = container.querySelector<HTMLInputElement>(
+      '#station-two-text-question',
+    )!
+    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set
+    act(() => {
+      setter?.call(somethingElseInput, 'the universe')
+      somethingElseInput.dispatchEvent(new Event('input', { bubbles: true }))
+      somethingElseInput.form!.dispatchEvent(
+        new Event('submit', { bubbles: true, cancelable: true }),
+      )
+    })
+    expect(container.textContent).toContain('Do you practice escapism?')
+    answerYesNo() // escapism
+
+    const heightSlider = container.querySelector<HTMLInputElement>('input[type="range"]')!
+    expect(heightSlider).not.toBeNull()
     expect(container.textContent).toContain('How tall is your ideal partner?')
-    expect(container.querySelector('.journey-height-control h1 .journey-headline-canvas')).not.toBeNull()
-    expect(container.textContent).not.toContain('FINAL MEASURE')
     expect(container.querySelector('[aria-label="Companion silhouette"]')).not.toBeNull()
-    expect(container.querySelector('audio')?.getAttribute('src')).toBe(
-      '/audio/debra/04-how-tall-is-your-ideal-partner.mp3',
-    )
 
     act(() => container.querySelector<HTMLButtonElement>('.journey-height-confirm')!.click())
+    expect(container.textContent).toContain('Just a few quick')
+
+    await act(async () => {
+      vi.advanceTimersByTime(20)
+      await Promise.resolve()
+    })
+    expect(container.textContent).toContain('Beauty or')
+
+    for (const pair of ['Inside', 'Process', 'Calm', 'Sex', 'Rebellion', 'Nature']) {
+      const leftButton = container.querySelectorAll<HTMLButtonElement>('.journey-choice button')[0]
+      act(() => leftButton.click())
+      expect(container.textContent).toContain(pair)
+    }
+    act(() => container.querySelectorAll<HTMLButtonElement>('.journey-choice button')[0].click())
+
     expect(container.textContent).toContain("When you're ready")
     expect(container.querySelector('.journey-complete h1 .journey-headline-canvas')).not.toBeNull()
-    expect(container.textContent).not.toContain('COMPANION PROFILE COMPLETE')
     expect(container.querySelector('a')?.getAttribute('href')).toBe('#/mirror')
-    expect(container.querySelector('audio')?.getAttribute('src')).toBe(
-      '/audio/debra/05-youre-good-to-go-now.mp3',
-    )
+  })
+
+  it('skips the adult-gated and follow-up questions for a visitor under 18', async () => {
+    setVisitorProfile({ ...emptyProfile(), age: 15, previousRelationships: 'no' })
+    act(() => root.render(<StationTwo phaseDurationMs={20} />))
+
+    for (let step = 0; step < 3; step += 1) {
+      await act(async () => {
+        vi.advanceTimersByTime(20)
+        await Promise.resolve()
+      })
+    }
+    expect(container.textContent).toContain('Is attractiveness important to you?')
+
+    const answerNo = () => {
+      act(() => container.querySelectorAll<HTMLButtonElement>('.journey-choice button')[1]!.click())
+    }
+
+    answerNo() // attractiveness
+    answerNo() // selfSmart
+    answerNo() // partnerSmart -> no, so "How smart?" is skipped
+    expect(container.textContent).toContain('Do you want a traditional relationship?')
+    answerNo() // traditional
+    // pornography/libido/cheating are all gated behind adulthood.
+    expect(container.textContent).toContain('Do you believe in a higher power?')
+    answerNo() // higherPower -> no, so "God?" is skipped
+    expect(container.textContent).toContain('Do you practice escapism?')
   })
 
   it('keeps the opening text states on the original three-second cadence', async () => {
-    act(() => root.render(<StationTwo visitorSeed="Ada:34" />))
+    act(() => root.render(<StationTwo />))
 
     await act(async () => {
       vi.advanceTimersByTime(2999)
       await Promise.resolve()
     })
-    expect(container.textContent).toMatch(/percentile/i)
+    expect(container.textContent).toContain('category Rho106')
 
     await act(async () => {
       vi.advanceTimersByTime(1)
       await Promise.resolve()
     })
-    expect(container.textContent).toContain('matched with an AI companion')
+    expect(container.textContent).toContain('AI partner')
 
     await act(async () => {
       vi.advanceTimersByTime(3000)
       await Promise.resolve()
     })
-    expect(container.textContent).toContain("Let's get started")
+    expect(container.textContent).toContain('But first we need you')
 
     await act(async () => {
       vi.advanceTimersByTime(2999)
       await Promise.resolve()
     })
-    expect(container.textContent).toContain("Let's get started")
+    expect(container.textContent).toContain('But first we need you')
 
     await act(async () => {
       vi.advanceTimersByTime(1)

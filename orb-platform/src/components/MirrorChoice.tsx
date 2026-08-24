@@ -5,33 +5,49 @@ import type { BinaryAnswer } from '../lib/mirrorJourney'
 export function MirrorChoice({
   onAnswer,
   hideButtons = false,
+  labels,
 }: {
   onAnswer: (answer: BinaryAnswer) => void
   /** Station I answers by keyboard only now — Station II still shows the
    * on-screen Yes/No buttons, so this defaults to keeping them rather
    * than changing both stations' behavior at once. */
   hideButtons?: boolean
+  /** Overrides the Yes/No button text — used by Station II's "this or
+   * that" lightning round, where the two options are literal words
+   * rather than a real yes/no. Keyboard y/n still picks them in order. */
+  labels?: [string, string]
 }) {
   const [vibe] = useStationVibe()
+  const [yesLabel, noLabel] = labels ?? ['Yes', 'No']
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.repeat) return
-      if (event.key.toLowerCase() === 'y') onAnswer('yes')
-      if (event.key.toLowerCase() === 'n') onAnswer('no')
+      const key = event.key.toLowerCase()
+      if (key !== 'y' && key !== 'n') return
+      // Without this, the browser's default keypress action fires after
+      // our answer handler has already advanced the phase — if the next
+      // question is a text field that autofocuses, the same 'y'/'n'
+      // character gets typed straight into it.
+      event.preventDefault()
+      onAnswer(key === 'y' ? 'yes' : 'no')
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [onAnswer])
 
   return (
-    <div className="journey-choice" role="group" aria-label="Answer yes or no">
+    <div
+      className="journey-choice"
+      role="group"
+      aria-label={labels ? `Choose ${yesLabel} or ${noLabel}` : 'Answer yes or no'}
+    >
       {hideButtons ? null : (
         <>
           <button type="button" onClick={() => onAnswer('yes')}>
-            Yes
+            {yesLabel}
           </button>
           <button type="button" onClick={() => onAnswer('no')}>
-            No
+            {noLabel}
           </button>
         </>
       )}

@@ -1,25 +1,39 @@
 import { useCallback, useEffect, useReducer, useState, type FormEvent } from 'react'
 import { useStationVibe } from '../hooks/useStationVibe'
-import { createStationOneState, stationOneReducer, type BinaryAnswer } from '../lib/mirrorJourney'
-import { DebraVoiceClip, stationOneDebraClipFor } from './DebraVoice'
+import {
+  createStationOneState,
+  STATION_ONE_INTAKE,
+  stationOneReducer,
+  type BinaryAnswer,
+} from '../lib/mirrorJourney'
+import { setVisitorProfile, visitorProfileFromAnswers } from '../lib/visitorProfile'
 import { JourneyHeadline } from './JourneyHeadline'
 import { MirrorChoice } from './MirrorChoice'
 import { MirrorStationShell } from './MirrorStationShell'
 
-const AUTO_PHASES = new Set([
-  'analysis-intro',
-  'scan-face',
-  'scan-eyes',
-  'scan-focus',
-  'dissolve',
-  'calculating',
-])
+const AUTO_PHASES = new Set(['analysis-intro', 'scan-face', 'scan-eyes', 'scan-focus', 'complete'])
+
+const INTAKE_LINES_WARM = [
+  ['What do you want', 'us to call you?'],
+  ['What is your', 'age?'],
+  ['What do you', 'identify as?'],
+  ['What is your', 'orientation?'],
+  ['Have you ever doubted', 'your orientation?'],
+  ['Have you ever had', 'previous relationships?'],
+  ['Where are', 'you from?'],
+  ['Do you live where', 'you were born?'],
+  ['How often do you', 'wash yourself?'],
+  ['When was the last time', 'you felt insecure?'],
+]
+const INTAKE_LINES_ORIGINAL = INTAKE_LINES_WARM.map((lines) => lines.map((line) => line.toUpperCase()))
 
 export function StationOne({ phaseDurationMs = 2200 }: { phaseDurationMs?: number }) {
   const [vibe] = useStationVibe()
   const warm = vibe === 'warm'
   const [state, dispatch] = useReducer(stationOneReducer, undefined, createStationOneState)
   const [draft, setDraft] = useState('')
+  const question = STATION_ONE_INTAKE[state.questionIndex]
+  const callName = state.answers.callName ?? ''
 
   useEffect(() => {
     if (!AUTO_PHASES.has(state.phase)) return
@@ -27,51 +41,45 @@ export function StationOne({ phaseDurationMs = 2200 }: { phaseDurationMs?: numbe
     return () => window.clearTimeout(timer)
   }, [phaseDurationMs, state.phase])
 
+  useEffect(() => {
+    if (state.phase === 'analysis-intro') {
+      setVisitorProfile(visitorProfileFromAnswers(state.answers))
+    }
+  }, [state.phase, state.answers])
+
   const submit = (event: FormEvent) => {
     event.preventDefault()
-    if (state.phase === 'name') dispatch({ type: 'SUBMIT_NAME', value: draft })
-    if (state.phase === 'age') dispatch({ type: 'SUBMIT_AGE', value: draft })
+    dispatch({ type: 'SUBMIT_TEXT', value: draft })
     setDraft('')
   }
   const answer = useCallback((value: BinaryAnswer) => dispatch({ type: 'ANSWER', value }), [])
   const cameraMode =
     state.phase === 'scan-eyes'
       ? 'eyes'
-      : ['scan-face', 'scan-focus', 'self-check'].includes(state.phase)
+      : state.phase === 'scan-face' || state.phase === 'scan-focus'
         ? 'face'
-        : state.phase === 'dissolve'
-          ? 'dissolve'
-          : 'none'
+        : 'none'
 
   return (
     <MirrorStationShell station="I" cameraMode={cameraMode}>
-      <DebraVoiceClip src={stationOneDebraClipFor(state.phase)} />
-
-      {state.phase === 'name' || state.phase === 'age' ? (
+      {state.phase === 'intake' && question?.type === 'text' ? (
         <form className="journey-intake" onSubmit={submit}>
-          <label htmlFor={`station-one-${state.phase}`}>
+          <label htmlFor={`station-one-${question.id}`}>
             <JourneyHeadline
               as="span"
-              lines={
-                state.phase === 'name'
-                  ? warm
-                    ? ['What is your', 'name?']
-                    : ['WHAT IS YOUR', 'NAME?']
-                  : warm
-                    ? ['What is your', 'age?']
-                    : ['WHAT IS YOUR', 'AGE?']
-              }
+              lines={(warm ? INTAKE_LINES_WARM : INTAKE_LINES_ORIGINAL)[state.questionIndex]}
             >
-              {state.phase === 'name' ? 'What is your name?' : 'What is your age?'}
+              {question.prompt}
             </JourneyHeadline>
           </label>
           <input
-            id={`station-one-${state.phase}`}
-            aria-label={state.phase === 'name' ? 'Your name' : 'Your age'}
-            name={state.phase}
-            type={state.phase === 'age' ? 'number' : 'text'}
-            min={state.phase === 'age' ? 1 : undefined}
-            max={state.phase === 'age' ? 120 : undefined}
+            key={question.id}
+            id={`station-one-${question.id}`}
+            aria-label={question.prompt}
+            name={question.id}
+            type={question.numeric ? 'number' : 'text'}
+            min={question.numeric ? 1 : undefined}
+            max={question.numeric ? 120 : undefined}
             autoFocus
             autoComplete="off"
             value={draft}
@@ -79,6 +87,15 @@ export function StationOne({ phaseDurationMs = 2200 }: { phaseDurationMs?: numbe
           />
           <button type="submit">Continue</button>
         </form>
+      ) : null}
+
+      {state.phase === 'intake' && question?.type === 'yesno' ? (
+        <div className="journey-question">
+          <JourneyHeadline lines={(warm ? INTAKE_LINES_WARM : INTAKE_LINES_ORIGINAL)[state.questionIndex]}>
+            {question.prompt}
+          </JourneyHeadline>
+          <MirrorChoice onAnswer={answer} hideButtons />
+        </div>
       ) : null}
 
       {state.phase === 'analysis-intro' ? (
@@ -89,8 +106,8 @@ export function StationOne({ phaseDurationMs = 2200 }: { phaseDurationMs?: numbe
         </JourneyMessage>
       ) : null}
       {state.phase === 'scan-face' ? (
-        <JourneyMessage lines={warm ? ['Hold still,', state.name] : ['HOLD STILL,', state.name.toUpperCase()]}>
-          {`Hold still, ${state.name}`}
+        <JourneyMessage lines={warm ? ['Hold still,', callName] : ['HOLD STILL,', callName.toUpperCase()]}>
+          {`Hold still, ${callName}`}
         </JourneyMessage>
       ) : null}
       {state.phase === 'scan-eyes' ? (
@@ -107,34 +124,17 @@ export function StationOne({ phaseDurationMs = 2200 }: { phaseDurationMs?: numbe
           {warm ? "I've got a sense of you" : 'Facial profile assembled'}
         </JourneyMessage>
       ) : null}
-      {state.phase === 'self-check' ? (
-        <div className="journey-question">
-          <JourneyHeadline lines={warm ? ['Do you like', 'what you see?'] : ['DO YOU LIKE', 'WHAT YOU SEE?']}>
-            Do you like what you see?
-          </JourneyHeadline>
-          <MirrorChoice onAnswer={answer} hideButtons />
-        </div>
-      ) : null}
-      {state.phase === 'dissolve' ? (
-        <JourneyMessage
-          lines={warm ? ['Letting the', 'overlay fade'] : ['RELEASING', 'ANALYSIS LAYERS']}
-        >
-          {warm ? 'Letting the overlay fade' : 'Releasing analysis layers'}
-        </JourneyMessage>
-      ) : null}
-      {state.phase === 'calculating' ? (
-        <div className="journey-calculating">
-          {warm ? null : <div className="journey-loader" />}
-          <JourneyHeadline lines={warm ? ['A moment'] : ['CALCULATING']}>
-            {warm ? 'A moment' : 'Calculating'}
-          </JourneyHeadline>
-          <p>{warm ? 'Just you, for a moment.' : 'Only your reflection remains.'}</p>
-        </div>
-      ) : null}
       {state.phase === 'complete' ? (
         <div className="journey-complete">
-          <JourneyHeadline lines={warm ? ['Analysis', 'complete'] : ['ANALYSIS', 'COMPLETE']}>
-            Analysis complete
+          <JourneyHeadline lines={warm ? ['Facial analysis', 'complete'] : ['FACIAL ANALYSIS', 'COMPLETE']}>
+            Facial analysis complete
+          </JourneyHeadline>
+        </div>
+      ) : null}
+      {state.phase === 'proceed' ? (
+        <div className="journey-complete">
+          <JourneyHeadline lines={warm ? ['Proceed to the', 'next station'] : ['PROCEED TO THE', 'NEXT STATION']}>
+            Proceed to the next station
           </JourneyHeadline>
         </div>
       ) : null}

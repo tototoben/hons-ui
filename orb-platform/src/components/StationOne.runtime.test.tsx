@@ -18,7 +18,9 @@ vi.mock('../hooks/useMirrorCamera', () => ({
 }))
 
 import { StationOne } from './StationOne'
+import { STATION_ONE_INTAKE } from '../lib/mirrorJourney'
 import { applyStationVibe } from '../lib/stationVibe'
+import { getVisitorProfile, resetVisitorProfile } from '../lib/visitorProfile'
 
 function setInput(input: HTMLInputElement, value: string) {
   const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set
@@ -28,6 +30,36 @@ function setInput(input: HTMLInputElement, value: string) {
 
 function submit(form: HTMLFormElement) {
   form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+}
+
+const INTAKE_ANSWERS: Record<string, string> = {
+  callName: 'Ada',
+  age: '34',
+  identity: 'woman',
+  orientation: 'bisexual',
+  doubtedOrientation: 'no',
+  previousRelationships: 'yes',
+  origin: 'London',
+  livesWhereBorn: 'no',
+  washFrequency: 'daily',
+  lastInsecure: 'yesterday',
+}
+
+function answerIntake(container: HTMLDivElement) {
+  for (const question of STATION_ONE_INTAKE) {
+    const value = INTAKE_ANSWERS[question.id]
+    if (question.type === 'text') {
+      const input = container.querySelector<HTMLInputElement>(`input[name="${question.id}"]`)!
+      act(() => {
+        setInput(input, value)
+        submit(input.form!)
+      })
+    } else {
+      act(() =>
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: value === 'yes' ? 'y' : 'n' })),
+      )
+    }
+  }
 }
 
 describe('StationOne', () => {
@@ -43,6 +75,7 @@ describe('StationOne', () => {
     root = createRoot(container)
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => null)
     applyStationVibe('warm')
+    resetVisitorProfile()
   })
 
   afterEach(() => {
@@ -53,70 +86,105 @@ describe('StationOne', () => {
     container.remove()
   })
 
-  it('moves from identity intake through facial analysis to Station II', async () => {
-    vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue()
-    vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {})
+  it('asks the ten intake questions, then runs facial analysis through to Station II', async () => {
     act(() => root.render(<StationOne phaseDurationMs={20} />))
 
     expect(container.querySelectorAll('.journey-status > span')).toHaveLength(1)
     expect(container.querySelector('.journey-status')?.textContent).toBe('Welcome to Station I')
     expect(container.querySelector('label .journey-headline-canvas')).not.toBeNull()
-    const name = container.querySelector<HTMLInputElement>('input[name="name"]')!
-    expect(name.getAttribute('aria-label')).toBe('Your name')
-    act(() => {
-      setInput(name, 'Ada')
-      submit(name.form!)
-    })
 
-    const age = container.querySelector<HTMLInputElement>('input[name="age"]')!
-    expect(age).not.toBeNull()
-    act(() => {
-      setInput(age, '34')
-      submit(age.form!)
-    })
+    const callNameInput = container.querySelector<HTMLInputElement>('input[name="callName"]')!
+    expect(callNameInput.getAttribute('aria-label')).toBe('What do you want us to call you?')
+
+    answerIntake(container)
+
     expect(container.textContent).toContain("Let's have a look at you")
     expect(container.querySelector('.journey-message .journey-headline-canvas')).not.toBeNull()
-    expect(container.textContent).not.toContain('FACIAL ANALYSIS')
 
-    for (const eyebrow of ['01 / FACE MAP', '02 / EYE VECTOR', '03 / PROFILE']) {
-      await act(async () => {
-        vi.advanceTimersByTime(20)
-        await Promise.resolve()
-      })
-      expect(container.textContent).not.toContain(eyebrow)
-    }
+    const profile = getVisitorProfile()
+    expect(profile.callName).toBe('Ada')
+    expect(profile.age).toBe(34)
+    expect(profile.previousRelationships).toBe('yes')
+
     await act(async () => {
       vi.advanceTimersByTime(20)
       await Promise.resolve()
     })
-    expect(container.textContent).toContain('Do you like what you see?')
-    expect(container.querySelector('.journey-question h1 .journey-headline-canvas')).not.toBeNull()
-    expect(container.querySelector('audio')?.getAttribute('src')).toBe(
-      '/audio/debra/08-do-you-like-what-you-see.mp3',
-    )
+    expect(container.textContent).toContain('Hold still, Ada')
 
-    // Station I answers by keyboard only now — no on-screen Yes/No buttons.
-    expect(container.querySelector('button')).toBeNull()
-    act(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'y' })))
-    expect(container.querySelector('.journey-camera-stage')?.className).toContain('is-dissolving')
-    expect(container.querySelector('audio')).toBeNull()
-
-    for (let phase = 0; phase < 2; phase += 1) {
+    for (let step = 0; step < 2; step += 1) {
       await act(async () => {
         vi.advanceTimersByTime(20)
         await Promise.resolve()
       })
     }
-    expect(container.textContent).toContain('Analysis complete')
+    expect(container.textContent).toContain("I've got a sense of you")
+
+    await act(async () => {
+      vi.advanceTimersByTime(20)
+      await Promise.resolve()
+    })
+    expect(container.textContent).toContain('Facial analysis complete')
+    expect(container.textContent).not.toContain('Proceed to the next station')
+    expect(container.querySelector('.journey-complete h1 .journey-headline-canvas')).not.toBeNull()
+
+    // "Proceed to the next station" is its own screen, shown after a beat.
+    await act(async () => {
+      vi.advanceTimersByTime(20)
+      await Promise.resolve()
+    })
+    expect(container.textContent).not.toContain('Facial analysis complete')
+    expect(container.textContent).toContain('Proceed to the next station')
     expect(container.querySelector('.journey-complete h1 .journey-headline-canvas')).not.toBeNull()
     // Stations stay separate — no "continue to Station II" link.
     expect(container.querySelector('a')).toBeNull()
   })
 
+  it('skips straight past text-question fields when answering yes/no by keyboard', () => {
+    act(() => root.render(<StationOne phaseDurationMs={20} />))
+
+    const callNameInput = container.querySelector<HTMLInputElement>('input[name="callName"]')!
+    act(() => {
+      setInput(callNameInput, 'Ada')
+      submit(callNameInput.form!)
+    })
+    const ageInput = container.querySelector<HTMLInputElement>('input[name="age"]')!
+    expect(ageInput.getAttribute('type')).toBe('number')
+    act(() => {
+      setInput(ageInput, '17')
+      submit(ageInput.form!)
+    })
+
+    expect(container.querySelector('input[name="identity"]')).not.toBeNull()
+  })
+
+  it('does not leak the pressed y/n key into the next text question', () => {
+    act(() => root.render(<StationOne phaseDurationMs={20} />))
+
+    for (const [name, value] of [
+      ['callName', 'Ada'],
+      ['age', '34'],
+      ['identity', 'woman'],
+      ['orientation', 'bisexual'],
+    ]) {
+      const input = container.querySelector<HTMLInputElement>(`input[name="${name}"]`)!
+      act(() => {
+        setInput(input, value)
+        submit(input.form!)
+      })
+    }
+
+    // doubtedOrientation, then previousRelationships — both yes/no, both
+    // answered by keyboard, landing on "origin" (a text question) next.
+    act(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'n' })))
+    act(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'y' })))
+
+    const originInput = container.querySelector<HTMLInputElement>('input[name="origin"]')!
+    expect(originInput.value).toBe('')
+  })
+
   it('restores the original station chrome when the warm look is off', () => {
     applyStationVibe('original')
-    vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue()
-    vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {})
     act(() => root.render(<StationOne phaseDurationMs={20} />))
 
     expect(container.querySelector('.journey-status')?.textContent).toBe('STATION I')

@@ -19,7 +19,7 @@ export function DebraGuide({
         </div>
         {showIntroduction ? (
           <p className="journey-debra-introduction">
-            I will help you describe the companion you believe you want.
+            I will help you describe the partner you believe you want.
           </p>
         ) : null}
       </div>

@@ -221,7 +221,6 @@
 .journey-intake,
 .journey-message,
 .journey-question,
-.journey-calculating,
 .journey-complete {
   width: min(100%, 430px);
 }
@@ -254,6 +253,8 @@
 }
 
 .journey-intake {
+  position: relative;
+  z-index: 3;
   display: grid;
   gap: 24px;
   align-self: end;
@@ -263,7 +264,6 @@
 .journey-intake label,
 .journey-message h1,
 .journey-question h1,
-.journey-calculating h1,
 .journey-complete h1 {
   margin: 0;
   font-size: clamp(30px, 5.2vh, 56px);
@@ -319,6 +319,8 @@
 }
 
 .journey-question {
+  position: relative;
+  z-index: 3;
   align-self: end;
   margin-bottom: 8vh;
 }
@@ -344,14 +346,32 @@
   text-align: center;
 }
 
-.journey-calculating,
 .journey-complete {
   text-align: center;
 }
 
-.journey-calculating p {
+.journey-scale {
+  position: relative;
+  z-index: 3;
+  align-self: end;
+  width: min(100%, 430px);
+  margin-bottom: 8vh;
+}
+
+.journey-scale label {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 14px;
+  align-items: center;
+  margin-top: 26px;
   color: var(--mirror-quiet);
-  font-size: 12px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
+.journey-scale input[type='range'] {
+  width: 100%;
+  accent-color: var(--mirror-ice);
 }
 
 .journey-recording {
@@ -542,7 +562,6 @@
   .journey-debra,
   .journey-debra-motion,
   .journey-debra-orb-wrap::before { transition-duration: 0.01ms; animation: none; }
-  .journey-loader { animation: none; }
 }
 
 @media (max-height: 700px) {
@@ -670,16 +689,6 @@
   text-transform: uppercase;
 }
 
-:root[data-station-vibe="original"] .journey-loader {
-  width: 108px;
-  aspect-ratio: 1;
-  margin: 0 auto 30px;
-  border: 1px solid rgba(185, 220, 235, 0.34);
-  border-top-color: var(--mirror-ice);
-  border-radius: 50%;
-  animation: journey-spin 2.2s linear infinite;
-}
-
 :root[data-station-vibe="original"] .journey-recording i {
   box-shadow: 0 0 12px rgba(185, 220, 235, 0.5);
 }
@@ -711,10 +720,6 @@
 :root[data-station-vibe="original"] .journey-debra-introduction {
   color: #fff;
   font-size: 18px;
-}
-
-@keyframes journey-spin {
-  to { transform: rotate(360deg); }
 }
 
 :root[data-station-quality="kiosk"] .journey-camera-video,

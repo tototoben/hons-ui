@@ -72,6 +72,12 @@ export function JourneyDevPanel() {
       step: 100,
     },
     debraBriefMs: { value: journeySettings.timing.debraBriefMs, min: 500, max: 8000, step: 100 },
+    lightningIntroMs: {
+      value: journeySettings.timing.lightningIntroMs,
+      min: 500,
+      max: 8000,
+      step: 100,
+    },
   })
   Object.assign(journeySettings.timing, timing)
 
