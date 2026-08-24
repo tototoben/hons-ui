@@ -45,8 +45,8 @@ const INTAKE_ANSWERS: Record<string, string> = {
   lastInsecure: 'yesterday',
 }
 
-function answerIntake(container: HTMLDivElement) {
-  for (const question of STATION_ONE_INTAKE) {
+function answerIntake(container: HTMLDivElement, fromIndex = 0) {
+  for (const question of STATION_ONE_INTAKE.slice(fromIndex)) {
     const value = INTAKE_ANSWERS[question.id]
     if (question.type === 'text') {
       const input = container.querySelector<HTMLInputElement>(`input[name="${question.id}"]`)!
@@ -95,8 +95,22 @@ describe('StationOne', () => {
 
     const callNameInput = container.querySelector<HTMLInputElement>('input[name="callName"]')!
     expect(callNameInput.getAttribute('aria-label')).toBe('What do you want us to call you?')
+    act(() => {
+      setInput(callNameInput, INTAKE_ANSWERS.callName)
+      submit(callNameInput.form!)
+    })
 
-    answerIntake(container)
+    const age = container.querySelector<HTMLInputElement>('input[name="age"]')!
+    expect(age).not.toBeNull()
+    expect(age.type).toBe('text')
+    expect(age.getAttribute('inputMode') ?? age.getAttribute('inputmode')).toBe('numeric')
+    expect(age.getAttribute('pattern')).toBe('[0-9]*')
+    act(() => {
+      setInput(age, INTAKE_ANSWERS.age)
+      submit(age.form!)
+    })
+
+    answerIntake(container, 2)
 
     expect(container.textContent).toContain("Let's have a look at you")
     expect(container.querySelector('.journey-message .journey-headline-canvas')).not.toBeNull()
@@ -149,7 +163,7 @@ describe('StationOne', () => {
       submit(callNameInput.form!)
     })
     const ageInput = container.querySelector<HTMLInputElement>('input[name="age"]')!
-    expect(ageInput.getAttribute('type')).toBe('number')
+    expect(ageInput.getAttribute('type')).toBe('text')
     act(() => {
       setInput(ageInput, '17')
       submit(ageInput.form!)

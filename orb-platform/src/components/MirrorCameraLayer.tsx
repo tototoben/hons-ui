@@ -288,7 +288,6 @@ function AppearanceReadout({
     >
       <dl>
         <AppearanceColor label="Hair color" swatch={appearance.hair} />
-        <AppearanceColor label="Skin tone" swatch={appearance.skin} swatchId="skin" />
         <AppearanceColor label="Eye color" swatch={appearance.eyes} swatchId="eyes" />
       </dl>
       {appearance.morphometrics.length > 0 ? (
@@ -308,8 +307,8 @@ function AppearanceColor({
   swatchId,
 }: {
   label: string
-  swatch: FaceAppearance['skin']
-  swatchId?: 'skin' | 'eyes'
+  swatch: FaceAppearance['hair']
+  swatchId?: 'eyes'
 }) {
   const showSwatch = swatch.label !== 'undetected'
 
@@ -325,7 +324,7 @@ function AppearanceColor({
             aria-hidden="true"
           />
         ) : null}
-        {swatchId === 'skin' && showSwatch ? null : swatch.label}
+        {swatch.label}
       </dd>
     </div>
   )

@@ -77,13 +77,17 @@ export function StationOne({ phaseDurationMs = 2200 }: { phaseDurationMs?: numbe
             id={`station-one-${question.id}`}
             aria-label={question.prompt}
             name={question.id}
-            type={question.numeric ? 'number' : 'text'}
-            min={question.numeric ? 1 : undefined}
-            max={question.numeric ? 120 : undefined}
+            type="text"
+            inputMode={question.numeric ? 'numeric' : undefined}
+            pattern={question.numeric ? '[0-9]*' : undefined}
             autoFocus
             autoComplete="off"
             value={draft}
-            onChange={(event) => setDraft(event.target.value)}
+            onChange={(event) => {
+              const next = event.target.value
+              if (question.numeric && next !== '' && !/^\d{1,3}$/.test(next)) return
+              setDraft(next)
+            }}
           />
           <button type="submit">Continue</button>
         </form>
