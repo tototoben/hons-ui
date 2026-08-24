@@ -277,6 +277,16 @@
   background: transparent;
   color: var(--mirror-ink);
   font: 300 clamp(36px, 7vh, 72px)/1 "Helvetica Neue", sans-serif;
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.journey-intake input::-webkit-inner-spin-button,
+.journey-intake input::-webkit-outer-spin-button {
+  appearance: none;
+  -webkit-appearance: none;
+  display: none;
+  margin: 0;
 }
 
 .journey-intake input:focus {

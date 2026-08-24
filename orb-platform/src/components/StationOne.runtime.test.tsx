@@ -70,6 +70,9 @@ describe('StationOne', () => {
 
     const age = container.querySelector<HTMLInputElement>('input[name="age"]')!
     expect(age).not.toBeNull()
+    expect(age.type).toBe('text')
+    expect(age.getAttribute('inputMode') ?? age.getAttribute('inputmode')).toBe('numeric')
+    expect(age.getAttribute('pattern')).toBe('[0-9]*')
     act(() => {
       setInput(age, '34')
       submit(age.form!)

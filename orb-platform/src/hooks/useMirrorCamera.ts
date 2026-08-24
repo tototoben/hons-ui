@@ -236,7 +236,7 @@ function appearanceFromLandmarks(
   const image = readVideoFrame(video)
   const samples = image
     ? sampleFaceColorRegions(image, landmarks)
-    : { hair: null, skin: null, eyes: null }
+    : { hair: null, eyes: null }
 
   return deriveFaceAppearance({
     ...samples,

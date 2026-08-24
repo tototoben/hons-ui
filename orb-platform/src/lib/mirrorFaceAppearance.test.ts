@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest'
 import {
   classifyEyeColor,
   classifyHairColor,
-  classifySkinTone,
   deriveFaceAppearance,
   deriveFaceMorphometrics,
   formatMorphometricLine,
@@ -49,16 +48,6 @@ describe('color classification', () => {
     expect(classifyEyeColor(rgb(96, 62, 36)).label).toBe('brown')
     expect(classifyEyeColor(rgb(148, 118, 52)).label).toBe('hazel')
     expect(classifyEyeColor(rgb(118, 122, 128)).label).toBe('gray')
-  })
-
-  it('describes skin with a hex value derived from the sampled tone', () => {
-    const light = classifySkinTone(rgb(232, 198, 176))
-    expect(light.hex).toBe('#e8c6b0')
-    expect(light.label).toBe('light')
-
-    const deep = classifySkinTone(rgb(72, 46, 32))
-    expect(deep.hex).toBe('#482e20')
-    expect(deep.label).toBe('deep')
   })
 })
 
@@ -123,7 +112,6 @@ describe('deriveFaceAppearance', () => {
   it('combines sampled colors with morphometric terms for the HUD', () => {
     const appearance = deriveFaceAppearance({
       hair: rgb(214, 188, 118),
-      skin: rgb(232, 198, 176),
       eyes: rgb(46, 102, 58),
       landmarks: landmarksWith({
         133: { x: 0.42, y: 0.4 },
@@ -145,7 +133,6 @@ describe('deriveFaceAppearance', () => {
     })
 
     expect(appearance.hair.label).toBe('blonde')
-    expect(appearance.skin.hex).toBe('#e8c6b0')
     expect(appearance.eyes.label).toBe('green')
     expect(appearance.morphometrics.map((reading) => reading.term)).toEqual(
       expect.arrayContaining([
@@ -162,7 +149,6 @@ describe('deriveFaceAppearance', () => {
   it('marks missing hair as undetected instead of inventing a color', () => {
     const appearance = deriveFaceAppearance({
       hair: null,
-      skin: rgb(210, 170, 140),
       eyes: rgb(96, 62, 36),
       landmarks: landmarksWith({
         10: { x: 0.5, y: 0.2 },

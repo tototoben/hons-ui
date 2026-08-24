@@ -69,13 +69,17 @@ export function StationOne({ phaseDurationMs = 2200 }: { phaseDurationMs?: numbe
             id={`station-one-${state.phase}`}
             aria-label={state.phase === 'name' ? 'Your name' : 'Your age'}
             name={state.phase}
-            type={state.phase === 'age' ? 'number' : 'text'}
-            min={state.phase === 'age' ? 1 : undefined}
-            max={state.phase === 'age' ? 120 : undefined}
+            type="text"
+            inputMode={state.phase === 'age' ? 'numeric' : undefined}
+            pattern={state.phase === 'age' ? '[0-9]*' : undefined}
             autoFocus
             autoComplete="off"
             value={draft}
-            onChange={(event) => setDraft(event.target.value)}
+            onChange={(event) => {
+              const next = event.target.value
+              if (state.phase === 'age' && next !== '' && !/^\d{1,3}$/.test(next)) return
+              setDraft(next)
+            }}
           />
           <button type="submit">Continue</button>
         </form>

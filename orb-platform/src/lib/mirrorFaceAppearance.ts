@@ -14,7 +14,6 @@ export type MorphometricReading = {
 
 export type FaceAppearance = {
   hair: ColorSwatch
-  skin: ColorSwatch
   eyes: ColorSwatch
   morphometrics: MorphometricReading[]
 }
@@ -68,7 +67,7 @@ const FACE = {
   rightLowerLid: 374,
 }
 
-const SKIN_SAMPLE_INDICES = [
+const FACE_REF_INDICES = [
   FACE.leftCheek,
   FACE.rightCheek,
   FACE.leftCheekOuter,
@@ -101,12 +100,6 @@ export function classifyEyeColor(color: Rgb): ColorSwatch {
   else if (h >= 85 && h <= 165 && s >= 0.12) label = 'green'
   else if (h >= 32 && h <= 58 && l >= 0.3 && s >= 0.28) label = 'hazel'
   else if (l < 0.16) label = 'brown'
-  return { label, hex: rgbToHex(color) }
-}
-
-export function classifySkinTone(color: Rgb): ColorSwatch {
-  const ita = individualTypologyAngle(color)
-  const label = ita >= 41 ? 'light' : ita >= 10 ? 'medium' : 'deep'
   return { label, hex: rgbToHex(color) }
 }
 
@@ -156,18 +149,18 @@ export function sampleAverageColor(
 export function sampleFaceColorRegions(
   image: ImageDataLike,
   landmarks: NormalizedLandmark[],
-): { hair: Rgb | null; skin: Rgb | null; eyes: Rgb | null } {
+): { hair: Rgb | null; eyes: Rgb | null } {
   const frame = { width: image.width, height: image.height }
-  const skin = sampleAverageColor(
+  const faceRef = sampleAverageColor(
     image,
-    landmarkPixels(landmarks, SKIN_SAMPLE_INDICES, frame),
+    landmarkPixels(landmarks, FACE_REF_INDICES, frame),
     2,
   )
   const hair = sampleAverageColor(
     image,
     hairPixels(landmarks, frame),
     2,
-    (color) => isPlausibleHair(color, skin),
+    (color) => isPlausibleHair(color, faceRef),
   )
   const eyes = sampleAverageColor(
     image,
@@ -179,7 +172,7 @@ export function sampleFaceColorRegions(
     isPlausibleIris,
   )
 
-  return { hair, skin, eyes }
+  return { hair, eyes }
 }
 
 export function deriveFaceMorphometrics(
@@ -329,20 +322,17 @@ export function formatMorphometricLine({ term, finding }: MorphometricReading) {
 
 export function deriveFaceAppearance({
   hair,
-  skin,
   eyes,
   landmarks,
   frame,
 }: {
   hair: Rgb | null
-  skin: Rgb | null
   eyes: Rgb | null
   landmarks: NormalizedLandmark[]
   frame: FrameSize
 }): FaceAppearance {
   return {
     hair: hair ? classifyHairColor(hair) : { label: 'undetected', hex: '#888888' },
-    skin: skin ? classifySkinTone(skin) : { label: 'undetected', hex: '#888888' },
     eyes: eyes ? classifyEyeColor(eyes) : { label: 'undetected', hex: '#888888' },
     morphometrics: deriveFaceMorphometrics(landmarks, frame),
   }
@@ -379,7 +369,6 @@ export function smoothAppearance(
   if (!previous) return next
   return {
     hair: blendSwatch(previous.hair, next.hair, amount, classifyHairColor),
-    skin: blendSwatch(previous.skin, next.skin, amount, classifySkinTone),
     eyes: blendSwatch(previous.eyes, next.eyes, amount, classifyEyeColor),
     morphometrics: next.morphometrics,
   }
@@ -558,12 +547,12 @@ function angleAt(
   return (Math.acos(clamp( (ab.x * cb.x + ab.y * cb.y) / magnitude, -1, 1)) * 180) / Math.PI
 }
 
-function isPlausibleHair(color: Rgb, skin: Rgb | null) {
+function isPlausibleHair(color: Rgb, faceRef: Rgb | null) {
   const { h, s, l } = rgbToHsl(color)
   if (s > 0.28 && h > 70 && h < 190) return false
   if (l > 0.88) return false
-  if (!skin) return true
-  return colorDistance(color, skin) > 28
+  if (!faceRef) return true
+  return colorDistance(color, faceRef) > 28
 }
 
 function isPlausibleIris(color: Rgb) {
@@ -575,34 +564,6 @@ function isPlausibleIris(color: Rgb) {
 
 function colorDistance(a: Rgb, b: Rgb) {
   return Math.hypot(a.r - b.r, a.g - b.g, a.b - b.b)
-}
-
-function individualTypologyAngle(color: Rgb) {
-  const lab = rgbToLab(color)
-  if (Math.abs(lab.b) < 0.001) return lab.L >= 50 ? 90 : -90
-  return (Math.atan((lab.L - 50) / lab.b) * 180) / Math.PI
-}
-
-function rgbToLab({ r, g, b }: Rgb) {
-  const linear = [r, g, b].map((channel) => {
-    const value = channel / 255
-    return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4
-  })
-  const x = linear[0] * 0.4124564 + linear[1] * 0.3575761 + linear[2] * 0.1804375
-  const y = linear[0] * 0.2126729 + linear[1] * 0.7151522 + linear[2] * 0.072175
-  const z = linear[0] * 0.0193339 + linear[1] * 0.119192 + linear[2] * 0.9503041
-  const fx = labPivot(x / 0.95047)
-  const fy = labPivot(y)
-  const fz = labPivot(z / 1.08883)
-  return {
-    L: 116 * fy - 16,
-    a: 500 * (fx - fy),
-    b: 200 * (fy - fz),
-  }
-}
-
-function labPivot(value: number) {
-  return value > 0.008856 ? Math.cbrt(value) : 7.787 * value + 16 / 116
 }
 
 function rgbToHsl({ r, g, b }: Rgb) {

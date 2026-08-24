@@ -21,7 +21,6 @@ const camera = vi.hoisted(() => ({
   },
   appearance: null as null | {
     hair: { label: string; hex: string }
-    skin: { label: string; hex: string }
     eyes: { label: string; hex: string }
     morphometrics: Array<{ term: string; finding: string }>
   },
@@ -104,10 +103,9 @@ describe('MirrorCameraLayer', () => {
     act(() => root.unmount())
   })
 
-  it('prints sampled hair, skin, and eye colors with morphometric terms', () => {
+  it('prints sampled hair and eye colors with morphometric terms', () => {
     camera.appearance = {
       hair: { label: 'blonde', hex: '#d6bc76' },
-      skin: { label: 'light', hex: '#e8c6b0' },
       eyes: { label: 'green', hex: '#2e663a' },
       morphometrics: [
         { term: 'canthal tilt', finding: 'negative, −4.2°' },
@@ -120,13 +118,12 @@ describe('MirrorCameraLayer', () => {
     const readout = container.querySelector('.journey-appearance')
     expect(readout?.textContent).toContain('Hair color')
     expect(readout?.textContent).toContain('blonde')
-    expect(readout?.textContent).not.toContain('#e8c6b0')
-    expect(readout?.textContent).not.toContain('light')
+    expect(readout?.textContent).not.toContain('Skin tone')
     expect(readout?.textContent).toContain('green')
     expect(readout?.textContent).toContain('negative canthal tilt')
     expect(
-      container.querySelector<HTMLElement>('[data-swatch="skin"]')?.style.backgroundColor,
-    ).toBe('rgb(232, 198, 176)')
+      container.querySelector<HTMLElement>('[data-swatch="eyes"]')?.style.backgroundColor,
+    ).toBe('rgb(46, 102, 58)')
 
     act(() => root.unmount())
   })
