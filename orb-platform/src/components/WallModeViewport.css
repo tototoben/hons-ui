@@ -1,0 +1,50 @@
+html[data-wall-mode='true'] .station-switcher,
+html[data-wall-mode='true'] .mirror-preview-toggle {
+  display: none !important;
+}
+
+.wall-mode-viewport {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: #0a0806;
+}
+
+.wall-mode-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: top left;
+  will-change: transform;
+}
+
+.wall-mode-station,
+.wall-mode-station .third-station,
+.wall-mode-station .mirror-frame {
+  width: 100%;
+  height: 100%;
+}
+
+.wall-mode-station .third-station {
+  min-height: 100%;
+  max-height: none;
+}
+
+.wall-mode-station .mirror-frame {
+  max-height: none;
+  padding: 0;
+}
+
+.wall-mode-station .mirror-screen {
+  min-height: 100%;
+  justify-content: center;
+}
+
+.wall-mode-station .mirror-orb-ring-slot {
+  width: clamp(220px, 18vw, 420px);
+  height: clamp(220px, 18vw, 420px);
+}
+
+.wall-mode-station .mirror-headline {
+  font-size: clamp(2rem, 4.5vw, 5rem);
+}

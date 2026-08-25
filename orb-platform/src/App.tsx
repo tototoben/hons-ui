@@ -1,7 +1,8 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
-import { StationVibeToggle } from './components/StationVibeToggle'
 import { MirrorPreviewFrame } from './components/MirrorPreviewToggle'
+import { WallModeViewport } from './components/WallModeViewport'
 import { applyDeviceQuality } from './lib/deviceQuality'
+import { isWallMode } from './lib/wallMode'
 import { getStationFromHash, getStationHref, type StationRoute } from './lib/stationRoute'
 import './index.css'
 
@@ -30,6 +31,7 @@ export default function App() {
   const [station, setStation] = useState<StationRoute>(() =>
     getStationFromHash(window.location.hash),
   )
+  const [wallMode] = useState(() => isWallMode())
 
   useEffect(() => {
     applyDeviceQuality()
@@ -49,13 +51,14 @@ export default function App() {
 
   return (
     <main className="experience">
-      {import.meta.env.DEV ? (
+      {import.meta.env.DEV && !wallMode ? (
         <Suspense fallback={null}>
           <LevaRoot />
           {station === 'orb' ? <DevPanel /> : null}
         </Suspense>
       ) : null}
-      <nav className={`station-switcher station-switcher-${station}`} aria-label="Station switcher">
+      {wallMode ? null : (
+        <nav className={`station-switcher station-switcher-${station}`} aria-label="Station switcher">
         <a
           aria-current={station === 'station-1' ? 'page' : undefined}
           href={getStationHref('station-1')}
@@ -90,10 +93,7 @@ export default function App() {
           Avatars
         </a>
       </nav>
-      {station === 'station-1' || station === 'station-2' || station === 'mirror' ? (
-        <StationVibeToggle />
-      ) : null}
-
+      )}
       <Suspense fallback={null}>
         {station === 'station-1' ? (
           <MirrorPreviewFrame showToggle={import.meta.env.DEV}>
@@ -108,7 +108,13 @@ export default function App() {
         ) : station === 'cards' ? (
           <SecondStation />
         ) : station === 'mirror' ? (
-          <ThirdStation />
+          wallMode ? (
+            <WallModeViewport>
+              <ThirdStation />
+            </WallModeViewport>
+          ) : (
+            <ThirdStation />
+          )
         ) : (
           <AvatarStation />
         )}
