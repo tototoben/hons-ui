@@ -12,7 +12,15 @@ jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
-      - name: Sync from upstream
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh repo sync ${{ github.repository }} --branch main --force
+      - name: Checkout fork
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Merge upstream into fork
+        run: |
+          git remote add upstream https://github.com/martinorav-png/house-of-negotiated-selves.git
+          git fetch upstream main
+          git merge upstream/main --no-edit
+          git push
