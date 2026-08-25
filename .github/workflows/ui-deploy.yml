@@ -31,12 +31,15 @@ jobs:
         working-directory: orb-platform
         run: npm ci --no-audit --no-fund
 
-      - name: Patch outDir for R2 bundle
+      - name: Patch vite config for R2 bundle
         working-directory: orb-platform
         run: |
           # vite.config.ts hardcodes outDir to ../../visualizer/public/orb.
-          # Override to dist/ for a clean self-contained R2 bundle.
-          sed -i "s|outDir: '../../visualizer/public/orb'|outDir: 'dist'|" vite.config.ts
+          # Override to dist/orb so the bundle is self-contained under dist/.
+          # Keep base: '/orb/' so the same bundle works both in the visualizer
+          # (iframe at /orb/index.html) and on the RPi kiosk (served from
+          # dist/orb/ by python3 http.server).
+          sed -i "s|outDir: '../../visualizer/public/orb'|outDir: 'dist/orb'|" vite.config.ts
 
       - name: Build
         working-directory: orb-platform
@@ -53,7 +56,7 @@ jobs:
 
       - name: Package build
         run: |
-          cd orb-platform/dist
+          cd orb-platform/dist/orb
           tar czf /tmp/ui-${{ steps.version.outputs.version }}.tar.gz .
           ls -lh /tmp/ui-${{ steps.version.outputs.version }}.tar.gz
 
