@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { base } from '../config'
 
 export type ThirdStationVoicePhase = 'intro' | 'prompt' | 'recording' | 'loading'
 

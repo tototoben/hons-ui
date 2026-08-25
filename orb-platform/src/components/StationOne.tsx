@@ -18,10 +18,8 @@ const STATION_ID = 'station-1'
 
 function actionToEvent(action: StationOneAction): { event: string; data?: unknown } {
   switch (action.type) {
-    case 'SUBMIT_NAME':
-      return { event: 'name_submitted', data: { name: action.value.trim() } }
-    case 'SUBMIT_AGE':
-      return { event: 'age_submitted', data: { age: action.value.trim() } }
+    case 'SUBMIT_TEXT':
+      return { event: 'text_submitted', data: { value: action.value.trim() } }
     case 'ANSWER':
       return { event: 'self_check_answer', data: { answer: action.value } }
     case 'ADVANCE':
@@ -73,9 +71,9 @@ export function StationOne({ phaseDurationMs = 2200 }: { phaseDurationMs?: numbe
     // When the station reaches 'complete', publish the interview_done event
     // that central listens for to advance the visit state machine.
     if (state.phase === 'complete') {
-      publish(STATION_ID, 'interview_done', { name: state.name, age: state.age })
+      publish(STATION_ID, 'interview_done', { answers: state.answers })
     }
-  }, [state.phase, state.name, state.age])
+  }, [state.phase, state.answers])
 
   useEffect(() => {
     if (!AUTO_PHASES.has(state.phase)) return
