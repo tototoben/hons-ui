@@ -1,0 +1,95 @@
+name: Build & Deploy UI to R2
+
+on:
+  push:
+    branches: [main, feat/embed-in-visualizer]
+    paths:
+      - 'orb-platform/**'
+      - '.github/workflows/ui-deploy.yml'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version label (defaults to commit SHA)'
+        required: false
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment: hons-cloudflare
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: orb-platform/package-lock.json
+
+      - name: Install dependencies
+        working-directory: orb-platform
+        run: npm ci --no-audit --no-fund
+
+      - name: Patch vite config for R2 bundle
+        working-directory: orb-platform
+        run: |
+          # vite.config.ts hardcodes outDir to ../../visualizer/public/orb.
+          # Override to dist/orb so the bundle is self-contained under dist/.
+          # Keep base: '/orb/' so the same bundle works both in the visualizer
+          # (iframe at /orb/index.html) and on the RPi kiosk (served from
+          # dist/orb/ by python3 http.server).
+          sed -i "s|outDir: '../../visualizer/public/orb'|outDir: 'dist/orb'|" vite.config.ts
+
+      - name: Build
+        working-directory: orb-platform
+        run: npm run build
+
+      - name: Determine version
+        id: version
+        run: |
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Package build
+        run: |
+          cd orb-platform/dist
+          tar czf /tmp/ui-${{ steps.version.outputs.version }}.tar.gz orb
+          ls -lh /tmp/ui-${{ steps.version.outputs.version }}.tar.gz
+
+      - name: Upload to R2
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          aws s3 cp /tmp/ui-${VERSION}.tar.gz \
+            s3://${R2_BUCKET}/ui/ui-${VERSION}.tar.gz \
+            --endpoint-url "${R2_ENDPOINT}" \
+            --content-type "application/gzip"
+
+          # Update the manifest to point at this version
+          cat > /tmp/manifest.json <<EOF
+          {"version":"${VERSION}","url":"ui/ui-${VERSION}.tar.gz","built_at":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","commit":"$(git rev-parse HEAD)"}
+          EOF
+          aws s3 cp /tmp/manifest.json \
+            s3://${R2_BUCKET}/ui/manifest.json \
+            --endpoint-url "${R2_ENDPOINT}" \
+            --content-type "application/json"
+
+      - name: List all versions
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+        run: |
+          echo "=== Available UI versions in R2 ==="
+          aws s3 ls s3://${R2_BUCKET}/ui/ \
+            --endpoint-url "${R2_ENDPOINT}" \
+            --human-readable

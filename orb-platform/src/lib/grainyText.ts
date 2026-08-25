@@ -110,7 +110,7 @@ function copyCanvas(source: HTMLCanvasElement): HTMLCanvasElement {
   const c = document.createElement('canvas')
   c.width = source.width
   c.height = source.height
-  c.getContext('2d')!.drawImage(source, 0, 0)
+  c.getContext('2d', { willReadFrequently: true })!.drawImage(source, 0, 0)
   return c
 }
 
@@ -153,21 +153,21 @@ function blurTo(source: HTMLCanvasElement, w: number, h: number, radius: number)
   const br = radius * scale
 
   scratchBlurSrc = sized(scratchBlurSrc, bw, bh)
-  const sctx = scratchBlurSrc.getContext('2d')!
+  const sctx = scratchBlurSrc.getContext('2d', { willReadFrequently: true })!
   sctx.clearRect(0, 0, bw, bh)
   sctx.imageSmoothingEnabled = true
   sctx.drawImage(source, 0, 0, bw, bh)
 
   scratchBlurA = sized(scratchBlurA, bw, bh)
   scratchBlurB = sized(scratchBlurB, bw, bh)
-  boxBlurAxis(scratchBlurA.getContext('2d')!, scratchBlurSrc, bw, bh, br, 'x')
-  boxBlurAxis(scratchBlurB.getContext('2d')!, scratchBlurA, bw, bh, br, 'y')
+  boxBlurAxis(scratchBlurA.getContext('2d', { willReadFrequently: true })!, scratchBlurSrc, bw, bh, br, 'x')
+  boxBlurAxis(scratchBlurB.getContext('2d', { willReadFrequently: true })!, scratchBlurA, bw, bh, br, 'y')
 
   if (scale === 1) return scratchBlurB
 
   const up = sized(scratchBlurUp, w, h)
   scratchBlurUp = up
-  const uctx = up.getContext('2d')!
+  const uctx = up.getContext('2d', { willReadFrequently: true })!
   uctx.clearRect(0, 0, w, h)
   uctx.imageSmoothingEnabled = true
   uctx.drawImage(scratchBlurB, 0, 0, w, h)
@@ -194,7 +194,7 @@ function buildSmudgeMask(
   driftPeriod: number,
 ) {
   scratchMaskSmall = sized(scratchMaskSmall, cellsX, cellsY)
-  const sctx = scratchMaskSmall.getContext('2d')!
+  const sctx = scratchMaskSmall.getContext('2d', { willReadFrequently: true })!
   const img = sctx.createImageData(cellsX, cellsY)
 
   const step = driftPeriod > 0 ? driftTime / driftPeriod : 0
@@ -215,7 +215,7 @@ function buildSmudgeMask(
   sctx.putImageData(img, 0, 0)
 
   scratchMask = sized(scratchMask, w, h)
-  const mctx = scratchMask.getContext('2d')!
+  const mctx = scratchMask.getContext('2d', { willReadFrequently: true })!
   mctx.clearRect(0, 0, w, h)
   mctx.imageSmoothingEnabled = true
   mctx.drawImage(scratchMaskSmall, 0, 0, w, h)
@@ -364,7 +364,7 @@ export function drawGrainyText(
     // 1. Crisp base glyph pass, then its own grain + color.
     const base = sized(scratchBase, w, h)
     scratchBase = base
-    const bctx = base.getContext('2d')!
+    const bctx = base.getContext('2d', { willReadFrequently: true })!
     bctx.clearRect(0, 0, w, h)
     bctx.textAlign = 'center'
     bctx.textBaseline = 'middle'
@@ -385,7 +385,7 @@ export function drawGrainyText(
     // 2. Smudge source → half-res blur → boost stack (no mask yet).
     const smudgeSource = sized(scratchSmudgeSource, w, h)
     scratchSmudgeSource = smudgeSource
-    const ssctx = smudgeSource.getContext('2d')!
+    const ssctx = smudgeSource.getContext('2d', { willReadFrequently: true })!
     ssctx.clearRect(0, 0, w, h)
     ssctx.textAlign = 'center'
     ssctx.textBaseline = 'middle'
@@ -396,7 +396,7 @@ export function drawGrainyText(
     const blurred = blurTo(smudgeSource, w, h, smudgeBlurPx)
     const smudge = sized(scratchSmudge, w, h)
     scratchSmudge = smudge
-    const smctx = smudge.getContext('2d')!
+    const smctx = smudge.getContext('2d', { willReadFrequently: true })!
     smctx.clearRect(0, 0, w, h)
     smctx.globalCompositeOperation = 'source-over'
     const boost = Math.max(1, smudgeBoost)
@@ -414,7 +414,7 @@ export function drawGrainyText(
 
   // 3. Mask the cached smudge for this drift frame, then composite.
   scratchSmudgeColored = sized(scratchSmudgeColored, w, h)
-  const mctx = scratchSmudgeColored.getContext('2d')!
+  const mctx = scratchSmudgeColored.getContext('2d', { willReadFrequently: true })!
   mctx.clearRect(0, 0, w, h)
   mctx.drawImage(cacheBlurredSmudge, 0, 0)
   const mask = buildSmudgeMask(

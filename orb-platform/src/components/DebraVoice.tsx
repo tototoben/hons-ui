@@ -3,8 +3,8 @@ import { useEffect, useRef } from 'react'
 export type ThirdStationVoicePhase = 'intro' | 'prompt' | 'recording' | 'loading'
 
 const THIRD_STATION_CLIPS: Partial<Record<ThirdStationVoicePhase, string>> = {
-  intro: '/audio/debra/06-now-is-your-chance.mp3',
-  prompt: '/audio/debra/07-introduce-yourself-to-your-future-partner.mp3',
+  intro: base('/audio/debra/06-now-is-your-chance.mp3'),
+  prompt: base('/audio/debra/07-introduce-yourself-to-your-future-partner.mp3'),
 }
 
 export function thirdStationDebraClipFor(phase: ThirdStationVoicePhase) {
