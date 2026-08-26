@@ -41,7 +41,9 @@ export default function App() {
   )
   const [wallCropMode] = useState(() => isWallMode())
   const [wallRole] = useState(() => parseWallRole())
+  // Keep wall-sim out of this expression so TS does not narrow `station` inside the nav.
   const hideChrome = wallCropMode || isWallRoleMode() || station === 'wall-sim'
+  const showMainNav = !wallCropMode && !isWallRoleMode() && station !== 'wall-sim'
 
   useEffect(() => {
     applyDeviceQuality()
@@ -67,7 +69,7 @@ export default function App() {
           {station === 'orb' ? <DevPanel /> : null}
         </Suspense>
       ) : null}
-      {hideChrome ? null : (
+      {showMainNav ? (
         <nav className={`station-switcher station-switcher-${station}`} aria-label="Station switcher">
           <a
             aria-current={station === 'station-1' ? 'page' : undefined}
@@ -108,21 +110,16 @@ export default function App() {
           >
             Align
           </a>
-          <a
-            aria-current={station === 'wall-sim' ? 'page' : undefined}
-            href={getStationHref('wall-sim')}
-          >
-            Wall sim
-          </a>
+          <a href={getStationHref('wall-sim')}>Wall sim</a>
         </nav>
-      )}
+      ) : null}
       <Suspense fallback={null}>
         {station === 'station-1' ? (
-          <MirrorPreviewFrame showToggle={import.meta.env.DEV}>
+          <MirrorPreviewFrame>
             <StationOne />
           </MirrorPreviewFrame>
         ) : station === 'station-2' ? (
-          <MirrorPreviewFrame showToggle={import.meta.env.DEV}>
+          <MirrorPreviewFrame>
             <StationTwo />
           </MirrorPreviewFrame>
         ) : station === 'orb' ? (
