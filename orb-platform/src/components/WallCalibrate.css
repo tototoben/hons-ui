@@ -1,0 +1,121 @@
+.wall-cal {
+  --wall-cal-ink: #f0c14a;
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1vh;
+  padding: 3vh 3vw;
+  overflow: hidden;
+  color: #fff8ee;
+  background:
+    radial-gradient(120% 80% at 50% 40%, rgba(255, 255, 255, 0.06), transparent 55%),
+    #0b0908;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.wall-cal[data-orientation='landscape'] {
+  justify-content: flex-start;
+  padding-top: 5vh;
+  gap: 0.8vh;
+}
+
+.wall-cal-tick {
+  position: absolute;
+  width: min(10vw, 10vh, 72px);
+  height: min(10vw, 10vh, 72px);
+  border: 8px solid var(--wall-cal-ink);
+  pointer-events: none;
+}
+
+.wall-cal-tick-tl {
+  top: 0;
+  left: 0;
+  border-right: 0;
+  border-bottom: 0;
+}
+
+.wall-cal-tick-tr {
+  top: 0;
+  right: 0;
+  border-left: 0;
+  border-bottom: 0;
+}
+
+.wall-cal-tick-bl {
+  bottom: 0;
+  left: 0;
+  border-right: 0;
+  border-top: 0;
+}
+
+.wall-cal-tick-br {
+  right: 0;
+  bottom: 0;
+  border-left: 0;
+  border-top: 0;
+}
+
+.wall-cal-kicker {
+  margin: 0;
+  font-size: clamp(11px, 2vmin, 18px);
+  letter-spacing: 0.28em;
+  color: var(--wall-cal-ink);
+}
+
+.wall-cal-role {
+  margin: 0;
+  font-size: clamp(36px, 11vmin, 140px);
+  font-weight: 700;
+  line-height: 0.9;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--wall-cal-ink);
+  text-shadow: 0 0 40px color-mix(in srgb, var(--wall-cal-ink) 45%, transparent);
+}
+
+.wall-cal[data-orientation='landscape'] .wall-cal-role {
+  font-size: clamp(28px, 8vh, 72px);
+}
+
+.wall-cal-meta {
+  margin: 0;
+  font-size: clamp(11px, 1.8vmin, 16px);
+  letter-spacing: 0.06em;
+  color: rgba(255, 248, 238, 0.78);
+  text-align: center;
+}
+
+.wall-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  width: min(70vmin, 46vh, 640px);
+  aspect-ratio: 1;
+  flex: 0 0 auto;
+  margin-top: 0.6vh;
+  border: 3px solid var(--wall-cal-ink);
+}
+
+.wall-cal[data-orientation='landscape'] .wall-cal-grid {
+  width: min(52vh, 46vw, 480px);
+}
+
+.wall-cal-grid span {
+  display: grid;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--wall-cal-ink) 55%, transparent);
+  font-size: clamp(14px, 3.2vmin, 28px);
+  font-weight: 600;
+  color: rgba(255, 248, 238, 0.92);
+}
+
+.wall-cal-foot {
+  margin: 0.6vh 0 0;
+  font-size: clamp(10px, 1.6vmin, 14px);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(255, 248, 238, 0.5);
+}

@@ -19,7 +19,7 @@
   height: 100svh;
   max-height: 100svh;
   overflow: hidden;
-  background: linear-gradient(180deg, var(--mirror-bg-top) 0%, var(--mirror-bg-bottom) 78%);
+  background: #000;
   color: #fff4e8;
   font-family: system-ui, sans-serif;
 }
@@ -340,21 +340,6 @@
   text-transform: none;
 }
 
-.mirror-horizon {
-  position: absolute;
-  left: 8%;
-  right: 8%;
-  bottom: 6%;
-  height: 1px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 244, 232, 0.16) 20%,
-    rgba(255, 244, 232, 0.16) 80%,
-    transparent
-  );
-}
-
 @media (prefers-reduced-motion: reduce) {
   .mirror-screen,
   .mirror-idle-ring,
@@ -399,16 +384,6 @@
 :root[data-station-vibe="original"] .mirror-loading-readout {
   color: color-mix(in srgb, var(--mirror-accent) 70%, rgba(238, 241, 240, 0.8));
   text-transform: uppercase;
-}
-
-:root[data-station-vibe="original"] .mirror-horizon {
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(238, 241, 240, 0.16) 20%,
-    rgba(238, 241, 240, 0.16) 80%,
-    transparent
-  );
 }
 
 :root[data-station-vibe="original"] .mirror-hud-debris {

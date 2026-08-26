@@ -1,0 +1,344 @@
+.third-station-wall {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.wall-role {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.wall-role-code .mirror-code-panel {
+  position: absolute;
+}
+
+.wall-role-code .mirror-mini-bar {
+  position: absolute;
+}
+
+/* Blow up the scrolling code so it reads across the room. */
+.wall-role-code .mirror-code-panel.is-big {
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.wall-role-code .mirror-code-panel.is-big.is-lg {
+  font-size: 15px;
+}
+
+.wall-role-code .mirror-code-header {
+  font-size: 0.95em;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.6em;
+}
+
+.wall-role-debra {
+  display: grid;
+  place-items: center;
+}
+
+.wall-debra-orb {
+  position: relative;
+  width: min(72vw, 72vh);
+  height: min(72vw, 72vh);
+}
+
+.wall-debra-canvas,
+.wall-debra-canvas canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.wall-debra-progress {
+  position: absolute;
+  left: 50%;
+  bottom: -8%;
+  transform: translateX(-50%);
+  font: 500 14px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  letter-spacing: 0.14em;
+  color: rgba(255, 244, 232, 0.72);
+}
+
+.wall-role-copy {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 4vh;
+  padding: 8%;
+}
+
+.wall-copy-headline {
+  max-width: 90%;
+}
+
+.wall-role-guide {
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(ellipse 70% 55% at 70% 30%, rgba(228, 182, 122, 0.14), transparent 62%),
+    radial-gradient(ellipse 50% 40% at 20% 80%, rgba(120, 180, 200, 0.1), transparent 60%);
+}
+
+.wall-role-guide.is-active {
+  background:
+    radial-gradient(ellipse 70% 55% at 70% 30%, rgba(228, 182, 122, 0.22), transparent 62%),
+    radial-gradient(ellipse 50% 40% at 20% 80%, rgba(120, 180, 200, 0.16), transparent 60%);
+}
+
+.wall-particles {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.wall-particle {
+  position: absolute;
+  border-radius: 50%;
+  background: var(--mirror-accent, #e4b67a);
+  opacity: 0.25;
+  animation: wall-particle-drift linear infinite;
+}
+
+.wall-particles.is-active .wall-particle {
+  opacity: 0.7;
+  box-shadow: 0 0 10px rgba(228, 182, 122, 0.45);
+}
+
+.wall-particle-veils {
+  position: absolute;
+  inset: 0;
+}
+
+.wall-particle-veils span {
+  position: absolute;
+  width: 42%;
+  height: 42%;
+  border: 1px solid rgba(255, 244, 232, 0.12);
+  border-radius: 50%;
+  animation: wall-veil-spin 18s linear infinite;
+}
+
+.wall-particle-veils span:nth-child(1) {
+  left: 8%;
+  top: 18%;
+}
+
+.wall-particle-veils span:nth-child(2) {
+  right: 6%;
+  top: 28%;
+  width: 55%;
+  height: 55%;
+  animation-duration: 26s;
+  animation-direction: reverse;
+  border-color: rgba(228, 182, 122, 0.18);
+}
+
+.wall-particle-veils span:nth-child(3) {
+  left: 28%;
+  bottom: 8%;
+  width: 36%;
+  height: 36%;
+  animation-duration: 14s;
+}
+
+@keyframes wall-particle-drift {
+  0% {
+    transform: translate3d(0, 12px, 0) scale(0.7);
+    opacity: 0.1;
+  }
+  35% {
+    opacity: 0.85;
+  }
+  100% {
+    transform: translate3d(18px, -48px, 0) scale(1.2);
+    opacity: 0.05;
+  }
+}
+
+@keyframes wall-veil-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.wall-role-avatar {
+  display: grid;
+  place-items: center;
+  background: radial-gradient(ellipse 60% 50% at 50% 45%, rgba(90, 48, 22, 0.28), transparent 70%);
+}
+
+.wall-avatar-wait {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  gap: 18px;
+  font: 500 13px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  letter-spacing: 0.16em;
+  color: rgba(255, 244, 232, 0.55);
+}
+
+.wall-avatar-wait-mark {
+  width: 10px;
+  height: 10px;
+  background: var(--mirror-accent, #e4b67a);
+  transform: rotate(45deg);
+  opacity: 0.85;
+  animation: wall-avatar-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes wall-avatar-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.wall-role-status {
+  display: grid;
+  place-items: center;
+}
+
+.wall-status-stack {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  gap: 4.5vh;
+  width: min(88%, 520px);
+}
+
+.wall-status-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font: 500 15px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  letter-spacing: 0.16em;
+  color: rgba(255, 244, 232, 0.78);
+}
+
+.wall-status-timer {
+  display: grid;
+  place-items: center;
+  gap: 18px;
+}
+
+.wall-status-seconds {
+  font: 300 clamp(4rem, 18vw, 9rem)/1 "Helvetica Neue", "Nimbus Sans", sans-serif;
+  color: #fff4e8;
+}
+
+.wall-status-tele {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+  font: 500 12px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  letter-spacing: 0.12em;
+  color: rgba(255, 244, 232, 0.42);
+  text-align: center;
+}
+
+.wall-waveform {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 5px;
+  width: 100%;
+  height: 72px;
+}
+
+.wall-waveform span {
+  flex: 1;
+  max-width: 10px;
+  height: 18%;
+  background: rgba(255, 244, 232, 0.22);
+  transform-origin: bottom center;
+}
+
+.wall-waveform.is-live span {
+  background: var(--mirror-accent, #e4b67a);
+  animation: wall-wave 0.85s ease-in-out infinite;
+}
+
+@keyframes wall-wave {
+  0%,
+  100% {
+    height: 16%;
+    opacity: 0.45;
+  }
+  50% {
+    height: 92%;
+    opacity: 1;
+  }
+}
+
+.wall-radar {
+  position: relative;
+  width: min(54vw, 280px);
+  height: min(54vw, 280px);
+  border-radius: 50%;
+}
+
+.wall-radar-ring {
+  position: absolute;
+  inset: 12%;
+  border: 1px solid rgba(255, 244, 232, 0.16);
+  border-radius: 50%;
+}
+
+.wall-radar-ring:nth-child(2) {
+  inset: 24%;
+}
+
+.wall-radar-ring:nth-child(3) {
+  inset: 36%;
+}
+
+.wall-radar-core {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--mirror-accent, #e4b67a);
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 18px rgba(228, 182, 122, 0.55);
+}
+
+.wall-radar-sweep {
+  position: absolute;
+  inset: 8%;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    rgba(228, 182, 122, 0.35),
+    transparent 55%,
+    transparent 100%
+  );
+  opacity: 0.35;
+}
+
+.wall-radar.is-live .wall-radar-sweep {
+  opacity: 0.85;
+  animation: wall-radar-spin 2.4s linear infinite;
+}
+
+@keyframes wall-radar-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

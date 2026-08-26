@@ -1,49 +1,45 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import {
   readMirrorPreviewMode,
   writeMirrorPreviewMode,
   type MirrorPreviewMode,
 } from '../lib/mirrorPreviewMode'
 
-export function MirrorPreviewFrame({
-  children,
-  showToggle = true,
-}: {
-  children: ReactNode
-  showToggle?: boolean
-}) {
+const SHORTCUT = 'fills'
+
+/**
+ * No visible control for this anymore — typing "fills" (case-insensitive,
+ * ignored while a text field is focused so it can't fire mid-answer)
+ * toggles between portrait and fill preview, replacing the on-screen
+ * button so nothing on screen implies a fixed monitor shape.
+ */
+export function MirrorPreviewFrame({ children }: { children: ReactNode }) {
   const [mode, setMode] = useState<MirrorPreviewMode>(readMirrorPreviewMode)
-  const changeMode = (nextMode: MirrorPreviewMode) => {
-    setMode(nextMode)
-    writeMirrorPreviewMode(nextMode)
-  }
 
-  return (
-    <div className={`mirror-preview-frame experience-mirror-preview-${mode}`}>
-      {children}
-      {showToggle ? <MirrorPreviewToggle mode={mode} onChange={changeMode} /> : null}
-    </div>
-  )
-}
+  useEffect(() => {
+    let buffer = ''
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key.length !== 1) return
+      const target = document.activeElement
+      const isTyping =
+        target instanceof HTMLElement &&
+        (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')
+      if (isTyping) {
+        buffer = ''
+        return
+      }
+      buffer = (buffer + event.key.toLowerCase()).slice(-SHORTCUT.length)
+      if (buffer !== SHORTCUT) return
+      buffer = ''
+      setMode((current) => {
+        const next = current === 'fill' ? 'portrait' : 'fill'
+        writeMirrorPreviewMode(next)
+        return next
+      })
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [])
 
-export function MirrorPreviewToggle({
-  mode,
-  onChange,
-}: {
-  mode: MirrorPreviewMode
-  onChange: (mode: MirrorPreviewMode) => void
-}) {
-  const nextMode = mode === 'portrait' ? 'fill' : 'portrait'
-  const label = nextMode === 'fill' ? 'Fill screen' : 'Portrait 9:16'
-
-  return (
-    <button
-      className="mirror-preview-toggle"
-      type="button"
-      onClick={() => onChange(nextMode)}
-      aria-label={`Switch mirror preview to ${label}`}
-    >
-      {label}
-    </button>
-  )
+  return <div className={`mirror-preview-frame experience-mirror-preview-${mode}`}>{children}</div>
 }

@@ -72,7 +72,7 @@ describe('StationTwo', () => {
     expect(container.querySelector('.journey-message .journey-headline-canvas')).not.toBeNull()
     expect(container.textContent).toContain('Listening')
     expect(container.querySelectorAll('.journey-status > span')).toHaveLength(1)
-    expect(container.querySelector('.journey-debra-introduction')).toBeNull()
+    expect(container.querySelector('[aria-label="Debra, companion guide"]')).toBeNull()
 
     await act(async () => {
       vi.advanceTimersByTime(20)
@@ -80,10 +80,6 @@ describe('StationTwo', () => {
     })
     expect(container.querySelector('[aria-label="Debra, companion guide"]')).not.toBeNull()
     expect(container.textContent).toContain('AI partner')
-    const introduction = container.querySelector('.journey-debra-introduction')
-    expect(introduction?.textContent).toBe(
-      'I will help you describe the partner you believe you want.',
-    )
 
     await act(async () => {
       vi.advanceTimersByTime(20)
@@ -126,20 +122,12 @@ describe('StationTwo', () => {
     answerYesNo() // higherPower -> yes, unlocks "God?"
     expect(container.textContent).toContain('God?')
 
-    // Answer "no" to God, which should ask the open "Something else?" text question.
+    // Answer "no" to God, which should ask "Something else?" — still a
+    // plain yes/no, no typing.
     act(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'n' })))
     expect(container.textContent).toContain('Something else?')
-    const somethingElseInput = container.querySelector<HTMLInputElement>(
-      '#station-two-text-question',
-    )!
-    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set
-    act(() => {
-      setter?.call(somethingElseInput, 'the universe')
-      somethingElseInput.dispatchEvent(new Event('input', { bubbles: true }))
-      somethingElseInput.form!.dispatchEvent(
-        new Event('submit', { bubbles: true, cancelable: true }),
-      )
-    })
+    expect(container.querySelector('#station-two-text-question')).toBeNull()
+    answerYesNo() // somethingElse
     expect(container.textContent).toContain('Do you practice escapism?')
     answerYesNo() // escapism
 

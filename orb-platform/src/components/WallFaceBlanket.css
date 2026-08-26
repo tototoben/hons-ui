@@ -1,0 +1,105 @@
+.wall-face-blanket {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: #0a0806;
+  animation: wall-face-in 900ms ease-out both;
+}
+
+.wall-face-fit {
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: hidden;
+  transform-origin: top left;
+  will-change: transform;
+}
+
+.wall-face-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: top left;
+  will-change: transform;
+  background: #120d0a;
+}
+
+.wall-face-glitch {
+  position: absolute;
+  inset: 0;
+}
+
+.wall-face-image {
+  position: absolute;
+  display: block;
+  max-width: none;
+  object-fit: cover;
+  pointer-events: none;
+  user-select: none;
+}
+
+.wall-face-merge {
+  opacity: 0;
+  z-index: 1;
+}
+
+.wall-face-merge.is-visible {
+  opacity: 1;
+}
+
+.wall-face-blanket.is-glitch-hot .wall-face-glitch {
+  animation: wall-glitch-jitter 90ms steps(2, jump-none) infinite;
+  filter: contrast(1.12) saturate(1.15);
+}
+
+.wall-face-blanket.is-glitch-hot .wall-face-merge.is-visible {
+  mix-blend-mode: normal;
+  clip-path: polygon(
+    0% 0%,
+    100% 0%,
+    100% 38%,
+    0% 42%,
+    0% 58%,
+    100% 55%,
+    100% 100%,
+    0% 100%
+  );
+}
+
+.wall-face-caption {
+  position: absolute;
+  left: 50%;
+  bottom: 4%;
+  z-index: 2;
+  transform: translateX(-50%);
+  padding: 8px 14px;
+  border: 1px solid rgba(255, 244, 232, 0.22);
+  background: rgba(8, 6, 4, 0.42);
+  font: 500 11px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  letter-spacing: 0.18em;
+  color: rgba(255, 244, 232, 0.78);
+  pointer-events: none;
+}
+
+@keyframes wall-face-in {
+  from {
+    opacity: 0;
+    filter: brightness(0.4) saturate(0.7);
+  }
+  to {
+    opacity: 1;
+    filter: none;
+  }
+}
+
+@keyframes wall-glitch-jitter {
+  0% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(calc(var(--wall-glitch-x, 0.15%) * -1), var(--wall-glitch-y, 0.08%));
+  }
+  100% {
+    transform: translate(var(--wall-glitch-x, 0.12%), calc(var(--wall-glitch-y, 0.06%) * -1));
+  }
+}

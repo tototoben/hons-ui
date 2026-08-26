@@ -1,7 +1,9 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
-import { StationVibeToggle } from './components/StationVibeToggle'
 import { MirrorPreviewFrame } from './components/MirrorPreviewToggle'
+import { WallModeViewport } from './components/WallModeViewport'
 import { applyDeviceQuality } from './lib/deviceQuality'
+import { isWallMode } from './lib/wallMode'
+import { isWallRoleMode, parseWallRole } from './lib/wallRole'
 import { getStationFromHash, getStationHref, type StationRoute } from './lib/stationRoute'
 import './index.css'
 
@@ -16,12 +18,22 @@ const StationTwo = lazy(() =>
 const ThirdStation = lazy(() =>
   import('./components/ThirdStation').then((m) => ({ default: m.ThirdStation })),
 )
+const ThirdStationWall = lazy(() =>
+  import('./components/ThirdStationWall').then((m) => ({ default: m.ThirdStationWall })),
+)
 const SecondStation = lazy(() =>
   import('./components/SecondStation').then((m) => ({ default: m.SecondStation })),
 )
 const AvatarStation = lazy(() =>
   import('./components/AvatarStation').then((m) => ({ default: m.AvatarStation })),
 )
+const WallFaceAlignTool = lazy(() =>
+  import('./components/WallFaceAlignTool').then((m) => ({ default: m.WallFaceAlignTool })),
+)
+const WallCalibrate = lazy(() =>
+  import('./components/WallCalibrate').then((m) => ({ default: m.WallCalibrate })),
+)
+const WallSim = lazy(() => import('./components/WallSim').then((m) => ({ default: m.WallSim })))
 const OrbStation = lazy(() =>
   import('./components/OrbStation').then((m) => ({ default: m.OrbStation })),
 )
@@ -30,6 +42,13 @@ export default function App() {
   const [station, setStation] = useState<StationRoute>(() =>
     getStationFromHash(window.location.hash),
   )
+  const [wallCropMode] = useState(() => isWallMode())
+  const [wallRole] = useState(() => parseWallRole())
+  // Keep wall-sim out of this expression so TS does not narrow `station` inside the nav.
+  const hideChrome =
+    wallCropMode || isWallRoleMode() || station === 'wall-sim' || station === 'wall-cal'
+  const showMainNav =
+    !wallCropMode && !isWallRoleMode() && station !== 'wall-sim' && station !== 'wall-cal'
 
   useEffect(() => {
     applyDeviceQuality()
@@ -49,66 +68,85 @@ export default function App() {
 
   return (
     <main className="experience">
-      {import.meta.env.DEV ? (
+      {import.meta.env.DEV && !hideChrome ? (
         <Suspense fallback={null}>
           <LevaRoot />
           {station === 'orb' ? <DevPanel /> : null}
         </Suspense>
       ) : null}
-      <nav className={`station-switcher station-switcher-${station}`} aria-label="Station switcher">
-        <a
-          aria-current={station === 'station-1' ? 'page' : undefined}
-          href={getStationHref('station-1')}
-        >
-          Station I
-        </a>
-        <a
-          aria-current={station === 'station-2' ? 'page' : undefined}
-          href={getStationHref('station-2')}
-        >
-          Station II
-        </a>
-        <a
-          aria-current={station === 'mirror' ? 'page' : undefined}
-          href={getStationHref('mirror')}
-        >
-          Station III
-        </a>
-        <a aria-current={station === 'orb' ? 'page' : undefined} href={getStationHref('orb')}>
-          Orb
-        </a>
-        <a
-          aria-current={station === 'cards' ? 'page' : undefined}
-          href={getStationHref('cards')}
-        >
-          Cards
-        </a>
-        <a
-          aria-current={station === 'avatars' ? 'page' : undefined}
-          href={getStationHref('avatars')}
-        >
-          Avatars
-        </a>
-      </nav>
-      {station === 'station-1' || station === 'station-2' || station === 'mirror' ? (
-        <StationVibeToggle />
+      {showMainNav ? (
+        <nav className={`station-switcher station-switcher-${station}`} aria-label="Station switcher">
+          <a
+            aria-current={station === 'station-1' ? 'page' : undefined}
+            href={getStationHref('station-1')}
+          >
+            Station I
+          </a>
+          <a
+            aria-current={station === 'station-2' ? 'page' : undefined}
+            href={getStationHref('station-2')}
+          >
+            Station II
+          </a>
+          <a
+            aria-current={station === 'mirror' ? 'page' : undefined}
+            href={getStationHref('mirror')}
+          >
+            Station III
+          </a>
+          <a aria-current={station === 'orb' ? 'page' : undefined} href={getStationHref('orb')}>
+            Orb
+          </a>
+          <a
+            aria-current={station === 'cards' ? 'page' : undefined}
+            href={getStationHref('cards')}
+          >
+            Cards
+          </a>
+          <a
+            aria-current={station === 'avatars' ? 'page' : undefined}
+            href={getStationHref('avatars')}
+          >
+            Avatars
+          </a>
+          <a
+            aria-current={station === 'face-align' ? 'page' : undefined}
+            href={getStationHref('face-align')}
+          >
+            Align
+          </a>
+          <a href={getStationHref('wall-sim')}>Wall sim</a>
+        </nav>
       ) : null}
-
       <Suspense fallback={null}>
         {station === 'station-1' ? (
-          <MirrorPreviewFrame showToggle={import.meta.env.DEV}>
+          <MirrorPreviewFrame>
             <StationOne />
           </MirrorPreviewFrame>
         ) : station === 'station-2' ? (
-          <MirrorPreviewFrame showToggle={import.meta.env.DEV}>
+          <MirrorPreviewFrame>
             <StationTwo />
           </MirrorPreviewFrame>
         ) : station === 'orb' ? (
           <OrbStation />
         ) : station === 'cards' ? (
           <SecondStation />
+        ) : station === 'face-align' ? (
+          <WallFaceAlignTool />
+        ) : station === 'wall-sim' ? (
+          <WallSim />
+        ) : station === 'wall-cal' ? (
+          <WallCalibrate role={wallRole ?? 'copy'} />
         ) : station === 'mirror' ? (
-          <ThirdStation />
+          wallRole ? (
+            <ThirdStationWall role={wallRole} />
+          ) : wallCropMode ? (
+            <WallModeViewport>
+              <ThirdStation />
+            </WallModeViewport>
+          ) : (
+            <ThirdStation />
+          )
         ) : (
           <AvatarStation />
         )}

@@ -160,7 +160,7 @@ export const STATION_TWO_QUESTIONS: StationTwoQuestion[] = [
   {
     id: 'somethingElse',
     prompt: 'Something else?',
-    type: 'text',
+    type: 'yesno',
     visibleIf: (ctx) => ctx.answers.higherPower === 'yes' && ctx.answers.god === 'no',
   },
   { id: 'escapism', prompt: 'Do you practice escapism?', type: 'yesno' },
