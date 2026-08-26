@@ -1,10 +1,19 @@
 import { useEffect, useRef, useState } from 'react'
-import { mirrorSettings } from '../dev/mirrorSettingsStore'
 import type { ThirdStationVoicePhase } from '../components/DebraVoice'
 
 export type WallPhase = ThirdStationVoicePhase
 
 const CHANNEL = 'hons-station3-wall-phase'
+
+/** Fast lead-in, long face reveal — wall install only. */
+export const WALL_TIMING = {
+  introSeconds: 3,
+  promptSeconds: 3,
+  countdownStepSeconds: 0.8,
+  recordingSeconds: 6,
+  /** Hold the blanketed match face this long before looping. */
+  loadingSeconds: 65,
+} as const
 
 type PhaseMessage = {
   type: 'phase'
@@ -21,7 +30,7 @@ type PhaseMessage = {
 export function useWallSyncedPhase(isConductor: boolean) {
   const [phase, setPhase] = useState<WallPhase>('intro')
   const [countdown, setCountdown] = useState<number | null>(null)
-  const [recordSecondsLeft, setRecordSecondsLeft] = useState(mirrorSettings.timing.recordingSeconds)
+  const [recordSecondsLeft, setRecordSecondsLeft] = useState(WALL_TIMING.recordingSeconds)
   const [loadingProgress, setLoadingProgress] = useState(0)
   const channelRef = useRef<BroadcastChannel | null>(null)
 
@@ -48,7 +57,7 @@ export function useWallSyncedPhase(isConductor: boolean) {
     }
 
     const timers: number[] = []
-    const t = mirrorSettings.timing
+    const t = WALL_TIMING
 
     if (phase === 'intro') {
       publish({ phase, countdown: null, recordSecondsLeft, loadingProgress: 0 })
@@ -97,7 +106,7 @@ export function useWallSyncedPhase(isConductor: boolean) {
   useEffect(() => {
     if (!isConductor || phase !== 'recording') return
     const start = performance.now()
-    const total = mirrorSettings.timing.recordingSeconds * 1000
+    const total = WALL_TIMING.recordingSeconds * 1000
     let raf = 0
     const tick = () => {
       const elapsed = performance.now() - start
@@ -118,12 +127,14 @@ export function useWallSyncedPhase(isConductor: boolean) {
 
   useEffect(() => {
     if (!isConductor || phase !== 'loading') return
+    // Fill "processing" progress quickly, then hold the face for the rest of loadingSeconds.
+    const fillMs = 4000
+    const holdMs = WALL_TIMING.loadingSeconds * 1000
     const start = performance.now()
-    const total = mirrorSettings.timing.loadingSeconds * 1000
     let raf = 0
     const tick = () => {
       const elapsed = performance.now() - start
-      const progress = Math.min(1, elapsed / total)
+      const progress = Math.min(1, elapsed / fillMs)
       setLoadingProgress(progress)
       channelRef.current?.postMessage({
         type: 'phase',
@@ -132,7 +143,7 @@ export function useWallSyncedPhase(isConductor: boolean) {
         recordSecondsLeft: 0,
         loadingProgress: progress,
       } satisfies PhaseMessage)
-      if (elapsed < total) raf = requestAnimationFrame(tick)
+      if (elapsed < holdMs) raf = requestAnimationFrame(tick)
     }
     raf = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(raf)
