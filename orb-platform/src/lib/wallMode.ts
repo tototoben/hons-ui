@@ -90,7 +90,14 @@ export function isWallMode(search: string = window.location.search) {
   return parseWallMode(search) !== null
 }
 
-/** Map one wall panel into the current viewport using a cover-style crop. */
+/**
+ * Map one wall panel into the viewport.
+ *
+ * For multi-display face blankets, pass viewportWidth/Height equal to the
+ * nominal panel size (not window.inner*) so every screen uses the same scale.
+ * Fit that layer into the real window separately — otherwise mismatched
+ * Chrome content sizes make adjacent seams drift.
+ */
 export function wallModeTransform(
   panel: WallPanelRect,
   viewportWidth: number,
@@ -106,6 +113,16 @@ export function wallModeTransform(
     translateX,
     translateY,
   }
+}
+
+/** Uniform fit of a nominal panel crop into the real browser viewport. */
+export function panelFitScale(
+  panelWidth: number,
+  panelHeight: number,
+  viewportWidth: number,
+  viewportHeight: number,
+) {
+  return Math.max(viewportWidth / panelWidth, viewportHeight / panelHeight)
 }
 
 export function buildWallModeUrl(

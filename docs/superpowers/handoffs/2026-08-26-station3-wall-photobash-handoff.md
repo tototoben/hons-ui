@@ -77,7 +77,16 @@ Open **`#/wall-sim`** (nav: “Wall sim”, or https://house-of-negotiated-selve
 - `BroadcastChannel` phase sync works across those iframes (same origin).
 - Toggle labels / reload panels from the sim chrome.
 
-Does **not** emulate bezels, brightness, or AppleScript window placement.
+Does **not** emulate bezels, brightness, TCL overscan, or mixed PPI (Lenovo vs 43″ TV).
+
+## Display hardware (install)
+
+| Count | Model | Roles (typical) | Notes |
+| --- | --- | --- | --- |
+| 4 | **Lenovo L24i-4A** (23.8″ FHD, ~93 PPI, thin bezel) | `code`, `status`, `avatar`, `copy` — portrait 1080×1920 | Native 1920×1080 rotated |
+| 2 | **TCL 43P615** (43″ **4K** native) | `debra`, `guide` — landscape 1920×1080 | Often driven as 1080p from Mac. **Set Picture Size → Just Scan / 1:1** — overscan breaks seams. Physical pixels are much larger than Lenovos, so features can look “wrong size” at TV edges even when CSS pixels align. |
+
+Face blanket crop now uses **nominal panel size** then fits the Chrome viewport (same mapping as the sim) so slight window-size differences no longer desync seams.
 
 ## How to launch (no git required)
 
