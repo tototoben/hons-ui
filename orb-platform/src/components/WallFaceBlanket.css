@@ -6,6 +6,15 @@
   animation: wall-face-in 900ms ease-out both;
 }
 
+.wall-face-fit {
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: hidden;
+  transform-origin: top left;
+  will-change: transform;
+}
+
 .wall-face-canvas {
   position: absolute;
   top: 0;

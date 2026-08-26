@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { wallModeTransform } from '../lib/wallMode'
+import { panelFitScale, wallModeTransform } from '../lib/wallMode'
 import { measuredPanelForRole, type WallRole } from '../lib/wallRole'
 import {
   composeWallMatchPhotobash,
@@ -15,6 +15,10 @@ import './WallFaceBlanket.css'
 /**
  * Full-wall match plate: clean face first, then choppy glitches into a
  * pre-merged photobash (same merge + timing on every panel via seed).
+ *
+ * Crop math always uses the nominal measured panel size (like the wall sim),
+ * then uniformly fits that layer into the real Chrome viewport — so slight
+ * IRL window-size differences do not desync seams between screens.
  */
 export function WallFaceBlanket({
   role,
@@ -41,7 +45,6 @@ export function WallFaceBlanket({
     return () => window.removeEventListener('resize', onResize)
   }, [])
 
-  // Bake the fragment merge once, then only swap which plate is visible.
   useEffect(() => {
     let cancelled = false
     composeWallMatchPhotobash({ shards })
@@ -72,7 +75,6 @@ export function WallFaceBlanket({
         setShowMerged(show)
         setGlitchHot(show)
       } else if (show) {
-        // Keep a short hot pulse while merged is up.
         setGlitchHot(elapsed % 160 < 90)
       } else {
         setGlitchHot(false)
@@ -89,6 +91,7 @@ export function WallFaceBlanket({
 
   const layout = useMemo(() => {
     if (!panel) return null
+    // Nominal panel crop (scale === 1) — identical mapping on every display.
     const crop = wallModeTransform(
       {
         wallWidth: panel.wallWidth,
@@ -98,6 +101,12 @@ export function WallFaceBlanket({
         panelWidth: panel.panelWidth,
         panelHeight: panel.panelHeight,
       },
+      panel.panelWidth,
+      panel.panelHeight,
+    )
+    const fitScale = panelFitScale(
+      panel.panelWidth,
+      panel.panelHeight,
       viewport.width,
       viewport.height,
     )
@@ -109,6 +118,9 @@ export function WallFaceBlanket({
     const faceH = MATCH_FACE_SIZE.height * coverScale
     return {
       crop,
+      fitScale,
+      panelWidth: panel.panelWidth,
+      panelHeight: panel.panelHeight,
       faceW,
       faceH,
       faceX: (panel.wallWidth - faceW) / 2,
@@ -131,30 +143,39 @@ export function WallFaceBlanket({
       aria-label="Photobashed match face across the wall"
     >
       <div
-        className="wall-face-canvas"
+        className="wall-face-fit"
         style={{
-          width: layout.crop.wallWidth,
-          height: layout.crop.wallHeight,
-          transform: `translate(${layout.crop.translateX}px, ${layout.crop.translateY}px) scale(${layout.crop.scale})`,
+          width: layout.panelWidth,
+          height: layout.panelHeight,
+          transform: `scale(${layout.fitScale})`,
         }}
       >
-        <div className="wall-face-glitch">
-          <img
-            className="wall-face-image wall-face-match"
-            src={MATCH_FACE_URL}
-            alt=""
-            draggable={false}
-            style={faceStyle}
-          />
-          {mergedUrl ? (
+        <div
+          className="wall-face-canvas"
+          style={{
+            width: layout.crop.wallWidth,
+            height: layout.crop.wallHeight,
+            transform: `translate(${layout.crop.translateX}px, ${layout.crop.translateY}px)`,
+          }}
+        >
+          <div className="wall-face-glitch">
             <img
-              className={`wall-face-image wall-face-merge${showMerged ? ' is-visible' : ''}`}
-              src={mergedUrl}
+              className="wall-face-image wall-face-match"
+              src={MATCH_FACE_URL}
               alt=""
               draggable={false}
               style={faceStyle}
             />
-          ) : null}
+            {mergedUrl ? (
+              <img
+                className={`wall-face-image wall-face-merge${showMerged ? ' is-visible' : ''}`}
+                src={mergedUrl}
+                alt=""
+                draggable={false}
+                style={faceStyle}
+              />
+            ) : null}
+          </div>
         </div>
       </div>
       <div className="wall-face-caption">MATCH LOCKED</div>

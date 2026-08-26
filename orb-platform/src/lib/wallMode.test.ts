@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   buildWallModeUrl,
   parseWallMode,
+  panelFitScale,
   wallDesignPlacement,
   wallModeTransform,
 } from './wallMode'
@@ -56,6 +57,15 @@ describe('wallModeTransform', () => {
     expect(transform.scale).toBe(2)
     expect(transform.translateX).toEqual(0)
     expect(transform.translateY).toEqual(0)
+  })
+})
+
+describe('panelFitScale', () => {
+  it('cover-fits a nominal panel into a slightly wrong Chrome viewport', () => {
+    expect(panelFitScale(1080, 1920, 1070, 1900)).toBeCloseTo(
+      Math.max(1070 / 1080, 1900 / 1920),
+      5,
+    )
   })
 })
 

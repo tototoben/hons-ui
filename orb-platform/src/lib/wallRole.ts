@@ -15,6 +15,36 @@ export function isWallRoleMode(search?: string) {
   return parseWallRole(search) !== null
 }
 
+/** High-contrast layout cards for photographing the physical wall. */
+export function parseWallCalibrate(
+  search: string = typeof window === 'undefined' ? '' : window.location.search,
+) {
+  const params = new URLSearchParams(search.startsWith('?') ? search.slice(1) : search)
+  return params.get('wallCal') === '1'
+}
+
+/** Hardware notes for the measured Mac Studio wall. */
+export const WALL_DISPLAY_HARDWARE = {
+  monitor: {
+    model: 'Lenovo L24i-4A',
+    native: '1920×1080',
+    sizeInches: 23.8,
+    /** Approx. when driven at native FHD. */
+    ppi: 93,
+    bezelMm: { side: 2, top: 2, bottom: 10.4 },
+    notes: 'Four units: three portrait (code, status, copy) and one landscape (guide).',
+  },
+  tv: {
+    model: 'TCL 43P615',
+    native: '3840×2160',
+    sizeInches: 43,
+    notes:
+      'Two units. One is landscape (Debra, 1920×1080), one is portrait (Avatar, 1080×1920). Set Picture Size to Just Scan / 1:1. At a 1080p feed, physical pixels are much larger than the Lenovos.',
+  },
+} as const
+
+export type WallPanelDevice = 'lenovo-l24i-4a' | 'tcl-43p615'
+
 /** Measured Mac Studio install: one role per physical display. */
 export const MEASURED_WALL_PANELS: Array<{
   role: WallRole
@@ -22,6 +52,7 @@ export const MEASURED_WALL_PANELS: Array<{
   y: number
   width: number
   height: number
+  device: WallPanelDevice
   label: string
 }> = [
   {
@@ -30,7 +61,8 @@ export const MEASURED_WALL_PANELS: Array<{
     y: -3338,
     width: 1080,
     height: 1920,
-    label: 'L24i-4A (4) top-left code',
+    device: 'lenovo-l24i-4a',
+    label: 'Lenovo L24i-4A portrait — top-left code',
   },
   {
     role: 'status',
@@ -38,7 +70,8 @@ export const MEASURED_WALL_PANELS: Array<{
     y: -3000,
     width: 1080,
     height: 1920,
-    label: 'L24i-4A (1) top status',
+    device: 'lenovo-l24i-4a',
+    label: 'Lenovo L24i-4A portrait — top-center status',
   },
   {
     role: 'avatar',
@@ -46,7 +79,8 @@ export const MEASURED_WALL_PANELS: Array<{
     y: -1920,
     width: 1080,
     height: 1920,
-    label: 'Beyond TV (2) top-right avatar',
+    device: 'tcl-43p615',
+    label: 'TCL 43P615 portrait — tall right avatar',
   },
   {
     role: 'debra',
@@ -54,7 +88,8 @@ export const MEASURED_WALL_PANELS: Array<{
     y: -1080,
     width: 1920,
     height: 1080,
-    label: 'Beyond TV (1) mid-left Debra',
+    device: 'tcl-43p615',
+    label: 'TCL 43P615 landscape — mid-left Debra (conductor)',
   },
   {
     role: 'copy',
@@ -62,7 +97,8 @@ export const MEASURED_WALL_PANELS: Array<{
     y: 0,
     width: 1080,
     height: 1920,
-    label: 'L24i-4A (2) bottom-left copy',
+    device: 'lenovo-l24i-4a',
+    label: 'Lenovo L24i-4A portrait — bottom copy',
   },
   {
     role: 'guide',
@@ -70,7 +106,8 @@ export const MEASURED_WALL_PANELS: Array<{
     y: 305,
     width: 1920,
     height: 1080,
-    label: 'L24i-4A (3) bottom-right guide arrows',
+    device: 'lenovo-l24i-4a',
+    label: 'Lenovo L24i-4A landscape — bottom-right guide',
   },
 ]
 
