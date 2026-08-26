@@ -27,6 +27,9 @@ const SecondStation = lazy(() =>
 const AvatarStation = lazy(() =>
   import('./components/AvatarStation').then((m) => ({ default: m.AvatarStation })),
 )
+const WallFaceAlignTool = lazy(() =>
+  import('./components/WallFaceAlignTool').then((m) => ({ default: m.WallFaceAlignTool })),
+)
 const OrbStation = lazy(() =>
   import('./components/OrbStation').then((m) => ({ default: m.OrbStation })),
 )
@@ -98,6 +101,12 @@ export default function App() {
           >
             Avatars
           </a>
+          <a
+            aria-current={station === 'face-align' ? 'page' : undefined}
+            href={getStationHref('face-align')}
+          >
+            Align
+          </a>
         </nav>
       )}
       <Suspense fallback={null}>
@@ -113,6 +122,8 @@ export default function App() {
           <OrbStation />
         ) : station === 'cards' ? (
           <SecondStation />
+        ) : station === 'face-align' ? (
+          <WallFaceAlignTool />
         ) : station === 'mirror' ? (
           wallRole ? (
             <ThirdStationWall role={wallRole} />
