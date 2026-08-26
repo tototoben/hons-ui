@@ -1,0 +1,10 @@
+.wall-collage-canvas {
+  background: #120d0a;
+}
+
+.wall-collage-lip-sprite {
+  position: absolute;
+  display: block;
+  pointer-events: none;
+  user-select: none;
+}

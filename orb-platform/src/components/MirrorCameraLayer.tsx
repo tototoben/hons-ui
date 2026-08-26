@@ -19,6 +19,10 @@ import {
   type NormalizedLandmark,
 } from '../lib/mirrorLandmarks'
 import { MirrorScanOverlay } from './MirrorScanOverlay'
+import { captureVisitorFaceFrame, setVisitorFaceCapture } from '../lib/visitorFaceCapture'
+
+const FACE_CAPTURE_MIN_LANDMARKS = 400
+const FACE_CAPTURE_INTERVAL_MS = 500
 
 const CameraDevPanel = lazy(() =>
   import('../dev/CameraDevPanel').then((m) => ({ default: m.CameraDevPanel })),
@@ -69,6 +73,23 @@ export function MirrorCameraLayer({ mode }: { mode: MirrorOverlayMode }) {
     window.addEventListener('resize', draw)
     return () => window.removeEventListener('resize', draw)
   }, [camera.landmarks, camera.signals, camera.videoRef, mode, trackingRgb])
+
+  // Keep the latest well-tracked frame in the visitor-face store — 'face'
+  // mode covers scan-face/scan-focus, so by the time Station I completes
+  // this holds a recent, in-focus still. Same-session, in-memory only
+  // (visitorFaceCapture.ts), never persisted.
+  const lastCaptureAt = useRef(0)
+  useEffect(() => {
+    if (mode !== 'face') return
+    if (camera.landmarks.length < FACE_CAPTURE_MIN_LANDMARKS) return
+    const now = performance.now()
+    if (now - lastCaptureAt.current < FACE_CAPTURE_INTERVAL_MS) return
+    const video = camera.videoRef.current
+    if (!video) return
+    lastCaptureAt.current = now
+    const frame = captureVisitorFaceFrame(video)
+    if (frame) setVisitorFaceCapture(frame)
+  }, [camera.landmarks, camera.videoRef, mode])
 
   return (
     <>

@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { useWallSyncedPhase } from '../lib/wallPhaseSync'
-import { parseWallCalibrate, parseWallRole, type WallRole } from '../lib/wallRole'
+import { parseWallCalibrate, parseWallCollage, parseWallRole, type WallRole } from '../lib/wallRole'
 import { WallCalibrate } from './WallCalibrate'
 import { CodePanel, MiniBar } from './HudDebris'
 import { MirrorGuideOrb } from './MirrorGuideOrb'
 import { MirrorHeadline } from './MirrorHeadline'
 import { WallFaceBlanket } from './WallFaceBlanket'
+import { WallCollageBlanket } from './WallCollageBlanket'
 import { mirrorSettings } from '../dev/mirrorSettingsStore'
 import './ThirdStation.css'
 import './ThirdStationWall.css'
@@ -262,6 +263,7 @@ function WallRoleContent({
 export function ThirdStationWall({ role: roleProp }: { role?: WallRole }) {
   const role = roleProp ?? parseWallRole() ?? 'copy'
   const calibrate = parseWallCalibrate()
+  const collage = parseWallCollage()
   const isConductor = role === 'debra' && !calibrate
   const { phase, countdown, recordSecondsLeft, loadingProgress, photobashSeed } =
     useWallSyncedPhase(isConductor)
@@ -292,7 +294,11 @@ export function ThirdStationWall({ role: roleProp }: { role?: WallRole }) {
     >
       {calibrate ? <WallCalibrate role={role} /> : null}
       {calibrate ? null : phase === 'loading' ? (
-        <WallFaceBlanket role={role} photobashSeed={photobashSeed} />
+        collage ? (
+          <WallCollageBlanket role={role} photobashSeed={photobashSeed} />
+        ) : (
+          <WallFaceBlanket role={role} photobashSeed={photobashSeed} />
+        )
       ) : (
         <WallRoleContent
           role={role}
