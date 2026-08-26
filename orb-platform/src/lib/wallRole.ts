@@ -15,6 +15,14 @@ export function isWallRoleMode(search?: string) {
   return parseWallRole(search) !== null
 }
 
+/** High-contrast layout cards for photographing the physical wall. */
+export function parseWallCalibrate(
+  search: string = typeof window === 'undefined' ? '' : window.location.search,
+) {
+  const params = new URLSearchParams(search.startsWith('?') ? search.slice(1) : search)
+  return params.get('wallCal') === '1'
+}
+
 /** Hardware notes for the measured Mac Studio wall. */
 export const WALL_DISPLAY_HARDWARE = {
   monitor: {

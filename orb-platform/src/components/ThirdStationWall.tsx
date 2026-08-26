@@ -1,9 +1,14 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { useWallSyncedPhase } from '../lib/wallPhaseSync'
-import { parseWallRole, type WallRole } from '../lib/wallRole'
+import { parseWallCalibrate, parseWallRole, type WallRole } from '../lib/wallRole'
+import { WallCalibrate } from './WallCalibrate'
 import { CodePanel, MiniBar } from './HudDebris'
 import { MirrorGuideOrb } from './MirrorGuideOrb'
 import { MirrorHeadline } from './MirrorHeadline'
+import {
+  DebraVoiceClip,
+  thirdStationDebraClipFor,
+} from './DebraVoice'
 import { WallFaceBlanket } from './WallFaceBlanket'
 import { mirrorSettings } from '../dev/mirrorSettingsStore'
 import './ThirdStation.css'
@@ -260,7 +265,8 @@ function WallRoleContent({
 
 export function ThirdStationWall({ role: roleProp }: { role?: WallRole }) {
   const role = roleProp ?? parseWallRole() ?? 'copy'
-  const isConductor = role === 'debra'
+  const calibrate = parseWallCalibrate()
+  const isConductor = role === 'debra' && !calibrate
   const { phase, countdown, recordSecondsLeft, loadingProgress, photobashSeed } =
     useWallSyncedPhase(isConductor)
   const rootRef = useRef<HTMLElement>(null)
@@ -288,7 +294,11 @@ export function ThirdStationWall({ role: roleProp }: { role?: WallRole }) {
       aria-label={`Mirror wall panel: ${role}`}
       ref={rootRef}
     >
-      {phase === 'loading' ? (
+      {calibrate ? <WallCalibrate role={role} /> : null}
+      {!calibrate && role === 'debra' ? (
+        <DebraVoiceClip src={thirdStationDebraClipFor(phase)} />
+      ) : null}
+      {calibrate ? null : phase === 'loading' ? (
         <WallFaceBlanket role={role} photobashSeed={photobashSeed} />
       ) : (
         <WallRoleContent

@@ -3,6 +3,7 @@ import {
   MEASURED_WALL_BOUNDS,
   MEASURED_WALL_PANELS,
   measuredPanelForRole,
+  parseWallCalibrate,
   parseWallRole,
   WALL_ROLES,
 } from './wallRole'
@@ -20,6 +21,16 @@ describe('parseWallRole', () => {
 
   it('rejects unknown roles', () => {
     expect(parseWallRole('?wallRole=nope')).toBeNull()
+  })
+})
+
+describe('parseWallCalibrate', () => {
+  it('is off by default', () => {
+    expect(parseWallCalibrate('?wallRole=code')).toBe(false)
+  })
+
+  it('turns on with wallCal=1', () => {
+    expect(parseWallCalibrate('?wallRole=code&wallCal=1')).toBe(true)
   })
 })
 

@@ -23,7 +23,7 @@ export function WallSim() {
     height: window.innerHeight,
   }))
   const [showLabels, setShowLabels] = useState(true)
-  const [mode, setMode] = useState<WallSimMode>('physical')
+  const [mode, setMode] = useState<WallSimMode>('css')
   const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {

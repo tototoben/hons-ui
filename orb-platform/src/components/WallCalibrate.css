@@ -1,0 +1,107 @@
+.wall-cal {
+  --wall-cal-ink: #f0c14a;
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.4vh;
+  padding: 4vh 3vw;
+  overflow: hidden;
+  color: #fff8ee;
+  background:
+    radial-gradient(120% 80% at 50% 40%, rgba(255, 255, 255, 0.06), transparent 55%),
+    #0b0908;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.wall-cal-tick {
+  position: absolute;
+  width: 12vw;
+  height: 12vw;
+  max-width: 96px;
+  max-height: 96px;
+  border: 10px solid var(--wall-cal-ink);
+  pointer-events: none;
+}
+
+.wall-cal-tick-tl {
+  top: 0;
+  left: 0;
+  border-right: 0;
+  border-bottom: 0;
+}
+
+.wall-cal-tick-tr {
+  top: 0;
+  right: 0;
+  border-left: 0;
+  border-bottom: 0;
+}
+
+.wall-cal-tick-bl {
+  bottom: 0;
+  left: 0;
+  border-right: 0;
+  border-top: 0;
+}
+
+.wall-cal-tick-br {
+  right: 0;
+  bottom: 0;
+  border-left: 0;
+  border-top: 0;
+}
+
+.wall-cal-kicker {
+  margin: 0;
+  font-size: clamp(12px, 2.2vmin, 22px);
+  letter-spacing: 0.28em;
+  color: var(--wall-cal-ink);
+}
+
+.wall-cal-role {
+  margin: 0;
+  font-size: clamp(42px, 14vmin, 180px);
+  font-weight: 700;
+  line-height: 0.9;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--wall-cal-ink);
+  text-shadow: 0 0 40px color-mix(in srgb, var(--wall-cal-ink) 45%, transparent);
+}
+
+.wall-cal-meta {
+  margin: 0;
+  font-size: clamp(12px, 2vmin, 20px);
+  letter-spacing: 0.06em;
+  color: rgba(255, 248, 238, 0.78);
+  text-align: center;
+}
+
+.wall-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  width: min(86vmin, 920px);
+  aspect-ratio: 1;
+  margin-top: 1vh;
+  border: 3px solid var(--wall-cal-ink);
+}
+
+.wall-cal-grid span {
+  display: grid;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--wall-cal-ink) 55%, transparent);
+  font-size: clamp(16px, 4vmin, 36px);
+  font-weight: 600;
+  color: rgba(255, 248, 238, 0.92);
+}
+
+.wall-cal-foot {
+  margin: 1vh 0 0;
+  font-size: clamp(11px, 1.8vmin, 16px);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(255, 248, 238, 0.5);
+}
