@@ -3,18 +3,18 @@ import { wallModeTransform } from '../lib/wallMode'
 import { measuredPanelForRole, type WallRole } from '../lib/wallRole'
 import {
   composeWallMatchPhotobash,
+  glitchShowMergedAt,
   MATCH_FACE_SIZE,
   MATCH_FACE_URL,
-  PHOTOBASH_REVEAL_MS,
-  photobashRevealAt,
+  MATCH_HOLD_MS,
+  PHOTOBASH_GLITCH_MS,
   pickRevealShards,
 } from '../lib/wallMatchPhotobash'
 import './WallFaceBlanket.css'
 
 /**
- * One shared photobashed face cover-scaled onto the full wall canvas.
- * Each display shows only its panel slice — together they read as one image.
- * Visitor shards fade in one feature at a time over ~30s.
+ * Full-wall match plate: clean face first, then choppy glitches into a
+ * pre-merged photobash (same merge + timing on every panel via seed).
  */
 export function WallFaceBlanket({
   role,
@@ -28,11 +28,10 @@ export function WallFaceBlanket({
     width: window.innerWidth,
     height: window.innerHeight,
   }))
-  const [faceUrl, setFaceUrl] = useState(MATCH_FACE_URL)
-  const shards = useMemo(
-    () => pickRevealShards(photobashSeed || 1),
-    [photobashSeed],
-  )
+  const [mergedUrl, setMergedUrl] = useState<string | null>(null)
+  const [showMerged, setShowMerged] = useState(false)
+  const [glitchHot, setGlitchHot] = useState(false)
+  const shards = useMemo(() => pickRevealShards(photobashSeed || 1), [photobashSeed])
 
   useEffect(() => {
     const onResize = () => {
@@ -42,56 +41,51 @@ export function WallFaceBlanket({
     return () => window.removeEventListener('resize', onResize)
   }, [])
 
+  // Bake the fragment merge once, then only swap which plate is visible.
+  useEffect(() => {
+    let cancelled = false
+    composeWallMatchPhotobash({ shards })
+      .then((url) => {
+        if (!cancelled) setMergedUrl(url)
+      })
+      .catch(() => {
+        if (!cancelled) setMergedUrl(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [shards])
+
   useEffect(() => {
     let cancelled = false
     let raf = 0
-    let lastKey = ''
-    let paintSeq = 0
+    let lastShow = false
     const start = performance.now()
-
-    const paint = async (elapsed: number) => {
-      const { shardCount, nextShardOpacity } = photobashRevealAt(
-        elapsed,
-        PHOTOBASH_REVEAL_MS,
-        shards.length,
-      )
-      // Quantize fade so we don't re-encode every frame.
-      const fadeStep = Math.round(nextShardOpacity * 8) / 8
-      const key = `${photobashSeed}:${shardCount}:${fadeStep}`
-      if (key === lastKey) return
-      lastKey = key
-      const seq = ++paintSeq
-      try {
-        const url = await composeWallMatchPhotobash({
-          shards,
-          shardCount,
-          nextShardOpacity: fadeStep,
-        })
-        if (!cancelled && seq === paintSeq) setFaceUrl(url)
-      } catch {
-        if (!cancelled && seq === paintSeq) setFaceUrl(MATCH_FACE_URL)
-      }
-    }
+    const total = MATCH_HOLD_MS + PHOTOBASH_GLITCH_MS
 
     const tick = (now: number) => {
       if (cancelled) return
       const elapsed = now - start
-      void paint(elapsed)
-      if (elapsed < PHOTOBASH_REVEAL_MS) {
-        raf = requestAnimationFrame(tick)
+      const show = Boolean(mergedUrl) && glitchShowMergedAt(elapsed, photobashSeed || 1)
+      if (show !== lastShow) {
+        lastShow = show
+        setShowMerged(show)
+        setGlitchHot(show)
+      } else if (show) {
+        // Keep a short hot pulse while merged is up.
+        setGlitchHot(elapsed % 160 < 90)
       } else {
-        void paint(PHOTOBASH_REVEAL_MS)
+        setGlitchHot(false)
       }
+      if (elapsed < total) raf = requestAnimationFrame(tick)
     }
 
-    void paint(0)
     raf = requestAnimationFrame(tick)
-
     return () => {
       cancelled = true
       cancelAnimationFrame(raf)
     }
-  }, [photobashSeed, shards])
+  }, [mergedUrl, photobashSeed])
 
   const layout = useMemo(() => {
     if (!panel) return null
@@ -124,8 +118,18 @@ export function WallFaceBlanket({
 
   if (!panel || !layout) return null
 
+  const faceStyle = {
+    width: layout.faceW,
+    height: layout.faceH,
+    left: layout.faceX,
+    top: layout.faceY,
+  }
+
   return (
-    <div className="wall-face-blanket" aria-label="Photobashed match face across the wall">
+    <div
+      className={`wall-face-blanket${showMerged ? ' is-merged' : ''}${glitchHot ? ' is-glitch-hot' : ''}`}
+      aria-label="Photobashed match face across the wall"
+    >
       <div
         className="wall-face-canvas"
         style={{
@@ -134,18 +138,24 @@ export function WallFaceBlanket({
           transform: `translate(${layout.crop.translateX}px, ${layout.crop.translateY}px) scale(${layout.crop.scale})`,
         }}
       >
-        <img
-          className="wall-face-image"
-          src={faceUrl}
-          alt=""
-          draggable={false}
-          style={{
-            width: layout.faceW,
-            height: layout.faceH,
-            left: layout.faceX,
-            top: layout.faceY,
-          }}
-        />
+        <div className="wall-face-glitch">
+          <img
+            className="wall-face-image wall-face-match"
+            src={MATCH_FACE_URL}
+            alt=""
+            draggable={false}
+            style={faceStyle}
+          />
+          {mergedUrl ? (
+            <img
+              className={`wall-face-image wall-face-merge${showMerged ? ' is-visible' : ''}`}
+              src={mergedUrl}
+              alt=""
+              draggable={false}
+              style={faceStyle}
+            />
+          ) : null}
+        </div>
       </div>
       <div className="wall-face-caption">MATCH LOCKED</div>
     </div>
