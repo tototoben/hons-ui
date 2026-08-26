@@ -8,8 +8,7 @@ html[data-wall-mode='true'] .experience {
   overflow: hidden;
 }
 
-html[data-wall-mode='true'] .station-switcher,
-html[data-wall-mode='true'] .mirror-preview-toggle {
+html[data-wall-mode='true'] .station-switcher {
   display: none !important;
 }
 

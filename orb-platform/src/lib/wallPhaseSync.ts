@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { mirrorSettings } from '../dev/mirrorSettingsStore'
-import type { ThirdStationVoicePhase } from '../components/DebraVoice'
 
-export type WallPhase = ThirdStationVoicePhase
+export type WallPhase = 'intro' | 'prompt' | 'recording' | 'loading'
 
 const CHANNEL = 'hons-station3-wall-phase'
 

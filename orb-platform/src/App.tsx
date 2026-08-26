@@ -102,11 +102,11 @@ export default function App() {
       )}
       <Suspense fallback={null}>
         {station === 'station-1' ? (
-          <MirrorPreviewFrame showToggle={import.meta.env.DEV}>
+          <MirrorPreviewFrame>
             <StationOne />
           </MirrorPreviewFrame>
         ) : station === 'station-2' ? (
-          <MirrorPreviewFrame showToggle={import.meta.env.DEV}>
+          <MirrorPreviewFrame>
             <StationTwo />
           </MirrorPreviewFrame>
         ) : station === 'orb' ? (

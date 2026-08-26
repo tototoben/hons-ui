@@ -99,30 +99,6 @@ body::-webkit-scrollbar,
   color: rgba(0, 0, 0, 0.5);
 }
 
-.mirror-preview-toggle {
-  position: fixed;
-  z-index: 120;
-  top: 8px;
-  right: 8px;
-  min-width: 112px;
-  padding: 9px 12px;
-  border: 1px solid #e8b88c;
-  border-radius: 0;
-  background: #120d0a;
-  color: #fff4e8;
-  font: 500 10px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.mirror-preview-toggle:hover,
-.mirror-preview-toggle:focus-visible {
-  background: #fff6eb;
-  color: #2a1a10;
-  outline: 2px solid #2a1a10;
-  outline-offset: -4px;
-}
-
 .station-switcher-cards a[aria-current='page'] {
   border-color: rgba(0, 0, 0, 0.32);
   color: rgba(0, 0, 0, 0.82);
@@ -246,15 +222,12 @@ body::-webkit-scrollbar,
   color: rgba(238, 241, 240, 0.95);
 }
 
-:root[data-station-vibe="original"] .mirror-preview-toggle,
 :root[data-station-vibe="original"] .station-vibe-toggle {
   border-color: #b9dceb;
   background: #000;
   color: #d6eef7;
 }
 
-:root[data-station-vibe="original"] .mirror-preview-toggle:hover,
-:root[data-station-vibe="original"] .mirror-preview-toggle:focus-visible,
 :root[data-station-vibe="original"] .station-vibe-toggle:hover,
 :root[data-station-vibe="original"] .station-vibe-toggle:focus-visible {
   background: #fff;

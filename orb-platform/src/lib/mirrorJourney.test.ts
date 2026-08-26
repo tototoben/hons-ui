@@ -154,7 +154,7 @@ describe('stationTwoReducer', () => {
 
     expect(seenIds).toContain('god')
     expect(seenIds).toContain('somethingElse')
-    expect(state.answers.somethingElse).toBe('the universe')
+    expect(state.answers.somethingElse).toBe('no')
     expect(state.phase).toBe('height')
   })
 

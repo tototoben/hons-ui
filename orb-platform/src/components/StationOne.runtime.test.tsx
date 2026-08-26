@@ -89,8 +89,9 @@ describe('StationOne', () => {
   it('asks the ten intake questions, then runs facial analysis through to Station II', async () => {
     act(() => root.render(<StationOne phaseDurationMs={20} />))
 
-    expect(container.querySelectorAll('.journey-status > span')).toHaveLength(1)
-    expect(container.querySelector('.journey-status')?.textContent).toBe('Welcome to Station I')
+    // No station-marker text — the header only shows up when a station
+    // passes its own statusLeft content (Station II's recording readout).
+    expect(container.querySelector('.journey-status')).toBeNull()
     expect(container.querySelector('label .journey-headline-canvas')).not.toBeNull()
 
     const callNameInput = container.querySelector<HTMLInputElement>('input[name="callName"]')!
@@ -197,11 +198,11 @@ describe('StationOne', () => {
     expect(originInput.value).toBe('')
   })
 
-  it('restores the original station chrome when the warm look is off', () => {
+  it('has no station-marker header regardless of vibe', () => {
     applyStationVibe('original')
     act(() => root.render(<StationOne phaseDurationMs={20} />))
 
-    expect(container.querySelector('.journey-status')?.textContent).toBe('STATION I')
+    expect(container.querySelector('.journey-status')).toBeNull()
     expect(container.textContent).not.toContain('HOUSE OF NEGOTIATED SELVES')
   })
 })

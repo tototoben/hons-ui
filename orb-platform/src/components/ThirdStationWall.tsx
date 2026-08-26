@@ -5,10 +5,6 @@ import { parseWallRole, type WallRole } from '../lib/wallRole'
 import { CodePanel, MiniBar } from './HudDebris'
 import { MirrorGuideOrb } from './MirrorGuideOrb'
 import { MirrorHeadline } from './MirrorHeadline'
-import {
-  DebraVoiceClip,
-  thirdStationDebraClipFor,
-} from './DebraVoice'
 import { WallFaceBlanket } from './WallFaceBlanket'
 import './ThirdStation.css'
 import './ThirdStationWall.css'
@@ -259,7 +255,6 @@ export function ThirdStationWall({ role: roleProp }: { role?: WallRole }) {
       aria-label={`Mirror wall panel: ${role}`}
       ref={rootRef}
     >
-      {role === 'debra' ? <DebraVoiceClip src={thirdStationDebraClipFor(phase)} /> : null}
       {phase === 'loading' ? (
         <WallFaceBlanket role={role} />
       ) : (

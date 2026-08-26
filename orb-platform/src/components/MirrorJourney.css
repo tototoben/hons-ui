@@ -170,25 +170,17 @@
   opacity: 0.18;
 }
 
-.journey-status,
-.journey-folio {
+.journey-status {
   position: absolute;
   z-index: 4;
-  left: 26px;
-  right: 26px;
+  top: 22px;
+  left: 20px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
   color: var(--mirror-quiet);
   font-size: 11px;
   font-weight: 500;
   letter-spacing: 0.06em;
-}
-
-.journey-status {
-  justify-content: flex-start;
-  top: 40px;
-  padding-bottom: 12px;
 }
 
 /* The station-switcher nav (index.css, fixed top-right) is visible on
@@ -196,18 +188,8 @@
    would otherwise sit on top of this status readout. */
 @media (max-width: 700px) {
   .journey-status {
-    top: 64px;
+    top: 62px;
   }
-}
-
-.journey-folio {
-  bottom: 22px;
-  padding-top: 12px;
-}
-
-.journey-folio span:first-child {
-  font-size: 22px;
-  font-weight: 300;
 }
 
 .journey-content {
@@ -457,80 +439,28 @@
   transition: background 180ms ease, color 180ms ease;
 }
 
-.journey-debra {
-  --debra-ease: cubic-bezier(0.45, 0, 0.15, 1);
+/* Pinned small and undecorated on purpose — same bare MirrorGuideOrb
+   rendering Station III uses (no glow, no name label, no float), just
+   docked at the top instead of centered large. */
+.journey-debra-pin {
   position: absolute;
-  z-index: 2;
-  width: min(680px, calc(100vw - 48px));
-  top: var(--debra-top);
-  left: var(--debra-left);
-  transition:
-    top 2.2s var(--debra-ease),
-    left 2.2s var(--debra-ease);
-  animation: journey-debra-enter 1.15s cubic-bezier(0.22, 1, 0.36, 1) both;
+  z-index: 4;
+  top: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: var(--journey-orb-size, 64px);
+  height: var(--journey-orb-size, 64px);
 }
 
-.journey-debra-upper {
-  --debra-top: 12%;
-  --debra-left: calc(50% - min(340px, calc((100vw - 48px) / 2)));
-}
-
-.journey-debra-left {
-  --debra-top: 26%;
-  --debra-left: 7%;
-}
-
-.journey-debra-right {
-  --debra-top: 22%;
-  --debra-left: calc(94% - min(680px, calc(100vw - 48px)));
-}
-
-.journey-debra-motion {
-  animation: journey-float 9s cubic-bezier(0.37, 0, 0.63, 1) infinite;
-  will-change: transform;
-}
-
-.journey-debra-orb-wrap {
-  position: relative;
-  width: var(--journey-orb-size, 260px);
-  height: var(--journey-orb-size, 260px);
-  margin: 0 auto;
-}
-
-.journey-debra-orb-wrap::before {
-  content: '';
-  position: absolute;
-  inset: -22%;
-  border-radius: 50%;
-  background: radial-gradient(circle at 50% 58%, rgba(232, 184, 140, 0.36), transparent 68%);
-  box-shadow: 0 14px 36px rgba(196, 118, 62, 0.2);
-  animation: journey-breath 4.4s ease-in-out infinite;
+@media (max-width: 700px) {
+  .journey-debra-pin {
+    top: 62px;
+  }
 }
 
 .journey-debra-orb {
-  position: absolute;
-  inset: 0;
-  opacity: 0.94;
-  filter: sepia(0.32) saturate(1.08) brightness(1.22) contrast(1.12);
-}
-
-.journey-debra-name {
-  position: absolute;
-  left: 50%;
-  bottom: -4px;
-  transform: translateX(-50%);
-  color: var(--mirror-quiet);
-  font-size: 12px;
-  letter-spacing: 0.08em;
-}
-
-.journey-debra-introduction {
-  max-width: 24ch;
-  margin: 24px auto 0;
-  color: var(--mirror-ink);
-  font-size: 22px;
-  line-height: 1.35;
-  text-align: center;
+  width: 100%;
+  height: 100%;
 }
 
 .journey-companion-outline {
@@ -542,41 +472,13 @@
   height: 62%;
 }
 
-@keyframes journey-breath {
-  0%,
-  100% { transform: scale(0.92); opacity: 0.7; }
-  50% { transform: scale(1.04); opacity: 1; }
-}
-
-@keyframes journey-float {
-  0%,
-  100% { transform: translate3d(0, 0, 0); }
-  38% { transform: translate3d(10px, -14px, 0); }
-  72% { transform: translate3d(-7px, -6px, 0); }
-}
-
-@keyframes journey-debra-enter {
-  from {
-    opacity: 0;
-    transform: translate3d(0, 16px, 0);
-  }
-  to {
-    opacity: 1;
-    transform: translate3d(0, 0, 0);
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .journey-camera-stage,
-  .journey-landmarks,
-  .journey-debra,
-  .journey-debra-motion,
-  .journey-debra-orb-wrap::before { transition-duration: 0.01ms; animation: none; }
+  .journey-landmarks { transition-duration: 0.01ms; animation: none; }
 }
 
 @media (max-height: 700px) {
   .journey-status { top: 32px; }
-  .journey-folio { bottom: 14px; }
   .journey-content { inset-block: 58px; }
   .journey-intake { margin-bottom: 8vh; }
   .journey-appearance { top: 62px; }
@@ -594,10 +496,6 @@
 :root[data-station-vibe="original"] .mirror-preview-frame,
 :root[data-station-vibe="original"] .journey-station {
   background: #000;
-}
-
-:root[data-station-vibe="original"] .journey-portrait {
-  border-inline: 1px solid rgba(255, 255, 255, 0.28);
 }
 
 :root[data-station-vibe="original"] .journey-portrait::after {
@@ -632,23 +530,10 @@
   border-color: rgba(185, 220, 235, 0.55);
 }
 
-:root[data-station-vibe="original"] .journey-status,
-:root[data-station-vibe="original"] .journey-folio {
+:root[data-station-vibe="original"] .journey-status {
   font-size: 10px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-}
-
-:root[data-station-vibe="original"] .journey-status {
-  border-bottom: 1px solid var(--mirror-line);
-}
-
-:root[data-station-vibe="original"] .journey-folio {
-  border-top: 1px solid var(--mirror-line);
-}
-
-:root[data-station-vibe="original"] .journey-intake input:focus {
-  box-shadow: 0 2px 0 rgba(185, 220, 235, 0.28);
 }
 
 :root[data-station-vibe="original"] .journey-intake button,
@@ -713,25 +598,6 @@
   text-transform: uppercase;
 }
 
-:root[data-station-vibe="original"] .journey-debra-orb-wrap::before {
-  content: none;
-}
-
-:root[data-station-vibe="original"] .journey-debra-orb {
-  opacity: 0.9;
-  filter: grayscale(1) brightness(1.5) contrast(1.35);
-}
-
-:root[data-station-vibe="original"] .journey-debra-name {
-  font-size: 9px;
-  letter-spacing: 0.18em;
-}
-
-:root[data-station-vibe="original"] .journey-debra-introduction {
-  color: #fff;
-  font-size: 18px;
-}
-
 :root[data-station-quality="kiosk"] .journey-camera-video,
 :root[data-station-quality="kiosk"][data-station-vibe="original"] .journey-camera-video {
   filter: none;
@@ -741,20 +607,6 @@
 :root[data-station-quality="kiosk"][data-station-vibe="original"] .journey-landmarks,
 :root[data-station-quality="kiosk"] .journey-camera-stage.is-dissolving .journey-landmarks {
   filter: none;
-}
-
-:root[data-station-quality="kiosk"] .journey-debra-orb,
-:root[data-station-quality="kiosk"][data-station-vibe="original"] .journey-debra-orb {
-  filter: none;
-}
-
-:root[data-station-quality="kiosk"] .journey-debra-motion,
-:root[data-station-quality="kiosk"] .journey-debra-orb-wrap::before {
-  animation: none;
-}
-
-:root[data-station-quality="kiosk"] .journey-debra-orb-wrap::before {
-  box-shadow: none;
 }
 
 .mirror-guide-orb-lite {

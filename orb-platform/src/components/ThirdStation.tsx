@@ -10,21 +10,17 @@ import {
 import { mirrorSettings } from '../dev/mirrorSettingsStore'
 import { getDeviceQuality } from '../lib/deviceQuality'
 import { useStationVibe } from '../hooks/useStationVibe'
+import type { WallPhase } from '../lib/wallPhaseSync'
 import { MirrorGuideOrb } from './MirrorGuideOrb'
 import { MirrorHeadline } from './MirrorHeadline'
 import { CodePanel, MiniBar } from './HudDebris'
-import {
-  DebraVoiceClip,
-  thirdStationDebraClipFor,
-  type ThirdStationVoicePhase,
-} from './DebraVoice'
 import './ThirdStation.css'
 
 const MirrorDevPanel = lazy(() =>
   import('../dev/MirrorDevPanel').then((m) => ({ default: m.MirrorDevPanel })),
 )
 
-type Phase = ThirdStationVoicePhase
+type Phase = WallPhase
 
 const LIVE_POLL_MS = 150
 
@@ -435,7 +431,6 @@ export function ThirdStation() {
 
   return (
     <section className="third-station" aria-label="Mirror station" ref={rootRef}>
-      <DebraVoiceClip src={thirdStationDebraClipFor(phase)} />
       <div className="mirror-frame">
         <div className="mirror-status-label" aria-hidden="true">
           <span className="mirror-status-marker" />
@@ -484,8 +479,6 @@ export function ThirdStation() {
             </div>
           </div>
         ) : null}
-
-        <span className="mirror-horizon" aria-hidden="true" />
       </div>
 
       {import.meta.env.DEV ? (

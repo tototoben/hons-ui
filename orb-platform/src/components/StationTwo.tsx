@@ -107,8 +107,6 @@ export function StationTwo({ phaseDurationMs }: { phaseDurationMs?: number }) {
 
   const answer = useCallback((value: BinaryAnswer) => dispatch({ type: 'ANSWER', value }), [])
   const submitText = useCallback((value: string) => dispatch({ type: 'SUBMIT_TEXT', value }), [])
-  const debraPosition =
-    state.phase === 'debra-brief' ? 'left' : state.phase === 'question' ? 'right' : 'upper'
   const question = STATION_TWO_QUESTIONS[state.questionIndex]
   const questionLines = (warm ? QUESTION_LINES_WARM : QUESTION_LINES_ORIGINAL)[state.questionIndex]
   const lightningPair = STATION_TWO_LIGHTNING[state.lightningIndex]
@@ -135,12 +133,7 @@ export function StationTwo({ phaseDurationMs }: { phaseDurationMs?: number }) {
         </span>
       }
     >
-      {state.phase !== 'percentile' && state.phase !== 'complete' ? (
-        <DebraGuide
-          position={debraPosition}
-          showIntroduction={state.phase === 'companion-intro' || state.phase === 'debra-brief'}
-        />
-      ) : null}
+      {state.phase !== 'percentile' && state.phase !== 'complete' ? <DebraGuide /> : null}
 
       {state.phase === 'percentile' ? (
         <div className="journey-message journey-message-bottom">
