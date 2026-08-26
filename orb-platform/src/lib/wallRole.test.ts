@@ -40,10 +40,18 @@ describe('MEASURED_WALL_PANELS', () => {
     expect(MEASURED_WALL_PANELS.map((panel) => panel.role).sort()).toEqual([...WALL_ROLES].sort())
   })
 
-  it('puts the avatar on the top-right Beyond TV', () => {
+  it('puts avatar on the tall portrait TCL', () => {
     const avatar = MEASURED_WALL_PANELS.find((panel) => panel.role === 'avatar')
-    expect(avatar?.x).toBe(2113)
-    expect(avatar?.y).toBe(-1920)
+    expect(avatar?.device).toBe('tcl-43p615')
+    expect(avatar?.width).toBe(1080)
+    expect(avatar?.height).toBe(1920)
+  })
+
+  it('puts guide on the landscape Lenovo', () => {
+    const guide = MEASURED_WALL_PANELS.find((panel) => panel.role === 'guide')
+    expect(guide?.device).toBe('lenovo-l24i-4a')
+    expect(guide?.width).toBe(1920)
+    expect(guide?.height).toBe(1080)
   })
 
   it('exposes panel rects relative to the wall origin', () => {

@@ -43,6 +43,7 @@ export function WallCalibrate({ role }: { role: WallRole }) {
     <div
       className="wall-cal"
       data-role={role}
+      data-orientation={portrait ? 'portrait' : 'landscape'}
       style={{ '--wall-cal-ink': ROLE_INK[role] } as CSSProperties}
     >
       <span className="wall-cal-tick wall-cal-tick-tl" />

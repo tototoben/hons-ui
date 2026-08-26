@@ -32,14 +32,14 @@ export const WALL_DISPLAY_HARDWARE = {
     /** Approx. when driven at native FHD. */
     ppi: 93,
     bezelMm: { side: 2, top: 2, bottom: 10.4 },
-    notes: 'Four units, typically rotated to portrait (1080×1920) in this install.',
+    notes: 'Four units: three portrait (code, status, copy) and one landscape (guide).',
   },
   tv: {
     model: 'TCL 43P615',
     native: '3840×2160',
     sizeInches: 43,
     notes:
-      'Two units, landscape. Often appear as 1920×1080 to macOS. Set Picture Size to Just Scan / 1:1 — overscan will break face seams vs the Lenovos. PPI at 1080p feed is ~half the Lenovo, so physical feature size jumps at TV edges even when pixels align.',
+      'Two units. One is landscape (Debra, 1920×1080), one is portrait (Avatar, 1080×1920). Set Picture Size to Just Scan / 1:1. At a 1080p feed, physical pixels are much larger than the Lenovos.',
   },
 } as const
 
@@ -71,7 +71,7 @@ export const MEASURED_WALL_PANELS: Array<{
     width: 1080,
     height: 1920,
     device: 'lenovo-l24i-4a',
-    label: 'Lenovo L24i-4A portrait — top status',
+    label: 'Lenovo L24i-4A portrait — top-center status',
   },
   {
     role: 'avatar',
@@ -79,8 +79,8 @@ export const MEASURED_WALL_PANELS: Array<{
     y: -1920,
     width: 1080,
     height: 1920,
-    device: 'lenovo-l24i-4a',
-    label: 'Lenovo L24i-4A portrait — top-right avatar',
+    device: 'tcl-43p615',
+    label: 'TCL 43P615 portrait — tall right avatar',
   },
   {
     role: 'debra',
@@ -98,7 +98,7 @@ export const MEASURED_WALL_PANELS: Array<{
     width: 1080,
     height: 1920,
     device: 'lenovo-l24i-4a',
-    label: 'Lenovo L24i-4A portrait — bottom-left copy',
+    label: 'Lenovo L24i-4A portrait — bottom copy',
   },
   {
     role: 'guide',
@@ -106,8 +106,8 @@ export const MEASURED_WALL_PANELS: Array<{
     y: 305,
     width: 1920,
     height: 1080,
-    device: 'tcl-43p615',
-    label: 'TCL 43P615 landscape — bottom-right guide',
+    device: 'lenovo-l24i-4a',
+    label: 'Lenovo L24i-4A landscape — bottom-right guide',
   },
 ]
 
