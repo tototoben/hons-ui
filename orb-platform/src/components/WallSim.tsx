@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import { MEASURED_WALL_BOUNDS, MEASURED_WALL_PANELS, type WallRole } from '../lib/wallRole'
+import { MEASURED_WALL_BOUNDS } from '../lib/wallRole'
 import { getStationHref } from '../lib/stationRoute'
+import { buildWallSimLayout, type WallSimMode } from '../lib/wallSimLayout'
+import type { WallRole } from '../lib/wallRole'
 import './WallSim.css'
 
 function panelSrc(role: WallRole) {
@@ -11,8 +13,9 @@ function panelSrc(role: WallRole) {
 }
 
 /**
- * Home simulator: scaled replica of the measured 6-display Mac Studio wall.
- * Each panel is a live iframe of `?wallRole=…#/mirror` so BroadcastChannel sync works.
+ * Home simulator for the Mac Studio wall.
+ * Default "physical" mode breaks the perfect CSS seam so Lenovo vs TCL
+ * size/overscan matches the gallery better than pixel-perfect mode.
  */
 export function WallSim() {
   const [viewport, setViewport] = useState(() => ({
@@ -20,6 +23,7 @@ export function WallSim() {
     height: window.innerHeight,
   }))
   const [showLabels, setShowLabels] = useState(true)
+  const [mode, setMode] = useState<WallSimMode>('physical')
   const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {
@@ -30,31 +34,10 @@ export function WallSim() {
     return () => window.removeEventListener('resize', onResize)
   }, [])
 
-  const layout = useMemo(() => {
-    const { wallW, wallH, wallX, wallY } = MEASURED_WALL_BOUNDS
-    const padX = 32
-    const padY = 120
-    const availW = Math.max(320, viewport.width - padX * 2)
-    const availH = Math.max(240, viewport.height - padY)
-    const scale = Math.min(availW / wallW, availH / wallH)
-    return {
-      wallW,
-      wallH,
-      scale,
-      stageW: wallW * scale,
-      stageH: wallH * scale,
-      panels: MEASURED_WALL_PANELS.map((panel) => ({
-        role: panel.role,
-        label: panel.label,
-        nativeW: panel.width,
-        nativeH: panel.height,
-        left: (panel.x - wallX) * scale,
-        top: (panel.y - wallY) * scale,
-        width: panel.width * scale,
-        height: panel.height * scale,
-      })),
-    }
-  }, [viewport.height, viewport.width])
+  const layout = useMemo(
+    () => buildWallSimLayout(mode, viewport.width, viewport.height),
+    [mode, viewport.height, viewport.width],
+  )
 
   return (
     <div className="wall-sim">
@@ -63,12 +46,29 @@ export function WallSim() {
           <p className="wall-sim-kicker">Install simulator</p>
           <h1>6-display wall</h1>
           <p className="wall-sim-copy">
-            Exact measured layout ({MEASURED_WALL_BOUNDS.wallW}×{MEASURED_WALL_BOUNDS.wallH}), scaled to
-            your screen. Each tile is a live wall-role window — Debra conducts; all panels share phase
-            sync.
+            {mode === 'physical' ? (
+              <>
+                <strong>Physical mode</strong> — Lenovo L24i vs TCL 43″ real sizes, bezel gaps, and TV
+                overscan. The face will <em>not</em> line up cleanly (like the gallery). Switch to CSS
+                mode to see the ideal software seam.
+              </>
+            ) : (
+              <>
+                <strong>CSS mode</strong> — measured {MEASURED_WALL_BOUNDS.wallW}×
+                {MEASURED_WALL_BOUNDS.wallH} pixel grid. Seams look perfect; this is what the code
+                assumes, not what mixed PPI/overscan does in the room.
+              </>
+            )}
           </p>
         </div>
         <div className="wall-sim-actions">
+          <label className="wall-sim-toggle">
+            Mode
+            <select value={mode} onChange={(e) => setMode(e.target.value as WallSimMode)}>
+              <option value="physical">Physical (realistic)</option>
+              <option value="css">CSS (ideal)</option>
+            </select>
+          </label>
           <label className="wall-sim-toggle">
             <input
               type="checkbox"
@@ -91,14 +91,14 @@ export function WallSim() {
 
       <div className="wall-sim-stage-wrap">
         <div
-          className="wall-sim-stage"
+          className={`wall-sim-stage wall-sim-stage-${mode}`}
           style={{ width: layout.stageW, height: layout.stageH }}
           aria-label="Scaled Mac Studio wall"
         >
           {layout.panels.map((panel) => (
             <div
               key={panel.role}
-              className={`wall-sim-panel wall-sim-panel-${panel.role}`}
+              className={`wall-sim-panel wall-sim-panel-${panel.device} wall-sim-panel-${panel.role}`}
               style={{
                 left: panel.left,
                 top: panel.top,
@@ -106,13 +106,20 @@ export function WallSim() {
                 height: panel.height,
               }}
             >
-              <iframe
-                key={`${panel.role}-${reloadKey}`}
-                className="wall-sim-frame"
-                title={`Wall panel ${panel.role}`}
-                src={panelSrc(panel.role)}
-                allow="autoplay; microphone; camera"
-              />
+              <div className="wall-sim-frame-clip">
+                <iframe
+                  key={`${panel.role}-${reloadKey}-${mode}`}
+                  className="wall-sim-frame"
+                  title={`Wall panel ${panel.role}`}
+                  src={panelSrc(panel.role)}
+                  allow="autoplay; microphone; camera"
+                  style={
+                    panel.overscan !== 1
+                      ? { transform: `scale(${panel.overscan})` }
+                      : undefined
+                  }
+                />
+              </div>
               {showLabels ? (
                 <div className="wall-sim-label">
                   <strong>{panel.role}</strong>
@@ -128,8 +135,7 @@ export function WallSim() {
       </div>
 
       <p className="wall-sim-scale">
-        Scale {layout.scale.toFixed(3)} · origin ({MEASURED_WALL_BOUNDS.wallX},{' '}
-        {MEASURED_WALL_BOUNDS.wallY})
+        {mode} · scale {layout.scale.toFixed(3)} · 4× L24i-4A + 2× TCL 43P615
       </p>
     </div>
   )

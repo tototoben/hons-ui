@@ -100,12 +100,42 @@
   box-shadow: 0 0 0 1px var(--wall-sim-line), 0 24px 80px rgba(0, 0, 0, 0.55);
 }
 
+.wall-sim-toggle select {
+  margin-left: 8px;
+  border: 1px solid var(--wall-sim-line);
+  background: #14110f;
+  color: var(--wall-sim-ink);
+  padding: 6px 8px;
+  font: inherit;
+  font-size: 13px;
+}
+
+.wall-sim-stage-physical {
+  background: #080706;
+}
+
 .wall-sim-panel {
   position: absolute;
   overflow: hidden;
   background: #000;
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.85);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.9),
+    0 10px 28px rgba(0, 0, 0, 0.45);
   outline: 1px solid rgba(212, 163, 92, 0.22);
+}
+
+.wall-sim-panel-tcl-43p615 {
+  outline-color: rgba(120, 170, 255, 0.35);
+}
+
+.wall-sim-panel-lenovo-l24i-4a {
+  outline-color: rgba(212, 163, 92, 0.28);
+}
+
+.wall-sim-frame-clip {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
 }
 
 .wall-sim-frame {
@@ -114,6 +144,7 @@
   height: 100%;
   border: 0;
   background: #000;
+  transform-origin: center center;
 }
 
 .wall-sim-label {
