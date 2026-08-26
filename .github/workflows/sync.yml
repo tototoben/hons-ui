@@ -18,6 +18,11 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
 
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
       - name: Merge upstream into fork
         run: |
           git remote add upstream https://github.com/martinorav-png/house-of-negotiated-selves.git
