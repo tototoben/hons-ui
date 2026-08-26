@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest'
 import {
   DEFAULT_VISITOR_ALIGN,
   getWallMatchShardPoolCount,
+  glitchShowMergedAt,
   MATCH_FACE_SIZE,
+  MATCH_HOLD_MS,
   normalizeVisitorAlign,
   photobashRevealAt,
   PHOTOBASH_REVEAL_MS,
@@ -33,6 +35,22 @@ describe('wallMatchPhotobash', () => {
     expect(a.length).toBeGreaterThanOrEqual(SHARDS_PER_REVEAL.min)
     expect(a.length).toBeLessThanOrEqual(SHARDS_PER_REVEAL.max)
     expect(JSON.stringify(a)).not.toEqual(JSON.stringify(c))
+  })
+
+  it('holds the clean match before any merge glitches', () => {
+    expect(glitchShowMergedAt(0, 7)).toBe(false)
+    expect(glitchShowMergedAt(MATCH_HOLD_MS - 1, 7)).toBe(false)
+  })
+
+  it('eventually glitches into the merged plate after the hold', () => {
+    let sawMerged = false
+    for (let t = MATCH_HOLD_MS; t < MATCH_HOLD_MS + 12_000; t += 70) {
+      if (glitchShowMergedAt(t, 7)) {
+        sawMerged = true
+        break
+      }
+    }
+    expect(sawMerged).toBe(true)
   })
 
   it('reveals shards gradually instead of all at once', () => {

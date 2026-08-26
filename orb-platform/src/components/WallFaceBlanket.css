@@ -15,6 +15,11 @@
   background: #120d0a;
 }
 
+.wall-face-glitch {
+  position: absolute;
+  inset: 0;
+}
+
 .wall-face-image {
   position: absolute;
   display: block;
@@ -22,6 +27,34 @@
   object-fit: cover;
   pointer-events: none;
   user-select: none;
+}
+
+.wall-face-merge {
+  opacity: 0;
+  z-index: 1;
+}
+
+.wall-face-merge.is-visible {
+  opacity: 1;
+}
+
+.wall-face-blanket.is-glitch-hot .wall-face-glitch {
+  animation: wall-glitch-jitter 90ms steps(2, jump-none) infinite;
+  filter: contrast(1.12) saturate(1.15);
+}
+
+.wall-face-blanket.is-glitch-hot .wall-face-merge.is-visible {
+  mix-blend-mode: normal;
+  clip-path: polygon(
+    0% 0%,
+    100% 0%,
+    100% 38%,
+    0% 42%,
+    0% 58%,
+    100% 55%,
+    100% 100%,
+    0% 100%
+  );
 }
 
 .wall-face-caption {
@@ -47,5 +80,17 @@
   to {
     opacity: 1;
     filter: none;
+  }
+}
+
+@keyframes wall-glitch-jitter {
+  0% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(calc(var(--wall-glitch-x, 0.15%) * -1), var(--wall-glitch-y, 0.08%));
+  }
+  100% {
+    transform: translate(var(--wall-glitch-x, 0.12%), calc(var(--wall-glitch-y, 0.06%) * -1));
   }
 }

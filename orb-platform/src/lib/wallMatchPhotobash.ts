@@ -121,10 +121,16 @@ const SHARD_POOL: FaceShard[] = [
 ]
 
 /** How many shards to draw per reveal (from the larger pool). */
-export const SHARDS_PER_REVEAL = { min: 4, max: 6 } as const
+export const SHARDS_PER_REVEAL: { min: number; max: number } = { min: 4, max: 6 }
 
-/** Full sparse photobash settles in over this window (then holds). */
-export const PHOTOBASH_REVEAL_MS = 32_000
+/** Clean match hold before glitch bursts begin. */
+export const MATCH_HOLD_MS: number = 6_000
+
+/** Glitchy match↔merge window after the clean hold. */
+export const PHOTOBASH_GLITCH_MS: number = 40_000
+
+/** @deprecated Reveal no longer fades shards; kept for align tooling. */
+export const PHOTOBASH_REVEAL_MS: number = MATCH_HOLD_MS + PHOTOBASH_GLITCH_MS
 
 const imageCache = new Map<string, Promise<HTMLImageElement>>()
 
@@ -378,7 +384,7 @@ export async function composeWallMatchPhotobash(options: PhotobashComposeOptions
 /** Map elapsed ms → how many full shards + fade for the next one. */
 export function photobashRevealAt(
   elapsedMs: number,
-  totalMs = PHOTOBASH_REVEAL_MS,
+  totalMs: number = PHOTOBASH_REVEAL_MS,
   shardTotal: number = SHARDS_PER_REVEAL.max,
 ) {
   const total = Math.max(1, shardTotal)
@@ -388,6 +394,29 @@ export function photobashRevealAt(
   const nextShardOpacity =
     shardCount >= total ? 0 : Math.max(0, Math.min(1, exact - shardCount))
   return { shardCount, nextShardOpacity, progress }
+}
+
+/**
+ * Choppy glitch gate: clean match first, then irregular flashes of the
+ * pre-merged photobash. Seeded so every wall panel stays in sync.
+ */
+export function glitchShowMergedAt(elapsedMs: number, seed: number): boolean {
+  if (elapsedMs < MATCH_HOLD_MS) return false
+  const t = elapsedMs - MATCH_HOLD_MS
+  const intensity = Math.min(1, t / (PHOTOBASH_GLITCH_MS * 0.55))
+  const burst = Math.floor(t / 380)
+  const burstRoll = mulberry32((seed ^ 0x9e3779b9) + burst * 9973)()
+  const inBurst = burstRoll < 0.18 + intensity * 0.42
+  if (!inBurst) {
+    // Late cycle: occasional long holds on the merge.
+    if (intensity > 0.75) {
+      const holdRoll = mulberry32(seed + burst * 131)()
+      return holdRoll < 0.35
+    }
+    return false
+  }
+  const flicker = mulberry32(seed + Math.floor(t / 70) * 17)()
+  return flicker < 0.5 + intensity * 0.35
 }
 
 export function getWallMatchShardPoolCount() {
