@@ -5,12 +5,15 @@ import {
   composeWallMatchPhotobash,
   MATCH_FACE_SIZE,
   MATCH_FACE_URL,
+  PHOTOBASH_REVEAL_MS,
+  photobashRevealAt,
 } from '../lib/wallMatchPhotobash'
 import './WallFaceBlanket.css'
 
 /**
  * One shared photobashed face cover-scaled onto the full wall canvas.
  * Each display shows only its panel slice — together they read as one image.
+ * Visitor shards fade in one feature at a time over ~30s.
  */
 export function WallFaceBlanket({ role }: { role: WallRole }) {
   const panel = measuredPanelForRole(role)
@@ -30,15 +33,47 @@ export function WallFaceBlanket({ role }: { role: WallRole }) {
 
   useEffect(() => {
     let cancelled = false
-    composeWallMatchPhotobash()
-      .then((url) => {
-        if (!cancelled) setFaceUrl(url)
-      })
-      .catch(() => {
-        if (!cancelled) setFaceUrl(MATCH_FACE_URL)
-      })
+    let raf = 0
+    let lastKey = ''
+    let paintSeq = 0
+    const start = performance.now()
+
+    const paint = async (elapsed: number) => {
+      const { shardCount, nextShardOpacity } = photobashRevealAt(elapsed)
+      // Quantize fade so we don't re-encode every frame.
+      const fadeStep = Math.round(nextShardOpacity * 8) / 8
+      const key = `${shardCount}:${fadeStep}`
+      if (key === lastKey) return
+      lastKey = key
+      const seq = ++paintSeq
+      try {
+        const url = await composeWallMatchPhotobash({
+          shardCount,
+          nextShardOpacity: fadeStep,
+        })
+        if (!cancelled && seq === paintSeq) setFaceUrl(url)
+      } catch {
+        if (!cancelled && seq === paintSeq) setFaceUrl(MATCH_FACE_URL)
+      }
+    }
+
+    const tick = (now: number) => {
+      if (cancelled) return
+      const elapsed = now - start
+      void paint(elapsed)
+      if (elapsed < PHOTOBASH_REVEAL_MS) {
+        raf = requestAnimationFrame(tick)
+      } else {
+        void paint(PHOTOBASH_REVEAL_MS)
+      }
+    }
+
+    void paint(0)
+    raf = requestAnimationFrame(tick)
+
     return () => {
       cancelled = true
+      cancelAnimationFrame(raf)
     }
   }, [])
 

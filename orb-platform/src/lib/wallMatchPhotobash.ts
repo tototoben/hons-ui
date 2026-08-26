@@ -2,77 +2,55 @@ export const MATCH_FACE_URL = '/assets/wall-avatar/match-face.png'
 export const VISITOR_FACE_URL = '/assets/wall-avatar/visitor-face.jpg'
 export const MATCH_FACE_SIZE = { width: 864, height: 960 }
 
-/** Irregular puzzle shards of the visitor drawn over the base match face. */
+/** Sparse visitor cuts — roughly 30–40% of the face plate, feature-focused. */
 const USER_SHARDS: Array<Array<[number, number]>> = [
-  // upper-left hair / brow
+  // one eye (viewer-left / subject-right)
   [
-    [0.02, 0.0],
-    [0.38, 0.0],
-    [0.44, 0.18],
-    [0.28, 0.3],
-    [0.06, 0.26],
-    [0.0, 0.12],
+    [0.54, 0.33],
+    [0.72, 0.32],
+    [0.74, 0.4],
+    [0.68, 0.44],
+    [0.56, 0.43],
+    [0.52, 0.38],
   ],
-  // left eye plate
+  // a thin nose fragment (bridge → tip)
   [
-    [0.1, 0.28],
-    [0.42, 0.24],
-    [0.5, 0.36],
-    [0.46, 0.5],
-    [0.22, 0.52],
-    [0.08, 0.42],
+    [0.46, 0.4],
+    [0.54, 0.4],
+    [0.53, 0.55],
+    [0.5, 0.58],
+    [0.47, 0.55],
   ],
-  // right temple / eye
+  // half the mouth (right side)
   [
-    [0.56, 0.12],
-    [0.92, 0.06],
-    [1.0, 0.28],
-    [0.96, 0.48],
-    [0.7, 0.5],
-    [0.54, 0.34],
-  ],
-  // nose + mid cheek zig
-  [
-    [0.38, 0.34],
-    [0.58, 0.32],
-    [0.62, 0.52],
     [0.5, 0.62],
-    [0.36, 0.54],
-  ],
-  // mouth / lower lip wedge
-  [
-    [0.3, 0.58],
-    [0.7, 0.56],
-    [0.76, 0.72],
-    [0.52, 0.84],
-    [0.26, 0.74],
-  ],
-  // chin tip
-  [
-    [0.34, 0.78],
-    [0.66, 0.76],
-    [0.62, 0.96],
-    [0.5, 1.0],
-    [0.36, 0.96],
-  ],
-  // lower-left jaw
-  [
-    [0.0, 0.46],
-    [0.22, 0.5],
-    [0.3, 0.74],
-    [0.12, 0.92],
-    [0.0, 0.78],
+    [0.68, 0.61],
+    [0.7, 0.69],
+    [0.58, 0.73],
+    [0.5, 0.69],
   ],
 ]
 
+/** Full sparse photobash settles in over this window (then holds). */
+export const PHOTOBASH_REVEAL_MS = 32_000
+
+const imageCache = new Map<string, Promise<HTMLImageElement>>()
+
 function loadImage(src: string) {
-  return new Promise<HTMLImageElement>((resolve, reject) => {
+  const cached = imageCache.get(src)
+  if (cached) return cached
+  const pending = new Promise<HTMLImageElement>((resolve, reject) => {
     const image = new Image()
     image.decoding = 'async'
     image.onload = () => resolve(image)
-    image.onerror = () => reject(new Error(`Failed to load ${src}`))
+    image.onerror = () => {
+      imageCache.delete(src)
+      reject(new Error(`Failed to load ${src}`))
+    }
     image.src = src
   })
+  imageCache.set(src, pending)
+  return pending
 }
 
 /** Cover-draw an image into a destination rect, optionally biasing the crop. */
@@ -127,14 +105,25 @@ function tracePolygon(
   ctx.closePath()
 }
 
+export type PhotobashComposeOptions = {
+  width?: number
+  height?: number
+  /** How many visitor shards to draw (0 = match face only). */
+  shardCount?: number
+  /** Fade 0–1 for the next shard after `shardCount` full pieces. */
+  nextShardOpacity?: number
+}
+
 /**
- * Build a puzzle-fragment photobash: match-face base + visitor shards.
+ * Build a sparse puzzle photobash: match-face base + a few visitor feature shards.
  * Returns a data URL suitable for the wall blanket.
  */
-export async function composeWallMatchPhotobash(
-  width = MATCH_FACE_SIZE.width,
-  height = MATCH_FACE_SIZE.height,
-) {
+export async function composeWallMatchPhotobash(options: PhotobashComposeOptions = {}) {
+  const width = options.width ?? MATCH_FACE_SIZE.width
+  const height = options.height ?? MATCH_FACE_SIZE.height
+  const shardCount = Math.max(0, Math.min(USER_SHARDS.length, options.shardCount ?? USER_SHARDS.length))
+  const nextShardOpacity = Math.max(0, Math.min(1, options.nextShardOpacity ?? 0))
+
   const [baseImage, visitorImage] = await Promise.all([
     loadImage(MATCH_FACE_URL),
     loadImage(VISITOR_FACE_URL),
@@ -146,50 +135,64 @@ export async function composeWallMatchPhotobash(
   const ctx = canvas.getContext('2d')
   if (!ctx) throw new Error('Canvas unavailable')
 
-  // Base: generated match face
   coverDrawImage(ctx, baseImage, 0, 0, width, height, 0.45)
 
-  // Puzzle shards of the visitor
-  for (const shard of USER_SHARDS) {
+  const drawShard = (shard: Array<[number, number]>, opacity: number) => {
+    if (opacity <= 0) return
     ctx.save()
     tracePolygon(ctx, shard, width, height)
     ctx.clip()
+    ctx.globalAlpha = opacity
     coverDrawImage(ctx, visitorImage, 0, 0, width, height, 0.38)
+    ctx.restore()
+
+    ctx.save()
+    ctx.globalAlpha = opacity
+    ctx.strokeStyle = 'rgba(8, 6, 4, 0.5)'
+    ctx.lineWidth = Math.max(1.2, width * 0.002)
+    ctx.lineJoin = 'round'
+    tracePolygon(ctx, shard, width, height)
+    ctx.stroke()
+    ctx.strokeStyle = 'rgba(255, 244, 232, 0.16)'
+    ctx.lineWidth = Math.max(0.6, width * 0.001)
+    tracePolygon(ctx, shard, width, height)
+    ctx.stroke()
     ctx.restore()
   }
 
-  // Crack / seam lines between fragments
-  ctx.save()
-  ctx.strokeStyle = 'rgba(8, 6, 4, 0.55)'
-  ctx.lineWidth = Math.max(1.5, width * 0.0024)
-  ctx.lineJoin = 'round'
-  for (const shard of USER_SHARDS) {
-    tracePolygon(ctx, shard, width, height)
-    ctx.stroke()
+  for (let i = 0; i < shardCount; i += 1) {
+    drawShard(USER_SHARDS[i], 1)
   }
-  ctx.strokeStyle = 'rgba(255, 244, 232, 0.18)'
-  ctx.lineWidth = Math.max(0.8, width * 0.0012)
-  for (const shard of USER_SHARDS) {
-    tracePolygon(ctx, shard, width, height)
-    ctx.stroke()
+  if (shardCount < USER_SHARDS.length && nextShardOpacity > 0) {
+    drawShard(USER_SHARDS[shardCount], nextShardOpacity)
   }
-  ctx.restore()
 
-  // Subtle vignette so shards settle into one plate
-  const wash = ctx.createRadialGradient(
-    width * 0.5,
-    height * 0.45,
-    width * 0.2,
-    width * 0.5,
-    height * 0.5,
-    width * 0.72,
-  )
-  wash.addColorStop(0, 'rgba(0,0,0,0)')
-  wash.addColorStop(1, 'rgba(10, 8, 6, 0.28)')
-  ctx.fillStyle = wash
-  ctx.fillRect(0, 0, width, height)
+  if (shardCount > 0 || nextShardOpacity > 0) {
+    const wash = ctx.createRadialGradient(
+      width * 0.5,
+      height * 0.45,
+      width * 0.2,
+      width * 0.5,
+      height * 0.5,
+      width * 0.72,
+    )
+    wash.addColorStop(0, 'rgba(0,0,0,0)')
+    wash.addColorStop(1, 'rgba(10, 8, 6, 0.22)')
+    ctx.fillStyle = wash
+    ctx.fillRect(0, 0, width, height)
+  }
 
   return canvas.toDataURL('image/jpeg', 0.92)
+}
+
+/** Map elapsed ms → how many full shards + fade for the next one. */
+export function photobashRevealAt(elapsedMs: number, totalMs = PHOTOBASH_REVEAL_MS) {
+  const progress = Math.max(0, Math.min(1, elapsedMs / totalMs))
+  const exact = progress * USER_SHARDS.length
+  const shardCount = Math.min(USER_SHARDS.length, Math.floor(exact))
+  const nextShardOpacity =
+    shardCount >= USER_SHARDS.length ? 0 : Math.max(0, Math.min(1, exact - shardCount))
+  return { shardCount, nextShardOpacity, progress }
 }
 
 export function getWallMatchShardCount() {
