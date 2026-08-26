@@ -19,7 +19,7 @@
   height: 100svh;
   max-height: 100svh;
   overflow: hidden;
-  background: linear-gradient(180deg, var(--mirror-bg-top) 0%, var(--mirror-bg-bottom) 78%);
+  background: #000;
   color: #fff4e8;
   font-family: system-ui, sans-serif;
 }
