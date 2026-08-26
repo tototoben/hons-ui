@@ -1,0 +1,266 @@
+:root {
+  /* Fallback defaults — the dev panel overrides these on documentElement
+   * at runtime. Declared at :root (not on .question-deck-viewport) so
+   * that JS-set inline values actually win: a custom property declared
+   * locally on an element always beats one inherited from an ancestor,
+   * so redeclaring these on .question-deck-viewport would (and did)
+   * silently shadow any :root-level override.
+   *
+   * Every teal/violet/mint/green tint below (borders, box-shadows,
+   * background gradients, text-shadow fringing) is driven by these same
+   * four variables rather than separate hardcoded rgba() values, so a
+   * single slider recolors all of that element's occurrences at once —
+   * individual per-layer alpha nuance is traded for that controllability. */
+  --holo-teal: rgba(69, 138, 148, 0.72);
+  --holo-violet: rgba(97, 77, 133, 0.55);
+  --holo-mint: rgba(199, 230, 224, 0.9);
+  --holo-green: rgba(87, 140, 99, 0.35);
+}
+
+.question-deck-viewport {
+  --deck-visible-slots: 3;
+  --deck-card-width: clamp(180px, 16vw, 230px);
+  --deck-card-height: clamp(250px, 22vw, 320px);
+  position: absolute;
+  left: 50%;
+  top: 72%;
+  z-index: 3;
+  width: calc(var(--deck-card-width) + 56px);
+  height: calc(var(--deck-card-height) + 88px);
+  overflow: visible;
+  transform: translate(-50%, -50%);
+  animation: question-deck-hover var(--hover-duration, 5.4s) ease-in-out infinite;
+  will-change: transform;
+  isolation: isolate;
+  filter: drop-shadow(-1px 0 0 var(--holo-violet))
+    drop-shadow(1px 0 0 var(--holo-teal));
+}
+
+@keyframes question-deck-hover {
+  0%,
+  100% {
+    transform: translate(-50%, calc(-50% + 5px));
+  }
+
+  50% {
+    transform: translate(-50%, calc(-50% - 7px));
+  }
+}
+
+@keyframes holo-flicker {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+
+  40% {
+    opacity: 0.82;
+  }
+
+  62% {
+    opacity: 0.48;
+  }
+
+  78% {
+    opacity: 0.9;
+  }
+}
+
+@keyframes holo-grain {
+  0%,
+  100% {
+    background-position:
+      0 0,
+      12px -8px,
+      -6px 14px,
+      0 0;
+  }
+
+  50% {
+    background-position:
+      3px -4px,
+      8px 6px,
+      -2px 10px,
+      0 0;
+  }
+}
+
+.question-deck-viewport .card-swap-container {
+  position: absolute;
+  left: 0;
+  right: auto;
+  bottom: 0;
+  transform: none;
+  transform-origin: center;
+}
+
+.question-deck-viewport .question-swap-card {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: clamp(18px, 2vw, 26px);
+  overflow: hidden;
+  border: 1px solid var(--holo-mint);
+  border-radius: 0;
+  background-color: rgba(10, 10, 10, 0.22);
+  background-image:
+    radial-gradient(circle at 1px 1px, var(--holo-mint) 0.55px, transparent 0.75px),
+    radial-gradient(circle at 2px 2px, var(--holo-violet) 0.4px, transparent 0.7px),
+    radial-gradient(circle at 50% 120%, var(--holo-teal), transparent 55%),
+    var(--card-art);
+  background-size:
+    5px 5px,
+    7px 7px,
+    100% 100%,
+    auto;
+  background-blend-mode: screen, soft-light, soft-light, soft-light;
+  -webkit-backdrop-filter: blur(var(--holo-blur, 7px)) saturate(118%);
+  backdrop-filter: blur(var(--holo-blur, 7px)) saturate(118%);
+  box-shadow:
+    -2px 0 0 var(--holo-violet),
+    2px 0 0 var(--holo-teal),
+    inset 0 0 0 1px var(--holo-mint),
+    inset 0 0 28px var(--holo-teal),
+    0 0 26px var(--holo-teal),
+    0 22px 48px rgba(0, 0, 0, 0.24);
+  color: var(--holo-mint);
+  animation: holo-grain var(--grain-duration, 4.8s) steps(3) infinite;
+}
+
+.question-deck-viewport:not(.question-deck-static) .question-swap-card:not([data-deck-visible]) {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* Chromatic fringe + particle veil — room teal / violet */
+.question-deck-viewport .question-swap-card::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, var(--holo-violet), transparent 18%, transparent 82%, var(--holo-teal)),
+    radial-gradient(circle at 18% 24%, var(--holo-mint) 0 1px, transparent 1.6px),
+    radial-gradient(circle at 72% 58%, var(--holo-teal) 0 1px, transparent 1.8px),
+    radial-gradient(circle at 44% 78%, var(--holo-green) 0 1px, transparent 1.7px);
+  background-size:
+    100% 100%,
+    18px 18px,
+    22px 22px,
+    16px 16px;
+  mix-blend-mode: screen;
+  opacity: 0.75;
+  animation: holo-flicker var(--flicker-duration, 3.6s) ease-in-out infinite;
+}
+
+/* Soft vignette + edge light — no moving scan band */
+.question-deck-viewport .question-swap-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(135deg, var(--holo-mint) 0%, transparent 16%),
+    linear-gradient(180deg, transparent 42%, rgba(3, 4, 6, 0.42) 100%);
+  box-shadow:
+    inset 0 1px 0 var(--holo-mint),
+    inset 1px 0 0 var(--holo-mint);
+}
+
+.question-swap-kicker,
+.question-swap-title {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+}
+
+.question-swap-kicker {
+  align-self: flex-start;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--holo-mint);
+  color: var(--holo-mint);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: clamp(0.56rem, 0.62vw, 0.68rem);
+  font-weight: 650;
+  letter-spacing: 0.18em;
+  line-height: 1.25;
+  text-transform: uppercase;
+  text-shadow:
+    -1px 0 0 var(--holo-violet),
+    1px 0 0 var(--holo-teal),
+    0 0 12px var(--holo-mint);
+}
+
+.question-swap-title {
+  max-width: 100%;
+  color: var(--holo-mint);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(1.12rem, 1.7vw, 1.65rem);
+  font-weight: 400;
+  letter-spacing: -0.035em;
+  line-height: 0.98;
+  text-wrap: balance;
+  text-shadow:
+    -1.5px 0 0 var(--holo-violet),
+    1.5px 0 0 var(--holo-teal),
+    0 0 18px var(--holo-mint);
+}
+
+.question-deck-static .question-swap-card {
+  --static-slot: 0;
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: var(--deck-card-width);
+  height: var(--deck-card-height);
+  z-index: calc(var(--deck-visible-slots) - var(--static-slot));
+  transform: translate(
+      calc(var(--static-slot) * 28px),
+      calc(var(--static-slot) * -44px)
+    )
+    skewY(4deg);
+  transform-origin: center;
+}
+
+@media (max-width: 700px) {
+  .question-deck-viewport {
+    --deck-card-width: clamp(170px, 54vw, 220px);
+    --deck-card-height: clamp(240px, 76vw, 310px);
+    top: 70%;
+  }
+
+  .question-deck-viewport .question-swap-card {
+    padding: 18px;
+  }
+
+  .question-swap-title {
+    font-size: clamp(1.08rem, 5.2vw, 1.5rem);
+  }
+}
+
+@media (max-height: 620px) {
+  .question-deck-viewport {
+    --deck-card-width: clamp(168px, 24vw, 210px);
+    --deck-card-height: clamp(190px, calc(100svh - 150px), 250px);
+    top: 64%;
+  }
+
+  .question-deck-viewport .question-swap-card {
+    padding: clamp(16px, 4vh, 24px);
+  }
+
+  .question-swap-title {
+    font-size: clamp(1rem, 4.5vh, 1.35rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .question-deck-viewport,
+  .question-deck-viewport .question-swap-card,
+  .question-deck-viewport .question-swap-card::before {
+    animation: none;
+  }
+}

@@ -3,6 +3,7 @@
 node_modules/
 samples/
 *.mp3
+!orb-platform/public/audio/debra/*.mp3
 mock-ui/dist/
 mock-ui/node_modules/
 mock-ui/stitch/assets/
@@ -29,6 +30,7 @@ work/eka-ars26-house/**/build/
 .codex/
 .cursor/
 .superpowers/
+.worktrees/
 .tmp_*
 
 # Large journey board exports (exceed GitHub 100MB limit)

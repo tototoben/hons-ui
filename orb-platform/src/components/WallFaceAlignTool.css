@@ -1,0 +1,160 @@
+.face-align {
+  --face-align-ink: #1a1410;
+  --face-align-paper: #f3ebe1;
+  --face-align-muted: #6d5f52;
+  --face-align-line: rgba(26, 20, 16, 0.14);
+  --face-align-accent: #b84a2f;
+  min-height: 100vh;
+  padding: clamp(16px, 3vw, 36px);
+  color: var(--face-align-ink);
+  background:
+    radial-gradient(1200px 700px at 10% -10%, rgba(184, 74, 47, 0.12), transparent 55%),
+    linear-gradient(160deg, #f7f1e8 0%, #e8ddd0 48%, #d9cfc2 100%);
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+}
+
+.face-align-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 24px;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 22px;
+}
+
+.face-align-kicker {
+  margin: 0 0 4px;
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--face-align-accent);
+}
+
+.face-align h1 {
+  margin: 0;
+  font-family: "IBM Plex Serif", "Iowan Old Style", Georgia, serif;
+  font-size: clamp(28px, 4vw, 42px);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+.face-align-copy {
+  max-width: 42rem;
+  margin: 8px 0 0;
+  color: var(--face-align-muted);
+  line-height: 1.45;
+}
+
+.face-align-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.face-align-actions button,
+.face-align-controls select,
+.face-align-controls input[type='range'] {
+  font: inherit;
+}
+
+.face-align-actions button {
+  border: 1px solid var(--face-align-ink);
+  background: var(--face-align-ink);
+  color: var(--face-align-paper);
+  padding: 10px 16px;
+  cursor: pointer;
+}
+
+.face-align-actions button.is-ghost {
+  background: transparent;
+  color: var(--face-align-ink);
+}
+
+.face-align-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 300px);
+  gap: 20px;
+  align-items: start;
+}
+
+.face-align-stage {
+  position: relative;
+  aspect-ratio: 864 / 960;
+  max-height: min(78vh, 860px);
+  margin-inline: auto;
+  width: min(100%, calc(min(78vh, 860px) * 864 / 960));
+  overflow: hidden;
+  border: 1px solid var(--face-align-line);
+  background: #120d0a;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.face-align-stage.is-dragging {
+  cursor: grabbing;
+}
+
+.face-align-stage img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+}
+
+.face-align-stage p {
+  margin: 0;
+  padding: 24px;
+  color: rgba(255, 244, 232, 0.7);
+}
+
+.face-align-controls {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--face-align-line);
+  background: rgba(255, 252, 247, 0.72);
+}
+
+.face-align-controls label {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px 10px;
+  align-items: center;
+  font-size: 13px;
+  color: var(--face-align-muted);
+}
+
+.face-align-controls label select,
+.face-align-controls label input[type='range'] {
+  grid-column: 1 / -1;
+}
+
+.face-align-controls select {
+  border: 1px solid var(--face-align-line);
+  background: #fff;
+  padding: 8px 10px;
+}
+
+.face-align-status {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--face-align-ink);
+}
+
+.face-align-json {
+  margin: 0;
+  padding: 10px;
+  overflow: auto;
+  border: 1px solid var(--face-align-line);
+  background: rgba(26, 20, 16, 0.04);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+@media (max-width: 860px) {
+  .face-align-layout {
+    grid-template-columns: 1fr;
+  }
+}

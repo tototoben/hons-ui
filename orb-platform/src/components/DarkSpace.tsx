@@ -2,6 +2,7 @@ import { useMemo, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { settings } from '../dev/settingsStore'
+import { syncColor } from '../lib/colorSync'
 
 /**
  * Distant fallback void — sand/rust glow low-center, near-black otherwise.
@@ -83,8 +84,8 @@ export function DarkSpace() {
 
   useFrame((state) => {
     material.uniforms.uTime.value = state.clock.elapsedTime
-    material.uniforms.uBaseColor.value.set(settings.darkspace.baseColor)
-    material.uniforms.uLiftColor.value.set(settings.darkspace.liftColor)
+    syncColor(material.uniforms.uBaseColor.value, settings.darkspace.baseColor)
+    syncColor(material.uniforms.uLiftColor.value, settings.darkspace.liftColor)
     material.uniforms.uSaturation.value = settings.darkspace.saturation
     material.uniforms.uGrainAmount.value = settings.darkspace.grain
     if (mesh.current) {

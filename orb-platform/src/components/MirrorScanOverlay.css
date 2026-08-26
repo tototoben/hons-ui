@@ -1,0 +1,11 @@
+.journey-scan-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  /* HudDebris.css falls back to this same ice-blue when the var isn't
+     set, but declaring it explicitly keeps Station I's palette obvious
+     here rather than relying on the fallback silently doing the work. */
+  --mirror-accent: #b9dceb;
+}
+

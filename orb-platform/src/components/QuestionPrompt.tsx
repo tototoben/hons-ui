@@ -5,7 +5,8 @@ import { ROOM } from '../config'
 import { drawGrainyText } from '../lib/grainyText'
 import { settings } from '../dev/settingsStore'
 
-const REDRAW_INTERVAL = 1 / 12
+// Drift mask updates slowly; 8 fps is enough with cached glyph layers.
+const REDRAW_INTERVAL = 1 / 8
 const _color = new THREE.Color()
 const _smudgeColor = new THREE.Color()
 
@@ -32,8 +33,9 @@ export function QuestionPrompt({
 
   const { canvas, ctx, texture } = useMemo(() => {
     const canvas = document.createElement('canvas')
-    canvas.width = 2200
-    canvas.height = 480
+    // ~0.7× prior pixels — still sharp on a ~7.3m world plane at typical DPR.
+    canvas.width = 1536
+    canvas.height = 336
     const ctx = canvas.getContext('2d')!
     const texture = new THREE.CanvasTexture(canvas)
     texture.colorSpace = THREE.SRGBColorSpace

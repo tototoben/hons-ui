@@ -1,5 +1,10 @@
-import { useControls, Leva } from 'leva'
+import { button, useControls } from 'leva'
 import { settings } from './settingsStore'
+
+function snapshotSettings() {
+  // Deep plain clone so the clipboard gets exact live values, not proxies.
+  return JSON.parse(JSON.stringify(settings)) as typeof settings
+}
 
 /**
  * Live tuning panel — sliders/color pickers write straight into
@@ -65,5 +70,11 @@ export function DevPanel() {
   })
   Object.assign(settings.scan, scan)
 
-  return <Leva collapsed={false} titleBar={{ title: 'Scene tuning' }} />
+  useControls('Clipboard', {
+    'Copy all settings': button(() => {
+      void navigator.clipboard.writeText(JSON.stringify(snapshotSettings(), null, 2))
+    }),
+  })
+
+  return null
 }

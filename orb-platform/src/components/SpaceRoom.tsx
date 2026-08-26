@@ -4,6 +4,7 @@ import * as THREE from 'three'
 import { ROOM } from '../config'
 import { duneRoomVertexShader, duneRoomFragmentShader } from '../shaders/duneRoomShaders'
 import { settings } from '../dev/settingsStore'
+import { syncColor } from '../lib/colorSync'
 
 /**
  * Real room geometry — five solid planes (open front, matching the camera's
@@ -39,8 +40,8 @@ export function useDuneRoomMaterial(glowStrength = 1) {
 export function useSyncDuneRoomMaterial(material: THREE.ShaderMaterial, elapsed: number) {
   material.uniforms.uTime.value = elapsed
   material.uniforms.uHotRadius.value = settings.room.glowRadius
-  material.uniforms.uBaseColor.value.set(settings.room.baseColor)
-  material.uniforms.uLiftColor.value.set(settings.room.liftColor)
+  syncColor(material.uniforms.uBaseColor.value, settings.room.baseColor)
+  syncColor(material.uniforms.uLiftColor.value, settings.room.liftColor)
   material.uniforms.uSaturation.value = settings.room.saturation
   material.uniforms.uGrainAmount.value = settings.room.grain
 }

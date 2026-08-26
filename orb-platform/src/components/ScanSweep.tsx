@@ -4,6 +4,7 @@ import * as THREE from 'three'
 import { ROOM } from '../config'
 import { scanUniforms } from '../lib/scanUniforms'
 import { settings } from '../dev/settingsStore'
+import { syncColor } from '../lib/colorSync'
 import { samplePlane, mergePointClouds, buildPointGeometry } from '../lib/samplePoints'
 
 const STRIP_HEIGHT = 0.55
@@ -81,7 +82,7 @@ export function ScanSweep() {
       points.current.position.y = scanUniforms.uScanY.value
     }
     material.size = settings.scan.pointSize
-    material.color.set(settings.scan.color)
+    syncColor(material.color, settings.scan.color)
     // Fade near the very top/bottom of each climb so the sawtooth's reset
     // back to the floor happens while invisible, not as a visible jump.
     const cycleFrac = THREE.MathUtils.clamp(scanUniforms.uScanY.value / ROOM.height, 0, 1)

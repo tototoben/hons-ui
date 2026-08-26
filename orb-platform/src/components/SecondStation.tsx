@@ -1,7 +1,13 @@
-import { AutoCardStack } from './AutoCardStack'
-import { GridScan } from './GridScan'
-import { CARD_PALETTE } from '../lib/cardPalette'
+import { lazy, Suspense } from 'react'
+import { QuestionCardDeck } from './QuestionCardDeck'
+import { CardPointCloudRoom } from './CardPointCloudRoom'
 import './SecondStation.css'
+
+// Dynamically imported so `leva` is excluded from the production bundle —
+// same reasoning as the Orb station's DevPanel (see App.tsx).
+const CardsDevPanel = lazy(() =>
+  import('../dev/CardsDevPanel').then((m) => ({ default: m.CardsDevPanel })),
+)
 
 export function SecondStation() {
   return (
@@ -9,23 +15,13 @@ export function SecondStation() {
       className="second-station"
       aria-label="Second station question cards"
     >
-      <GridScan
-        sensitivity={0}
-        lineThickness={4}
-        linesColor="#171c19"
-        gridScale={0.02}
-        scanColor="#ffffff"
-        scanColorAlt="#ffffff"
-        scanColors={[...CARD_PALETTE]}
-        scanOpacity={0.4}
-        enablePost
-        bloomIntensity={0.6}
-        chromaticAberration={0.003}
-        noiseIntensity={0.1}
-        lineJitter={1}
-        scanSoftness={1.5}
-      />
-      <AutoCardStack />
+      <CardPointCloudRoom />
+      <QuestionCardDeck />
+      {import.meta.env.DEV ? (
+        <Suspense fallback={null}>
+          <CardsDevPanel />
+        </Suspense>
+      ) : null}
     </section>
   )
 }
