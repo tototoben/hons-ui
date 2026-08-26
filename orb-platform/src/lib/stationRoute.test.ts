@@ -34,6 +34,10 @@ describe('getStationFromHash', () => {
     expect(getStationFromHash('#/wall-sim')).toBe('wall-sim')
   })
 
+  it('resolves the wall calibrate hash', () => {
+    expect(getStationFromHash('#/wall-cal')).toBe('wall-cal')
+  })
+
   it('falls back to orb for unknown hashes', () => {
     expect(getStationFromHash('#/unknown')).toBe('orb')
   })
@@ -49,5 +53,6 @@ describe('getStationHref', () => {
     expect(getStationHref('station-2')).toBe('#/station-2')
     expect(getStationHref('face-align')).toBe('#/face-align')
     expect(getStationHref('wall-sim')).toBe('#/wall-sim')
+    expect(getStationHref('wall-cal')).toBe('#/wall-cal')
   })
 })

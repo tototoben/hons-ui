@@ -30,6 +30,9 @@ const AvatarStation = lazy(() =>
 const WallFaceAlignTool = lazy(() =>
   import('./components/WallFaceAlignTool').then((m) => ({ default: m.WallFaceAlignTool })),
 )
+const WallCalibrate = lazy(() =>
+  import('./components/WallCalibrate').then((m) => ({ default: m.WallCalibrate })),
+)
 const WallSim = lazy(() => import('./components/WallSim').then((m) => ({ default: m.WallSim })))
 const OrbStation = lazy(() =>
   import('./components/OrbStation').then((m) => ({ default: m.OrbStation })),
@@ -42,8 +45,10 @@ export default function App() {
   const [wallCropMode] = useState(() => isWallMode())
   const [wallRole] = useState(() => parseWallRole())
   // Keep wall-sim out of this expression so TS does not narrow `station` inside the nav.
-  const hideChrome = wallCropMode || isWallRoleMode() || station === 'wall-sim'
-  const showMainNav = !wallCropMode && !isWallRoleMode() && station !== 'wall-sim'
+  const hideChrome =
+    wallCropMode || isWallRoleMode() || station === 'wall-sim' || station === 'wall-cal'
+  const showMainNav =
+    !wallCropMode && !isWallRoleMode() && station !== 'wall-sim' && station !== 'wall-cal'
 
   useEffect(() => {
     applyDeviceQuality()
@@ -130,6 +135,8 @@ export default function App() {
           <WallFaceAlignTool />
         ) : station === 'wall-sim' ? (
           <WallSim />
+        ) : station === 'wall-cal' ? (
+          <WallCalibrate role={wallRole ?? 'copy'} />
         ) : station === 'mirror' ? (
           wallRole ? (
             <ThirdStationWall role={wallRole} />
