@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { MEASURED_WALL_PANELS, parseWallRole, WALL_ROLES } from './wallRole'
+import {
+  MEASURED_WALL_BOUNDS,
+  MEASURED_WALL_PANELS,
+  measuredPanelForRole,
+  parseWallRole,
+  WALL_ROLES,
+} from './wallRole'
 
 describe('parseWallRole', () => {
   it('returns null without a wallRole param', () => {
@@ -27,5 +33,13 @@ describe('MEASURED_WALL_PANELS', () => {
     const avatar = MEASURED_WALL_PANELS.find((panel) => panel.role === 'avatar')
     expect(avatar?.x).toBe(2113)
     expect(avatar?.y).toBe(-1920)
+  })
+
+  it('exposes panel rects relative to the wall origin', () => {
+    const copy = measuredPanelForRole('copy')
+    expect(MEASURED_WALL_BOUNDS.wallW).toBe(3585)
+    expect(MEASURED_WALL_BOUNDS.wallH).toBe(5258)
+    expect(copy?.panelX).toBe(392)
+    expect(copy?.panelY).toBe(3338)
   })
 })

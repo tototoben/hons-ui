@@ -73,3 +73,30 @@ export const MEASURED_WALL_PANELS: Array<{
     label: 'L24i-4A (3) bottom-right guide arrows',
   },
 ]
+
+export const MEASURED_WALL_BOUNDS = (() => {
+  const minX = Math.min(...MEASURED_WALL_PANELS.map((p) => p.x))
+  const minY = Math.min(...MEASURED_WALL_PANELS.map((p) => p.y))
+  const maxX = Math.max(...MEASURED_WALL_PANELS.map((p) => p.x + p.width))
+  const maxY = Math.max(...MEASURED_WALL_PANELS.map((p) => p.y + p.height))
+  return {
+    wallX: minX,
+    wallY: minY,
+    wallW: maxX - minX,
+    wallH: maxY - minY,
+  }
+})()
+
+export function measuredPanelForRole(role: WallRole) {
+  const panel = MEASURED_WALL_PANELS.find((entry) => entry.role === role)
+  if (!panel) return null
+  return {
+    role: panel.role,
+    panelX: panel.x - MEASURED_WALL_BOUNDS.wallX,
+    panelY: panel.y - MEASURED_WALL_BOUNDS.wallY,
+    panelWidth: panel.width,
+    panelHeight: panel.height,
+    wallWidth: MEASURED_WALL_BOUNDS.wallW,
+    wallHeight: MEASURED_WALL_BOUNDS.wallH,
+  }
+}

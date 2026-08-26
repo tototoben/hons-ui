@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { mirrorSettings } from '../dev/mirrorSettingsStore'
 import { useWallSyncedPhase } from '../lib/wallPhaseSync'
 import { parseWallRole, type WallRole } from '../lib/wallRole'
@@ -9,12 +9,9 @@ import {
   DebraVoiceClip,
   thirdStationDebraClipFor,
 } from './DebraVoice'
+import { WallFaceBlanket } from './WallFaceBlanket'
 import './ThirdStation.css'
 import './ThirdStationWall.css'
-
-const WallAvatarViewer = lazy(() =>
-  import('./WallAvatarViewer').then((m) => ({ default: m.WallAvatarViewer })),
-)
 
 const STATUS_LABEL = {
   intro: 'STANDBY',
@@ -145,19 +142,13 @@ function WallGuidePanel({ phase }: { phase: keyof typeof STATUS_LABEL }) {
 }
 
 function WallAvatarPanel({ phase }: { phase: keyof typeof STATUS_LABEL }) {
-  const showAvatar = phase === 'loading'
+  // During loading the whole wall switches to the blanketed face image.
   return (
     <div className="wall-role wall-role-avatar">
-      {showAvatar ? (
-        <Suspense fallback={<div className="wall-avatar-wait">ASSEMBLING</div>}>
-          <WallAvatarViewer />
-        </Suspense>
-      ) : (
-        <div className="wall-avatar-wait">
-          <span className="wall-avatar-wait-mark" />
-          {phase === 'recording' ? 'CAPTURING VOICEPRINT' : 'AWAITING MATCH'}
-        </div>
-      )}
+      <div className="wall-avatar-wait">
+        <span className="wall-avatar-wait-mark" />
+        {phase === 'recording' ? 'CAPTURING VOICEPRINT' : 'AWAITING MATCH'}
+      </div>
     </div>
   )
 }
@@ -269,13 +260,17 @@ export function ThirdStationWall({ role: roleProp }: { role?: WallRole }) {
       ref={rootRef}
     >
       {role === 'debra' ? <DebraVoiceClip src={thirdStationDebraClipFor(phase)} /> : null}
-      <WallRoleContent
-        role={role}
-        phase={phase}
-        countdown={countdown}
-        recordSecondsLeft={recordSecondsLeft}
-        loadingProgress={loadingProgress}
-      />
+      {phase === 'loading' ? (
+        <WallFaceBlanket role={role} />
+      ) : (
+        <WallRoleContent
+          role={role}
+          phase={phase}
+          countdown={countdown}
+          recordSecondsLeft={recordSecondsLeft}
+          loadingProgress={loadingProgress}
+        />
+      )}
     </section>
   )
 }
