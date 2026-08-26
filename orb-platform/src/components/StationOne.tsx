@@ -130,8 +130,8 @@ export function StationOne({ phaseDurationMs = 2200 }: { phaseDurationMs?: numbe
       ) : null}
       {state.phase === 'complete' ? (
         <div className="journey-complete">
-          <JourneyHeadline lines={warm ? ['Facial analysis', 'complete'] : ['FACIAL ANALYSIS', 'COMPLETE']}>
-            Facial analysis complete
+          <JourneyHeadline lines={warm ? ['Facial analysis', 'complete'] : ['PROFILE', 'LOGGED.']}>
+            {warm ? 'Facial analysis complete' : 'Profile logged.'}
           </JourneyHeadline>
         </div>
       ) : null}

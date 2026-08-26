@@ -141,10 +141,10 @@ export function StationTwo({ phaseDurationMs }: { phaseDurationMs?: number }) {
             lines={
               warm
                 ? ['You have been placed', 'in category Rho106.']
-                : ['YOU HAVE BEEN PLACED', 'IN CATEGORY RHO106.']
+                : ['CATEGORY ASSIGNMENT:', 'RHO106.']
             }
           >
-            You have been placed in category Rho106.
+            {warm ? 'You have been placed in category Rho106.' : 'Category assignment: Rho106.'}
           </JourneyHeadline>
         </div>
       ) : null}
@@ -155,10 +155,12 @@ export function StationTwo({ phaseDurationMs }: { phaseDurationMs?: number }) {
             lines={
               warm
                 ? ['You will now be matched', 'with an AI partner.']
-                : ['YOU WILL NOW BE MATCHED', 'WITH AN AI PARTNER.']
+                : ['SUBJECT UNFIT FOR', 'UNASSISTED PAIRING.', 'OPTIMAL MATCH', 'COMPILING.']
             }
           >
-            You will now be matched with an AI partner.
+            {warm
+              ? 'You will now be matched with an AI partner.'
+              : 'Subject unfit for unassisted pairing. Optimal match compiling.'}
           </JourneyHeadline>
         </div>
       ) : null}
@@ -169,10 +171,12 @@ export function StationTwo({ phaseDurationMs }: { phaseDurationMs?: number }) {
             lines={
               warm
                 ? ['But first we need you to', 'answer a few questions...']
-                : ['BUT FIRST WE NEED YOU TO', 'ANSWER A FEW QUESTIONS...']
+                : ['ADDITIONAL INPUT REQUIRED', 'BEFORE ALLOCATION CAN PROCEED.']
             }
           >
-            But first we need you to answer a few questions...
+            {warm
+              ? 'But first we need you to answer a few questions...'
+              : 'Additional input required before allocation can proceed.'}
           </JourneyHeadline>
         </div>
       ) : null}
@@ -257,10 +261,10 @@ export function StationTwo({ phaseDurationMs }: { phaseDurationMs?: number }) {
             lines={
               warm
                 ? ['Just a few quick', 'questions more...']
-                : ['JUST A FEW QUICK', 'QUESTIONS MORE...']
+                : ['FINAL ASSESSMENT', 'MODULE REMAINING.']
             }
           >
-            Just a few quick questions more...
+            {warm ? 'Just a few quick questions more...' : 'Final assessment module remaining.'}
           </JourneyHeadline>
         </div>
       ) : null}
