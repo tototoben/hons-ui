@@ -26,6 +26,10 @@ describe('getStationFromHash', () => {
     expect(getStationFromHash('#/station-2')).toBe('station-2')
   })
 
+  it('resolves the face align tool hash', () => {
+    expect(getStationFromHash('#/face-align')).toBe('face-align')
+  })
+
   it('falls back to orb for unknown hashes', () => {
     expect(getStationFromHash('#/unknown')).toBe('orb')
   })
@@ -39,5 +43,6 @@ describe('getStationHref', () => {
     expect(getStationHref('mirror')).toBe('#/mirror')
     expect(getStationHref('station-1')).toBe('#/station-1')
     expect(getStationHref('station-2')).toBe('#/station-2')
+    expect(getStationHref('face-align')).toBe('#/face-align')
   })
 })

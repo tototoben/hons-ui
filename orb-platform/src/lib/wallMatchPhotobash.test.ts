@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   getWallMatchShardCount,
   MATCH_FACE_SIZE,
+  normalizeVisitorAlign,
   photobashRevealAt,
   PHOTOBASH_REVEAL_MS,
 } from './wallMatchPhotobash'
@@ -30,5 +31,13 @@ describe('wallMatchPhotobash', () => {
     const done = photobashRevealAt(PHOTOBASH_REVEAL_MS)
     expect(done.shardCount).toBe(getWallMatchShardCount())
     expect(done.nextShardOpacity).toBe(0)
+  })
+
+  it('clamps visitor align values', () => {
+    expect(normalizeVisitorAlign({ scale: 9, offsetX: 2, offsetY: -3 })).toEqual({
+      scale: 2.5,
+      offsetX: 0.45,
+      offsetY: -0.45,
+    })
   })
 })

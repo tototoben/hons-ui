@@ -2,6 +2,24 @@ export const MATCH_FACE_URL = '/assets/wall-avatar/match-face.png'
 export const VISITOR_FACE_URL = '/assets/wall-avatar/visitor-face.jpg'
 export const MATCH_FACE_SIZE = { width: 864, height: 960 }
 
+export const VISITOR_ALIGN_STORAGE_KEY = 'hons-wall-visitor-align'
+
+/** How the visitor still sits on the match plate (manual lineup). */
+export type VisitorAlign = {
+  /** Multiplier on cover size (1 = default cover). */
+  scale: number
+  /** Horizontal shift as a fraction of plate width (−0.5…0.5). */
+  offsetX: number
+  /** Vertical shift as a fraction of plate height (−0.5…0.5). */
+  offsetY: number
+}
+
+export const DEFAULT_VISITOR_ALIGN: VisitorAlign = {
+  scale: 1,
+  offsetX: 0,
+  offsetY: 0,
+}
+
 /** Sparse visitor cuts — roughly 30–40% of the face plate, feature-focused. */
 const USER_SHARDS: Array<Array<[number, number]>> = [
   // one eye (viewer-left / subject-right)
@@ -53,6 +71,36 @@ function loadImage(src: string) {
   return pending
 }
 
+export function normalizeVisitorAlign(value: Partial<VisitorAlign> | null | undefined): VisitorAlign {
+  const scale = typeof value?.scale === 'number' && Number.isFinite(value.scale) ? value.scale : 1
+  const offsetX =
+    typeof value?.offsetX === 'number' && Number.isFinite(value.offsetX) ? value.offsetX : 0
+  const offsetY =
+    typeof value?.offsetY === 'number' && Number.isFinite(value.offsetY) ? value.offsetY : 0
+  return {
+    scale: Math.max(0.5, Math.min(2.5, scale)),
+    offsetX: Math.max(-0.45, Math.min(0.45, offsetX)),
+    offsetY: Math.max(-0.45, Math.min(0.45, offsetY)),
+  }
+}
+
+export function loadVisitorAlign(): VisitorAlign {
+  if (typeof window === 'undefined') return { ...DEFAULT_VISITOR_ALIGN }
+  try {
+    const raw = window.localStorage.getItem(VISITOR_ALIGN_STORAGE_KEY)
+    if (!raw) return { ...DEFAULT_VISITOR_ALIGN }
+    return normalizeVisitorAlign(JSON.parse(raw) as Partial<VisitorAlign>)
+  } catch {
+    return { ...DEFAULT_VISITOR_ALIGN }
+  }
+}
+
+export function saveVisitorAlign(align: VisitorAlign) {
+  const next = normalizeVisitorAlign(align)
+  window.localStorage.setItem(VISITOR_ALIGN_STORAGE_KEY, JSON.stringify(next))
+  return next
+}
+
 /** Cover-draw an image into a destination rect, optionally biasing the crop. */
 export function coverDrawImage(
   ctx: CanvasRenderingContext2D,
@@ -89,6 +137,22 @@ export function coverDrawImage(
   ctx.drawImage(image, sx, sy, sw, sh, dx, dy, dw, dh)
 }
 
+/** Draw the visitor still with manual scale / pan on top of the match plate. */
+export function drawVisitorAligned(
+  ctx: CanvasRenderingContext2D,
+  image: CanvasImageSource & { width: number; height: number },
+  width: number,
+  height: number,
+  align: VisitorAlign = DEFAULT_VISITOR_ALIGN,
+) {
+  const next = normalizeVisitorAlign(align)
+  const drawW = width * next.scale
+  const drawH = height * next.scale
+  const dx = (width - drawW) / 2 + next.offsetX * width
+  const dy = (height - drawH) / 2 + next.offsetY * height
+  coverDrawImage(ctx, image, dx, dy, drawW, drawH, 0.38)
+}
+
 function tracePolygon(
   ctx: CanvasRenderingContext2D,
   points: Array<[number, number]>,
@@ -112,6 +176,12 @@ export type PhotobashComposeOptions = {
   shardCount?: number
   /** Fade 0–1 for the next shard after `shardCount` full pieces. */
   nextShardOpacity?: number
+  /** Manual visitor lineup; defaults to saved / default align. */
+  align?: VisitorAlign
+  /** When true, draw a translucent full visitor plate (aligner onion skin). */
+  onionOpacity?: number
+  /** Draw shard outlines in the aligner only (not on the wall). */
+  showShardGuides?: boolean
 }
 
 /**
@@ -123,6 +193,8 @@ export async function composeWallMatchPhotobash(options: PhotobashComposeOptions
   const height = options.height ?? MATCH_FACE_SIZE.height
   const shardCount = Math.max(0, Math.min(USER_SHARDS.length, options.shardCount ?? USER_SHARDS.length))
   const nextShardOpacity = Math.max(0, Math.min(1, options.nextShardOpacity ?? 0))
+  const align = normalizeVisitorAlign(options.align ?? loadVisitorAlign())
+  const onionOpacity = Math.max(0, Math.min(1, options.onionOpacity ?? 0))
 
   const [baseImage, visitorImage] = await Promise.all([
     loadImage(MATCH_FACE_URL),
@@ -137,26 +209,20 @@ export async function composeWallMatchPhotobash(options: PhotobashComposeOptions
 
   coverDrawImage(ctx, baseImage, 0, 0, width, height, 0.45)
 
+  if (onionOpacity > 0) {
+    ctx.save()
+    ctx.globalAlpha = onionOpacity
+    drawVisitorAligned(ctx, visitorImage, width, height, align)
+    ctx.restore()
+  }
+
   const drawShard = (shard: Array<[number, number]>, opacity: number) => {
     if (opacity <= 0) return
     ctx.save()
     tracePolygon(ctx, shard, width, height)
     ctx.clip()
     ctx.globalAlpha = opacity
-    coverDrawImage(ctx, visitorImage, 0, 0, width, height, 0.38)
-    ctx.restore()
-
-    ctx.save()
-    ctx.globalAlpha = opacity
-    ctx.strokeStyle = 'rgba(8, 6, 4, 0.5)'
-    ctx.lineWidth = Math.max(1.2, width * 0.002)
-    ctx.lineJoin = 'round'
-    tracePolygon(ctx, shard, width, height)
-    ctx.stroke()
-    ctx.strokeStyle = 'rgba(255, 244, 232, 0.16)'
-    ctx.lineWidth = Math.max(0.6, width * 0.001)
-    tracePolygon(ctx, shard, width, height)
-    ctx.stroke()
+    drawVisitorAligned(ctx, visitorImage, width, height, align)
     ctx.restore()
   }
 
@@ -165,6 +231,18 @@ export async function composeWallMatchPhotobash(options: PhotobashComposeOptions
   }
   if (shardCount < USER_SHARDS.length && nextShardOpacity > 0) {
     drawShard(USER_SHARDS[shardCount], nextShardOpacity)
+  }
+
+  if (options.showShardGuides) {
+    ctx.save()
+    ctx.strokeStyle = 'rgba(255, 80, 60, 0.85)'
+    ctx.lineWidth = Math.max(1.5, width * 0.0025)
+    ctx.setLineDash([6, 5])
+    for (const shard of USER_SHARDS) {
+      tracePolygon(ctx, shard, width, height)
+      ctx.stroke()
+    }
+    ctx.restore()
   }
 
   if (shardCount > 0 || nextShardOpacity > 0) {
@@ -197,4 +275,8 @@ export function photobashRevealAt(elapsedMs: number, totalMs = PHOTOBASH_REVEAL_
 
 export function getWallMatchShardCount() {
   return USER_SHARDS.length
+}
+
+export function getWallMatchShards() {
+  return USER_SHARDS.map((shard) => shard.map(([x, y]) => [x, y] as [number, number]))
 }
