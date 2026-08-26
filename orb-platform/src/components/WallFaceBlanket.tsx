@@ -7,6 +7,7 @@ import {
   MATCH_FACE_URL,
   PHOTOBASH_REVEAL_MS,
   photobashRevealAt,
+  pickRevealShards,
 } from '../lib/wallMatchPhotobash'
 import './WallFaceBlanket.css'
 
@@ -15,13 +16,23 @@ import './WallFaceBlanket.css'
  * Each display shows only its panel slice — together they read as one image.
  * Visitor shards fade in one feature at a time over ~30s.
  */
-export function WallFaceBlanket({ role }: { role: WallRole }) {
+export function WallFaceBlanket({
+  role,
+  photobashSeed = 1,
+}: {
+  role: WallRole
+  photobashSeed?: number
+}) {
   const panel = measuredPanelForRole(role)
   const [viewport, setViewport] = useState(() => ({
     width: window.innerWidth,
     height: window.innerHeight,
   }))
   const [faceUrl, setFaceUrl] = useState(MATCH_FACE_URL)
+  const shards = useMemo(
+    () => pickRevealShards(photobashSeed || 1),
+    [photobashSeed],
+  )
 
   useEffect(() => {
     const onResize = () => {
@@ -39,15 +50,20 @@ export function WallFaceBlanket({ role }: { role: WallRole }) {
     const start = performance.now()
 
     const paint = async (elapsed: number) => {
-      const { shardCount, nextShardOpacity } = photobashRevealAt(elapsed)
+      const { shardCount, nextShardOpacity } = photobashRevealAt(
+        elapsed,
+        PHOTOBASH_REVEAL_MS,
+        shards.length,
+      )
       // Quantize fade so we don't re-encode every frame.
       const fadeStep = Math.round(nextShardOpacity * 8) / 8
-      const key = `${shardCount}:${fadeStep}`
+      const key = `${photobashSeed}:${shardCount}:${fadeStep}`
       if (key === lastKey) return
       lastKey = key
       const seq = ++paintSeq
       try {
         const url = await composeWallMatchPhotobash({
+          shards,
           shardCount,
           nextShardOpacity: fadeStep,
         })
@@ -75,7 +91,7 @@ export function WallFaceBlanket({ role }: { role: WallRole }) {
       cancelled = true
       cancelAnimationFrame(raf)
     }
-  }, [])
+  }, [photobashSeed, shards])
 
   const layout = useMemo(() => {
     if (!panel) return null

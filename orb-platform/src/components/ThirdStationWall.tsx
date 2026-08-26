@@ -265,7 +265,8 @@ function WallRoleContent({
 export function ThirdStationWall({ role: roleProp }: { role?: WallRole }) {
   const role = roleProp ?? parseWallRole() ?? 'copy'
   const isConductor = role === 'debra'
-  const { phase, countdown, recordSecondsLeft, loadingProgress } = useWallSyncedPhase(isConductor)
+  const { phase, countdown, recordSecondsLeft, loadingProgress, photobashSeed } =
+    useWallSyncedPhase(isConductor)
   const rootRef = useRef<HTMLElement>(null)
 
   useEffect(() => {
@@ -293,7 +294,7 @@ export function ThirdStationWall({ role: roleProp }: { role?: WallRole }) {
     >
       {role === 'debra' ? <DebraVoiceClip src={thirdStationDebraClipFor(phase)} /> : null}
       {phase === 'loading' ? (
-        <WallFaceBlanket role={role} />
+        <WallFaceBlanket role={role} photobashSeed={photobashSeed} />
       ) : (
         <WallRoleContent
           role={role}

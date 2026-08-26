@@ -14,15 +14,21 @@ export type VisitorAlign = {
   offsetY: number
 }
 
+/** Tuned on the face-align tool. */
 export const DEFAULT_VISITOR_ALIGN: VisitorAlign = {
-  scale: 1,
-  offsetX: 0,
-  offsetY: 0,
+  scale: 1.62,
+  offsetX: -0.00938,
+  offsetY: -0.17378,
 }
 
-/** Sparse visitor cuts — roughly 30–40% of the face plate, feature-focused. */
-const USER_SHARDS: Array<Array<[number, number]>> = [
-  // one eye (viewer-left / subject-right)
+export type FaceShard = Array<[number, number]>
+
+/**
+ * Pool of small visitor cuts. Each reveal picks a random subset so coverage
+ * stays roughly 30–45% but the puzzle pattern changes.
+ */
+const SHARD_POOL: FaceShard[] = [
+  // right eye
   [
     [0.54, 0.33],
     [0.72, 0.32],
@@ -31,7 +37,16 @@ const USER_SHARDS: Array<Array<[number, number]>> = [
     [0.56, 0.43],
     [0.52, 0.38],
   ],
-  // a thin nose fragment (bridge → tip)
+  // left eye
+  [
+    [0.26, 0.33],
+    [0.44, 0.32],
+    [0.46, 0.41],
+    [0.4, 0.45],
+    [0.28, 0.44],
+    [0.24, 0.38],
+  ],
+  // nose bridge → tip
   [
     [0.46, 0.4],
     [0.54, 0.4],
@@ -39,7 +54,7 @@ const USER_SHARDS: Array<Array<[number, number]>> = [
     [0.5, 0.58],
     [0.47, 0.55],
   ],
-  // half the mouth (right side)
+  // right half mouth
   [
     [0.5, 0.62],
     [0.68, 0.61],
@@ -47,7 +62,66 @@ const USER_SHARDS: Array<Array<[number, number]>> = [
     [0.58, 0.73],
     [0.5, 0.69],
   ],
+  // left half mouth
+  [
+    [0.3, 0.62],
+    [0.5, 0.61],
+    [0.5, 0.7],
+    [0.38, 0.73],
+    [0.28, 0.68],
+  ],
+  // brow / forehead chip
+  [
+    [0.34, 0.18],
+    [0.58, 0.16],
+    [0.6, 0.28],
+    [0.42, 0.32],
+    [0.32, 0.26],
+  ],
+  // right cheek
+  [
+    [0.62, 0.42],
+    [0.78, 0.4],
+    [0.82, 0.56],
+    [0.7, 0.6],
+    [0.6, 0.52],
+  ],
+  // left cheek / jaw
+  [
+    [0.18, 0.44],
+    [0.34, 0.42],
+    [0.36, 0.6],
+    [0.24, 0.66],
+    [0.14, 0.54],
+  ],
+  // chin tip
+  [
+    [0.4, 0.74],
+    [0.6, 0.74],
+    [0.58, 0.9],
+    [0.5, 0.94],
+    [0.42, 0.9],
+  ],
+  // philtrum / upper lip center
+  [
+    [0.44, 0.56],
+    [0.56, 0.56],
+    [0.58, 0.64],
+    [0.5, 0.66],
+    [0.42, 0.64],
+  ],
+  // temple wedge
+  [
+    [0.72, 0.22],
+    [0.9, 0.2],
+    [0.92, 0.36],
+    [0.78, 0.4],
+    [0.7, 0.3],
+  ],
 ]
+
+/** How many shards to draw per reveal (from the larger pool). */
+export const SHARDS_PER_REVEAL = { min: 4, max: 6 } as const
 
 /** Full sparse photobash settles in over this window (then holds). */
 export const PHOTOBASH_REVEAL_MS = 32_000
@@ -72,11 +146,18 @@ function loadImage(src: string) {
 }
 
 export function normalizeVisitorAlign(value: Partial<VisitorAlign> | null | undefined): VisitorAlign {
-  const scale = typeof value?.scale === 'number' && Number.isFinite(value.scale) ? value.scale : 1
+  const scale =
+    typeof value?.scale === 'number' && Number.isFinite(value.scale)
+      ? value.scale
+      : DEFAULT_VISITOR_ALIGN.scale
   const offsetX =
-    typeof value?.offsetX === 'number' && Number.isFinite(value.offsetX) ? value.offsetX : 0
+    typeof value?.offsetX === 'number' && Number.isFinite(value.offsetX)
+      ? value.offsetX
+      : DEFAULT_VISITOR_ALIGN.offsetX
   const offsetY =
-    typeof value?.offsetY === 'number' && Number.isFinite(value.offsetY) ? value.offsetY : 0
+    typeof value?.offsetY === 'number' && Number.isFinite(value.offsetY)
+      ? value.offsetY
+      : DEFAULT_VISITOR_ALIGN.offsetY
   return {
     scale: Math.max(0.5, Math.min(2.5, scale)),
     offsetX: Math.max(-0.45, Math.min(0.45, offsetX)),
@@ -169,6 +250,34 @@ function tracePolygon(
   ctx.closePath()
 }
 
+/** Seeded 0–1 RNG so every wall panel draws the same random shards. */
+export function mulberry32(seed: number) {
+  let t = seed >>> 0
+  return () => {
+    t += 0x6d2b79f5
+    let r = Math.imul(t ^ (t >>> 15), 1 | t)
+    r ^= r + Math.imul(r ^ (r >>> 7), 61 | r)
+    return ((r ^ (r >>> 14)) >>> 0) / 4294967296
+  }
+}
+
+/** Pick a random subset of shards for one reveal cycle. */
+export function pickRevealShards(
+  seed: number,
+  pool: FaceShard[] = SHARD_POOL,
+  counts: { min: number; max: number } = SHARDS_PER_REVEAL,
+): FaceShard[] {
+  const rand = mulberry32(seed)
+  const span = Math.max(0, counts.max - counts.min)
+  const pickCount = Math.min(pool.length, counts.min + Math.floor(rand() * (span + 1)))
+  const order = pool.map((_, index) => index)
+  for (let i = order.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(rand() * (i + 1))
+    ;[order[i], order[j]] = [order[j], order[i]]
+  }
+  return order.slice(0, pickCount).map((index) => pool[index].map(([x, y]) => [x, y] as [number, number]))
+}
+
 export type PhotobashComposeOptions = {
   width?: number
   height?: number
@@ -182,6 +291,8 @@ export type PhotobashComposeOptions = {
   onionOpacity?: number
   /** Draw shard outlines in the aligner only (not on the wall). */
   showShardGuides?: boolean
+  /** Shards to draw this cycle (randomized subset). Defaults to full pool. */
+  shards?: FaceShard[]
 }
 
 /**
@@ -191,7 +302,8 @@ export type PhotobashComposeOptions = {
 export async function composeWallMatchPhotobash(options: PhotobashComposeOptions = {}) {
   const width = options.width ?? MATCH_FACE_SIZE.width
   const height = options.height ?? MATCH_FACE_SIZE.height
-  const shardCount = Math.max(0, Math.min(USER_SHARDS.length, options.shardCount ?? USER_SHARDS.length))
+  const shards = options.shards ?? SHARD_POOL
+  const shardCount = Math.max(0, Math.min(shards.length, options.shardCount ?? shards.length))
   const nextShardOpacity = Math.max(0, Math.min(1, options.nextShardOpacity ?? 0))
   const align = normalizeVisitorAlign(options.align ?? loadVisitorAlign())
   const onionOpacity = Math.max(0, Math.min(1, options.onionOpacity ?? 0))
@@ -216,7 +328,7 @@ export async function composeWallMatchPhotobash(options: PhotobashComposeOptions
     ctx.restore()
   }
 
-  const drawShard = (shard: Array<[number, number]>, opacity: number) => {
+  const drawShard = (shard: FaceShard, opacity: number) => {
     if (opacity <= 0) return
     ctx.save()
     tracePolygon(ctx, shard, width, height)
@@ -227,10 +339,10 @@ export async function composeWallMatchPhotobash(options: PhotobashComposeOptions
   }
 
   for (let i = 0; i < shardCount; i += 1) {
-    drawShard(USER_SHARDS[i], 1)
+    drawShard(shards[i], 1)
   }
-  if (shardCount < USER_SHARDS.length && nextShardOpacity > 0) {
-    drawShard(USER_SHARDS[shardCount], nextShardOpacity)
+  if (shardCount < shards.length && nextShardOpacity > 0) {
+    drawShard(shards[shardCount], nextShardOpacity)
   }
 
   if (options.showShardGuides) {
@@ -238,7 +350,7 @@ export async function composeWallMatchPhotobash(options: PhotobashComposeOptions
     ctx.strokeStyle = 'rgba(255, 80, 60, 0.85)'
     ctx.lineWidth = Math.max(1.5, width * 0.0025)
     ctx.setLineDash([6, 5])
-    for (const shard of USER_SHARDS) {
+    for (const shard of shards) {
       tracePolygon(ctx, shard, width, height)
       ctx.stroke()
     }
@@ -264,19 +376,29 @@ export async function composeWallMatchPhotobash(options: PhotobashComposeOptions
 }
 
 /** Map elapsed ms → how many full shards + fade for the next one. */
-export function photobashRevealAt(elapsedMs: number, totalMs = PHOTOBASH_REVEAL_MS) {
+export function photobashRevealAt(
+  elapsedMs: number,
+  totalMs = PHOTOBASH_REVEAL_MS,
+  shardTotal = SHARDS_PER_REVEAL.max,
+) {
+  const total = Math.max(1, shardTotal)
   const progress = Math.max(0, Math.min(1, elapsedMs / totalMs))
-  const exact = progress * USER_SHARDS.length
-  const shardCount = Math.min(USER_SHARDS.length, Math.floor(exact))
+  const exact = progress * total
+  const shardCount = Math.min(total, Math.floor(exact))
   const nextShardOpacity =
-    shardCount >= USER_SHARDS.length ? 0 : Math.max(0, Math.min(1, exact - shardCount))
+    shardCount >= total ? 0 : Math.max(0, Math.min(1, exact - shardCount))
   return { shardCount, nextShardOpacity, progress }
 }
 
+export function getWallMatchShardPoolCount() {
+  return SHARD_POOL.length
+}
+
+/** @deprecated Prefer getWallMatchShardPoolCount — kept for older tests. */
 export function getWallMatchShardCount() {
-  return USER_SHARDS.length
+  return SHARD_POOL.length
 }
 
 export function getWallMatchShards() {
-  return USER_SHARDS.map((shard) => shard.map(([x, y]) => [x, y] as [number, number]))
+  return SHARD_POOL.map((shard) => shard.map(([x, y]) => [x, y] as [number, number]))
 }
