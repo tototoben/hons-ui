@@ -1,0 +1,156 @@
+.wall-sim {
+  --wall-sim-ink: #e8e2d8;
+  --wall-sim-muted: rgba(232, 226, 216, 0.62);
+  --wall-sim-line: rgba(232, 226, 216, 0.16);
+  --wall-sim-accent: #d4a35c;
+  box-sizing: border-box;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: 16px 20px 12px;
+  color: var(--wall-sim-ink);
+  background:
+    radial-gradient(900px 500px at 80% -10%, rgba(212, 163, 92, 0.12), transparent 55%),
+    linear-gradient(165deg, #12100e 0%, #0a0908 55%, #070606 100%);
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+}
+
+.wall-sim-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 24px;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 14px;
+}
+
+.wall-sim-kicker {
+  margin: 0 0 4px;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--wall-sim-accent);
+}
+
+.wall-sim h1 {
+  margin: 0;
+  font-family: "IBM Plex Serif", Georgia, serif;
+  font-size: clamp(24px, 3vw, 34px);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+.wall-sim-copy {
+  max-width: 44rem;
+  margin: 6px 0 0;
+  color: var(--wall-sim-muted);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.wall-sim-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.wall-sim-actions button,
+.wall-sim-link {
+  border: 1px solid var(--wall-sim-line);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--wall-sim-ink);
+  padding: 8px 12px;
+  font: inherit;
+  font-size: 13px;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.wall-sim-actions button:hover,
+.wall-sim-link:hover {
+  border-color: rgba(212, 163, 92, 0.45);
+}
+
+.wall-sim-toggle {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  margin-right: 4px;
+  font-size: 13px;
+  color: var(--wall-sim-muted);
+  cursor: pointer;
+}
+
+.wall-sim-stage-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: calc(100dvh - 140px);
+  overflow: auto;
+}
+
+.wall-sim-stage {
+  position: relative;
+  flex-shrink: 0;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    #050403;
+  background-size: 48px 48px, 48px 48px, auto;
+  box-shadow: 0 0 0 1px var(--wall-sim-line), 0 24px 80px rgba(0, 0, 0, 0.55);
+}
+
+.wall-sim-panel {
+  position: absolute;
+  overflow: hidden;
+  background: #000;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.85);
+  outline: 1px solid rgba(212, 163, 92, 0.22);
+}
+
+.wall-sim-frame {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #000;
+}
+
+.wall-sim-label {
+  position: absolute;
+  left: 6px;
+  top: 6px;
+  z-index: 2;
+  display: grid;
+  gap: 1px;
+  max-width: calc(100% - 12px);
+  padding: 5px 7px;
+  border: 1px solid rgba(255, 244, 232, 0.18);
+  background: rgba(8, 6, 4, 0.72);
+  font-size: 10px;
+  line-height: 1.25;
+  letter-spacing: 0.04em;
+  color: rgba(255, 244, 232, 0.88);
+  pointer-events: none;
+}
+
+.wall-sim-label strong {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.wall-sim-label-meta {
+  color: rgba(255, 244, 232, 0.55);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wall-sim-scale {
+  margin: 10px 0 0;
+  text-align: center;
+  font-size: 12px;
+  color: var(--wall-sim-muted);
+  letter-spacing: 0.04em;
+}

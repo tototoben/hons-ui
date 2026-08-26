@@ -30,6 +30,10 @@ describe('getStationFromHash', () => {
     expect(getStationFromHash('#/face-align')).toBe('face-align')
   })
 
+  it('resolves the wall simulator hash', () => {
+    expect(getStationFromHash('#/wall-sim')).toBe('wall-sim')
+  })
+
   it('falls back to orb for unknown hashes', () => {
     expect(getStationFromHash('#/unknown')).toBe('orb')
   })
@@ -44,5 +48,6 @@ describe('getStationHref', () => {
     expect(getStationHref('station-1')).toBe('#/station-1')
     expect(getStationHref('station-2')).toBe('#/station-2')
     expect(getStationHref('face-align')).toBe('#/face-align')
+    expect(getStationHref('wall-sim')).toBe('#/wall-sim')
   })
 })

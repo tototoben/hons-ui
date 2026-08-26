@@ -68,6 +68,17 @@ Keep role ↔ display mapping intentional: Debra should stay on a comfortable la
 
 ---
 
+## Home simulator (no physical wall)
+
+Open **`#/wall-sim`** (nav: “Wall sim”, or https://house-of-negotiated-selves.vercel.app/#/wall-sim).
+
+- Scales the measured **3585×5258** wall to fit your laptop.
+- Six live iframes load `?wallRole=…#/mirror` with exact relative placement/sizes from `MEASURED_WALL_PANELS`.
+- `BroadcastChannel` phase sync works across those iframes (same origin).
+- Toggle labels / reload panels from the sim chrome.
+
+Does **not** emulate bezels, brightness, or AppleScript window placement.
+
 ## How to launch (no git required)
 
 On the Mac Studio, paste into Terminal (gitless — talks only to Vercel + Chrome):

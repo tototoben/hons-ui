@@ -30,6 +30,7 @@ const AvatarStation = lazy(() =>
 const WallFaceAlignTool = lazy(() =>
   import('./components/WallFaceAlignTool').then((m) => ({ default: m.WallFaceAlignTool })),
 )
+const WallSim = lazy(() => import('./components/WallSim').then((m) => ({ default: m.WallSim })))
 const OrbStation = lazy(() =>
   import('./components/OrbStation').then((m) => ({ default: m.OrbStation })),
 )
@@ -40,7 +41,7 @@ export default function App() {
   )
   const [wallCropMode] = useState(() => isWallMode())
   const [wallRole] = useState(() => parseWallRole())
-  const hideChrome = wallCropMode || isWallRoleMode()
+  const hideChrome = wallCropMode || isWallRoleMode() || station === 'wall-sim'
 
   useEffect(() => {
     applyDeviceQuality()
@@ -107,15 +108,21 @@ export default function App() {
           >
             Align
           </a>
+          <a
+            aria-current={station === 'wall-sim' ? 'page' : undefined}
+            href={getStationHref('wall-sim')}
+          >
+            Wall sim
+          </a>
         </nav>
       )}
       <Suspense fallback={null}>
         {station === 'station-1' ? (
-          <MirrorPreviewFrame>
+          <MirrorPreviewFrame showToggle={import.meta.env.DEV}>
             <StationOne />
           </MirrorPreviewFrame>
         ) : station === 'station-2' ? (
-          <MirrorPreviewFrame>
+          <MirrorPreviewFrame showToggle={import.meta.env.DEV}>
             <StationTwo />
           </MirrorPreviewFrame>
         ) : station === 'orb' ? (
@@ -124,6 +131,8 @@ export default function App() {
           <SecondStation />
         ) : station === 'face-align' ? (
           <WallFaceAlignTool />
+        ) : station === 'wall-sim' ? (
+          <WallSim />
         ) : station === 'mirror' ? (
           wallRole ? (
             <ThirdStationWall role={wallRole} />
