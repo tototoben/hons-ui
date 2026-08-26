@@ -3,6 +3,7 @@ import { MirrorPreviewFrame } from './components/MirrorPreviewToggle'
 import { WallModeViewport } from './components/WallModeViewport'
 import { applyDeviceQuality } from './lib/deviceQuality'
 import { isWallMode } from './lib/wallMode'
+import { isWallRoleMode, parseWallRole } from './lib/wallRole'
 import { getStationFromHash, getStationHref, type StationRoute } from './lib/stationRoute'
 import './index.css'
 
@@ -16,6 +17,9 @@ const StationTwo = lazy(() =>
 )
 const ThirdStation = lazy(() =>
   import('./components/ThirdStation').then((m) => ({ default: m.ThirdStation })),
+)
+const ThirdStationWall = lazy(() =>
+  import('./components/ThirdStationWall').then((m) => ({ default: m.ThirdStationWall })),
 )
 const SecondStation = lazy(() =>
   import('./components/SecondStation').then((m) => ({ default: m.SecondStation })),
@@ -31,7 +35,9 @@ export default function App() {
   const [station, setStation] = useState<StationRoute>(() =>
     getStationFromHash(window.location.hash),
   )
-  const [wallMode] = useState(() => isWallMode())
+  const [wallCropMode] = useState(() => isWallMode())
+  const [wallRole] = useState(() => parseWallRole())
+  const hideChrome = wallCropMode || isWallRoleMode()
 
   useEffect(() => {
     applyDeviceQuality()
@@ -51,48 +57,48 @@ export default function App() {
 
   return (
     <main className="experience">
-      {import.meta.env.DEV && !wallMode ? (
+      {import.meta.env.DEV && !hideChrome ? (
         <Suspense fallback={null}>
           <LevaRoot />
           {station === 'orb' ? <DevPanel /> : null}
         </Suspense>
       ) : null}
-      {wallMode ? null : (
+      {hideChrome ? null : (
         <nav className={`station-switcher station-switcher-${station}`} aria-label="Station switcher">
-        <a
-          aria-current={station === 'station-1' ? 'page' : undefined}
-          href={getStationHref('station-1')}
-        >
-          Station I
-        </a>
-        <a
-          aria-current={station === 'station-2' ? 'page' : undefined}
-          href={getStationHref('station-2')}
-        >
-          Station II
-        </a>
-        <a
-          aria-current={station === 'mirror' ? 'page' : undefined}
-          href={getStationHref('mirror')}
-        >
-          Station III
-        </a>
-        <a aria-current={station === 'orb' ? 'page' : undefined} href={getStationHref('orb')}>
-          Orb
-        </a>
-        <a
-          aria-current={station === 'cards' ? 'page' : undefined}
-          href={getStationHref('cards')}
-        >
-          Cards
-        </a>
-        <a
-          aria-current={station === 'avatars' ? 'page' : undefined}
-          href={getStationHref('avatars')}
-        >
-          Avatars
-        </a>
-      </nav>
+          <a
+            aria-current={station === 'station-1' ? 'page' : undefined}
+            href={getStationHref('station-1')}
+          >
+            Station I
+          </a>
+          <a
+            aria-current={station === 'station-2' ? 'page' : undefined}
+            href={getStationHref('station-2')}
+          >
+            Station II
+          </a>
+          <a
+            aria-current={station === 'mirror' ? 'page' : undefined}
+            href={getStationHref('mirror')}
+          >
+            Station III
+          </a>
+          <a aria-current={station === 'orb' ? 'page' : undefined} href={getStationHref('orb')}>
+            Orb
+          </a>
+          <a
+            aria-current={station === 'cards' ? 'page' : undefined}
+            href={getStationHref('cards')}
+          >
+            Cards
+          </a>
+          <a
+            aria-current={station === 'avatars' ? 'page' : undefined}
+            href={getStationHref('avatars')}
+          >
+            Avatars
+          </a>
+        </nav>
       )}
       <Suspense fallback={null}>
         {station === 'station-1' ? (
@@ -108,7 +114,9 @@ export default function App() {
         ) : station === 'cards' ? (
           <SecondStation />
         ) : station === 'mirror' ? (
-          wallMode ? (
+          wallRole ? (
+            <ThirdStationWall role={wallRole} />
+          ) : wallCropMode ? (
             <WallModeViewport>
               <ThirdStation />
             </WallModeViewport>

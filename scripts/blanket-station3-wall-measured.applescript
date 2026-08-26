@@ -1,5 +1,5 @@
--- Station III wall launcher hardcoded from measured Mac Studio layout.
--- Wall canvas: 3585 x 5258 — no kiosk quality (full Debra orb).
+-- Station III role wall: each display shows a dedicated panel (not a crop).
+-- Measured Mac Studio layout.
 --
 -- Usage:
 --   osascript scripts/blanket-station3-wall-measured.applescript
@@ -8,17 +8,15 @@ use scripting additions
 
 on run
 	set baseUrl to "https://house-of-negotiated-selves.vercel.app/"
-	set wallW to 3585
-	set wallH to 5258
 
-	-- {x, y, width, height, panelX, panelY}
+	-- {x, y, width, height, role}
 	set panels to {¬
-		{0, 0, 1080, 1920, 392, 3338}, ¬
-		{-47, -3338, 1080, 1920, 345, 0}, ¬
-		{2113, -1920, 1080, 1920, 2505, 1418}, ¬
-		{-392, -1080, 1920, 1080, 0, 2258}, ¬
-		{1033, -3000, 1080, 1920, 1425, 338}, ¬
-		{1080, 305, 1920, 1080, 1472, 3643}}
+		{-47, -3338, 1080, 1920, "code"}, ¬
+		{1033, -3000, 1080, 1920, "status"}, ¬
+		{2113, -1920, 1080, 1920, "avatar"}, ¬
+		{-392, -1080, 1920, 1080, "debra"}, ¬
+		{0, 0, 1080, 1920, "copy"}, ¬
+		{1080, 305, 1920, 1080, "guide"}}
 
 	tell application "Google Chrome"
 		activate
@@ -30,9 +28,8 @@ on run
 		set sy to item 2 of p
 		set sw to item 3 of p
 		set sh to item 4 of p
-		set panelX to item 5 of p
-		set panelY to item 6 of p
-		set targetUrl to baseUrl & "?wall=1&wallW=" & wallW & "&wallH=" & wallH & "&panelX=" & panelX & "&panelY=" & panelY & "&panelW=" & sw & "&panelH=" & sh & "#/mirror"
+		set wallRole to item 5 of p
+		set targetUrl to baseUrl & "?wallRole=" & wallRole & "#/mirror"
 
 		tell application "Google Chrome"
 			set newWin to make new window
@@ -42,5 +39,5 @@ on run
 		delay 0.7
 	end repeat
 
-	return "opened 6 measured wall panels"
+	return "opened 6 role panels"
 end run
