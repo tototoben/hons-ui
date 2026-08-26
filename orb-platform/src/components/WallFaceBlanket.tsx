@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useState } from 'react'
 import { wallModeTransform } from '../lib/wallMode'
 import { measuredPanelForRole, type WallRole } from '../lib/wallRole'
+import {
+  composeWallMatchPhotobash,
+  MATCH_FACE_SIZE,
+  MATCH_FACE_URL,
+} from '../lib/wallMatchPhotobash'
 import './WallFaceBlanket.css'
 
-export const MATCH_FACE_URL = '/assets/wall-avatar/match-face.png'
-export const MATCH_FACE_SIZE = { width: 864, height: 960 }
-
 /**
- * One shared face image cover-scaled onto the full wall canvas.
+ * One shared photobashed face cover-scaled onto the full wall canvas.
  * Each display shows only its panel slice — together they read as one image.
  */
 export function WallFaceBlanket({ role }: { role: WallRole }) {
@@ -16,6 +18,7 @@ export function WallFaceBlanket({ role }: { role: WallRole }) {
     width: window.innerWidth,
     height: window.innerHeight,
   }))
+  const [faceUrl, setFaceUrl] = useState(MATCH_FACE_URL)
 
   useEffect(() => {
     const onResize = () => {
@@ -23,6 +26,20 @@ export function WallFaceBlanket({ role }: { role: WallRole }) {
     }
     window.addEventListener('resize', onResize)
     return () => window.removeEventListener('resize', onResize)
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    composeWallMatchPhotobash()
+      .then((url) => {
+        if (!cancelled) setFaceUrl(url)
+      })
+      .catch(() => {
+        if (!cancelled) setFaceUrl(MATCH_FACE_URL)
+      })
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   const layout = useMemo(() => {
@@ -39,7 +56,6 @@ export function WallFaceBlanket({ role }: { role: WallRole }) {
       viewport.width,
       viewport.height,
     )
-    // Cover-scale the portrait face onto the wall bounding box (reuse placement math).
     const coverScale = Math.max(
       panel.wallWidth / MATCH_FACE_SIZE.width,
       panel.wallHeight / MATCH_FACE_SIZE.height,
@@ -58,7 +74,7 @@ export function WallFaceBlanket({ role }: { role: WallRole }) {
   if (!panel || !layout) return null
 
   return (
-    <div className="wall-face-blanket" aria-label="Generated match face across the wall">
+    <div className="wall-face-blanket" aria-label="Photobashed match face across the wall">
       <div
         className="wall-face-canvas"
         style={{
@@ -69,7 +85,7 @@ export function WallFaceBlanket({ role }: { role: WallRole }) {
       >
         <img
           className="wall-face-image"
-          src={MATCH_FACE_URL}
+          src={faceUrl}
           alt=""
           draggable={false}
           style={{
