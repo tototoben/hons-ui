@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { parseWallMode, wallModeTransform, type WallPanelRect } from '../lib/wallMode'
+import {
+  parseWallMode,
+  wallDesignPlacement,
+  wallModeTransform,
+  type WallPanelRect,
+} from '../lib/wallMode'
 import './WallModeViewport.css'
 
 function readPanel(search: string) {
@@ -33,7 +38,12 @@ export function WallModeViewport({ children }: { children: ReactNode }) {
     return wallModeTransform(panel, viewport.width, viewport.height)
   }, [panel, viewport.height, viewport.width])
 
-  if (!panel || !transform) return children
+  const design = useMemo(() => {
+    if (!panel) return null
+    return wallDesignPlacement(panel.wallWidth, panel.wallHeight)
+  }, [panel])
+
+  if (!panel || !transform || !design) return children
 
   return (
     <div className="wall-mode-viewport" aria-hidden={false}>
@@ -45,7 +55,16 @@ export function WallModeViewport({ children }: { children: ReactNode }) {
           transform: `translate(${transform.translateX}px, ${transform.translateY}px) scale(${transform.scale})`,
         }}
       >
-        <div className="wall-mode-station">{children}</div>
+        <div
+          className="wall-mode-design"
+          style={{
+            width: design.designWidth,
+            height: design.designHeight,
+            transform: `translate(${design.offsetX}px, ${design.offsetY}px) scale(${design.scale})`,
+          }}
+        >
+          <div className="wall-mode-station">{children}</div>
+        </div>
       </div>
     </div>
   )

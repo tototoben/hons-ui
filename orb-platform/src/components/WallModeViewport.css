@@ -26,27 +26,36 @@ html[data-wall-mode='true'] .mirror-preview-toggle {
   left: 0;
   transform-origin: top left;
   will-change: transform;
+  background: linear-gradient(180deg, #2c241c 0%, #0a0806 78%);
 }
 
-/* Station content must fill the WALL canvas, not the browser viewport.
-   ThirdStation uses 100vw/100svh which would leave most of the canvas black. */
-.wall-mode-station {
+.wall-mode-design {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: top left;
+  overflow: hidden;
+}
+
+/* Keep Station III in its real portrait composition; wall mode cover-scales it. */
+.wall-mode-station,
+.wall-mode-station .third-station,
+.wall-mode-station .mirror-frame {
   width: 100%;
   height: 100%;
 }
 
-.wall-mode-station .third-station,
-.wall-mode-station .mirror-frame {
-  position: relative;
-  width: 100% !important;
-  height: 100% !important;
-  min-height: 0 !important;
-  max-height: none !important;
+.wall-mode-station .third-station {
+  min-height: 0;
+  max-height: none;
 }
 
 .wall-mode-station .mirror-frame {
+  max-height: none;
+  width: 100% !important;
+  height: 100% !important;
   margin: 0;
-  padding: 0;
+  padding: 8% 6%;
 }
 
 .wall-mode-station .mirror-screen {
@@ -56,15 +65,10 @@ html[data-wall-mode='true'] .mirror-preview-toggle {
 }
 
 .wall-mode-station .mirror-orb-ring-slot {
-  width: clamp(220px, 18%, 480px);
-  height: clamp(220px, 18%, 480px);
+  width: clamp(220px, 42%, 520px);
+  height: clamp(220px, 42%, 520px);
 }
 
 .wall-mode-station .mirror-headline {
-  font-size: clamp(2rem, 4.5vw, 5rem);
-}
-
-.wall-mode-station .mirror-status-label {
-  top: 3%;
-  left: 2%;
+  font-size: clamp(2.4rem, 7vw, 4.8rem);
 }

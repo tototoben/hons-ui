@@ -1,5 +1,5 @@
 -- Station III wall launcher hardcoded from measured Mac Studio layout.
--- Wall canvas: 3585 x 5258
+-- Wall canvas: 3585 x 5258 — no kiosk quality (full Debra orb).
 --
 -- Usage:
 --   osascript scripts/blanket-station3-wall-measured.applescript
@@ -32,7 +32,7 @@ on run
 		set sh to item 4 of p
 		set panelX to item 5 of p
 		set panelY to item 6 of p
-		set targetUrl to baseUrl & "?quality=kiosk&wall=1&wallW=" & wallW & "&wallH=" & wallH & "&panelX=" & panelX & "&panelY=" & panelY & "&panelW=" & sw & "&panelH=" & sh & "#/mirror"
+		set targetUrl to baseUrl & "?wall=1&wallW=" & wallW & "&wallH=" & wallH & "&panelX=" & panelX & "&panelY=" & panelY & "&panelW=" & sw & "&panelH=" & sh & "#/mirror"
 
 		tell application "Google Chrome"
 			set newWin to make new window

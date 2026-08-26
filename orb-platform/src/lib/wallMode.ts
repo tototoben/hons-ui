@@ -15,6 +15,31 @@ export type WallModeTransform = {
   translateY: number
 }
 
+/** Portrait composition placed onto the wall with object-fit: cover. */
+export const WALL_DESIGN = { width: 1080, height: 1920 }
+
+export type WallDesignPlacement = {
+  designWidth: number
+  designHeight: number
+  offsetX: number
+  offsetY: number
+  scale: number
+}
+
+/** Scale the portrait station so it covers the full wall bounding box. */
+export function wallDesignPlacement(wallWidth: number, wallHeight: number): WallDesignPlacement {
+  const scale = Math.max(wallWidth / WALL_DESIGN.width, wallHeight / WALL_DESIGN.height)
+  const width = WALL_DESIGN.width * scale
+  const height = WALL_DESIGN.height * scale
+  return {
+    designWidth: WALL_DESIGN.width,
+    designHeight: WALL_DESIGN.height,
+    offsetX: (wallWidth - width) / 2,
+    offsetY: (wallHeight - height) / 2,
+    scale,
+  }
+}
+
 function readPositiveInt(params: URLSearchParams, key: string) {
   const value = Number(params.get(key))
   if (!Number.isFinite(value) || value <= 0) return null

@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { buildWallModeUrl, parseWallMode, wallModeTransform } from './wallMode'
+import {
+  buildWallModeUrl,
+  parseWallMode,
+  wallDesignPlacement,
+  wallModeTransform,
+} from './wallMode'
 
 describe('parseWallMode', () => {
   it('returns null when wall mode is disabled', () => {
@@ -54,6 +59,15 @@ describe('wallModeTransform', () => {
   })
 })
 
+describe('wallDesignPlacement', () => {
+  it('cover-scales the portrait design onto the measured wall', () => {
+    const placement = wallDesignPlacement(3585, 5258)
+    expect(placement.scale).toBeCloseTo(Math.max(3585 / 1080, 5258 / 1920), 5)
+    expect(placement.offsetX + 1080 * placement.scale).toBeGreaterThanOrEqual(3585)
+    expect(placement.offsetY + 1920 * placement.scale).toBeGreaterThanOrEqual(5258)
+  })
+})
+
 describe('buildWallModeUrl', () => {
   it('builds a station III wall URL with panel bounds', () => {
     const url = buildWallModeUrl(
@@ -67,11 +81,10 @@ describe('buildWallModeUrl', () => {
         panelWidth: 1000,
         panelHeight: 1000,
       },
-      { quality: 'kiosk' },
     )
     expect(url).toContain('wall=1')
     expect(url).toContain('panelX=0')
-    expect(url).toContain('quality=kiosk')
+    expect(url).not.toContain('quality=kiosk')
     expect(url).toContain('#/mirror')
   })
 })
