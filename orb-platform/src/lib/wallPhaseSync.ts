@@ -30,7 +30,7 @@ type PhaseMessage = {
 export function useWallSyncedPhase(isConductor: boolean) {
   const [phase, setPhase] = useState<WallPhase>('intro')
   const [countdown, setCountdown] = useState<number | null>(null)
-  const [recordSecondsLeft, setRecordSecondsLeft] = useState(WALL_TIMING.recordingSeconds)
+  const [recordSecondsLeft, setRecordSecondsLeft] = useState<number>(WALL_TIMING.recordingSeconds)
   const [loadingProgress, setLoadingProgress] = useState(0)
   const channelRef = useRef<BroadcastChannel | null>(null)
 
