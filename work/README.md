@@ -34,7 +34,6 @@ See `mirror/README.md`, `mirror/BUILD.md`, and `mirror/AGENTS.md` inside the tea
 | Root folder | Team folder | Notes |
 |-------------|-------------|-------|
 | `mirror/` | `work/eka-ars26-house/mirror/` | Same Flutter sim; root copy may drift — **team repo is source of truth** for production |
-| `datebooth-ui/` | — | Martin's Datebooth UI prototype (not in team repo yet) |
-| `mock-ui/` | — | Legacy Institutional / Soft Future gallery + station scripts |
+| `orb-platform/` | — | Active installation app (stations + photobash wall) |
 
 Pull team changes from `tototoben/eka-ars26-house`; push UI work from `martinorav-png/house-of-negotiated-selves`.

@@ -1,5 +1,5 @@
 {
-  "files": ["mock-ui/index.html"],
+  "files": ["orb-platform/index.html"],
   "insertBefore": "</body>",
   "commentSyntax": "html",
   "cspChecked": true

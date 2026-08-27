@@ -18,13 +18,13 @@ web
 
 **House of Negotiated Selves** is an interactive solo installation about the line between human autonomy and machine representation, framed as a funhouse mirror.
 
-The digital UI prototypes a **companion-matching** intake: a survey that extracts personal data under warm, sycophantic guidance, then reveals a "forged" companion. Active implementation is **`datebooth-ui/`** (Datebooth). Legacy gallery/scripts remain in **`mock-ui/`**.
+The digital UI is a **companion-matching** intake: a survey that extracts personal data under warm, sycophantic guidance, then reveals a forged companion. Active implementation is **`orb-platform/`** (stations, photobash wall, kiosk lock).
 
-**Success for the UI:** A clickable portrait kiosk prototype of the station journey that can be shown to the team and used as the basis for production mirror screens.
+**Success for the UI:** Production-ready station and wall surfaces that can run locked on festival machines.
 
 ## Positioning
 
-Unlike a generic dating-app mockup, this UI is **theatre**: Debra is warm Companion Guide, questions escalate from playful to unsettling, and the companion reveal is the emotional peak. Romance language sits on uncanny retail chrome. The UI must support that narrative arc, not optimize for conversion.
+Unlike a generic dating-app mockup, this UI is **theatre**: Debra is a warm Companion Guide, questions escalate from playful to unsettling, and the companion reveal is the emotional peak. The UI must support that narrative arc, not optimize for conversion.
 
 ## Operating Context
 
@@ -36,7 +36,7 @@ Unlike a generic dating-app mockup, this UI is **theatre**: Debra is warm Compan
 
 ## Capabilities and Constraints
 
-**In scope for `mock-ui/` (confirmed primary surface):**
+**In scope for `orb-platform/` (confirmed primary surface):**
 - Welcome / entry screen (on-screen copy only; entrance vocal monologue is out of mock UI)
 - Station 1 - Self (government name, DOB, orientation, hobbies, occupation, religion, nationality, ID photo)
 - Station 2 - Desire (partner preferences via chips + height slider; Debra coaching; avatar pipeline implied in logs)
@@ -53,8 +53,8 @@ Unlike a generic dating-app mockup, this UI is **theatre**: Debra is warm Compan
 - Session reset orchestration
 
 **Technical constraints:**
-- Vite + React 19 + TypeScript (`datebooth-ui/`, `mock-ui/`)
-- Production targets **portrait** 24″ mirrors (Datebooth is 9:16 / pillarboxed)
+- Vite + React 19 + TypeScript (`orb-platform/`)
+- Production targets **portrait** 24″ mirrors
 - Webcam for ID photo (requires user gesture; Chrome/Safari on localhost)
 - Debra voice is pre-recorded (ElevenLabs v3); not live TTS in stations
 - No live face biometrics; no live visitor scraping
@@ -62,17 +62,14 @@ Unlike a generic dating-app mockup, this UI is **theatre**: Debra is warm Compan
 
 **Content constraint (confirmed):** SFW - unsettling but gallery-safe. No explicit 18+ content in copy or interactions.
 
-**Visual direction:** **Datebooth** (confirmed) - charcoal void, soft rose boutique chrome, Debra as Companion Guide silhouette. Replaces Institutional Mirror Terminal and Soft Future blush as the active direction. Spec: `DESIGN.md`. Active app: `datebooth-ui/`.
+**Visual direction:** factory / clinical scan language in **`orb-platform/`** (point-cloud orb, monochrome stations, photobash wall). Earlier Datebooth rose-boutique direction is deprecated and removed.
 
 ## Brand Commitments
 
 - **Name:** House of Negotiated Selves (package: `house-of-negotiated-selves`)
-- **Guide:** Debra - Companion Guide; warm and sycophantic; Datebooth shows faceless rose-rim silhouette (not glass orb); pre-recorded voice with emotion tags
+- **Guide:** Debra - Companion Guide; warm and sycophantic; pre-recorded voice with emotion tags
 - **Digital framing:** Perfect AI companion / partner matching (not "new self")
-- **Typography (Datebooth):** Cormorant Garamond (display) · Manrope (body/UI)
-- **Design system:** `DESIGN.md` (Datebooth Entry lock: YOUR PERFECT COMPANION / AVAILABLE TONIGHT / BEGIN VIEWING)
-- **Active UI:** `datebooth-ui/`
-- **Legacy scripts:** `mock-ui/src/data/content.ts`
+- **Active UI:** `orb-platform/`
 - **Copy rule:** No em dashes in UI copy
 
 ## Evidence on Hand
@@ -80,12 +77,9 @@ Unlike a generic dating-app mockup, this UI is **theatre**: Debra is warm Compan
 | Asset | Path |
 |-------|------|
 | Full concept handoff | `CONTEXT.md` |
-| Design system (Datebooth) | `DESIGN.md` |
-| Active Datebooth app | `datebooth-ui/` |
+| Active installation app | `orb-platform/` |
 | User journey map (canonical script) | `userjourney2.pdf` (local only; gitignored if >100MB) |
 | Debra intro monologue | `scripts/debra-intro.txt` |
-| Legacy Stitch HTML + screenshots | `mock-ui/stitch/` |
-| Station scripts (legacy mock) | `mock-ui/src/data/content.ts` |
 
 **Not in repo (do not fabricate):** generated Debra voice samples (`samples/*.mp3`, gitignored), Unity avatar pipeline, production MQTT/server, physical lighting control.
 
