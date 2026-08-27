@@ -5,7 +5,7 @@
 **Branch:** `main`  
 **Pull first:** `git pull origin main`
 
-This file is the short “open this on the other computer” note. Full project context stays in [`CONTEXT.md`](CONTEXT.md). Design system for Datebooth: [`DESIGN.md`](DESIGN.md).
+This file is the short “open this on the other computer” note. Full project context stays in [`CONTEXT.md`](CONTEXT.md).
 
 ---
 
@@ -66,9 +66,6 @@ git pull origin main
 
 # Orb experience (current focus)
 cd orb-platform && npm install && npm run dev
-
-# Datebooth (separate track)
-# cd datebooth-ui && npm install && npm run dev   # :5174
 ```
 
 Needs **HTTPS or localhost** for mic/camera. Face tracking will need camera permission after the plan is implemented.
@@ -91,7 +88,6 @@ git clone https://github.com/tototoben/eka-ars26-house.git work/eka-ars26-house
 | `orb-ui/` | Older orb experiments — don’t extend |
 | `assets/moodboard-inspo/` | Visual references for the orb language |
 | `docs/superpowers/` | Spec + plan for face parallax |
-| `datebooth-ui/` | Datebooth kiosk UI (other track) |
 | `CONTEXT.md` | Full installation handoff |
 
 ---
