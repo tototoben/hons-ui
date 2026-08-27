@@ -32,7 +32,7 @@ on run argv
 		set panelX to sx - wallLeft
 		set panelY to screenTop - wallTop
 		set chromeTop to screenTop
-		set targetUrl to baseUrl & "?quality=kiosk&wall=1&wallW=" & wallW & "&wallH=" & wallH & "&panelX=" & panelX & "&panelY=" & panelY & "&panelW=" & sw & "&panelH=" & sh & "#/mirror"
+		set targetUrl to baseUrl & "?quality=kiosk&wall=1&wallW=" & wallW & "&wallH=" & wallH & "&panelX=" & panelX & "&panelY=" & panelY & "&panelW=" & sw & "&panelH=" & sh & "#/photobash"
 		do shell script chromeBin & " --new-window --window-position=" & sx & "," & chromeTop & " --window-size=" & sw & "," & sh & " --app=" & quoted form of targetUrl & " >/dev/null 2>&1 &"
 		delay 0.8
 	end repeat

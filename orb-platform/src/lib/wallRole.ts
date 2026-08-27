@@ -23,13 +23,13 @@ export function parseWallCalibrate(
   return params.get('wallCal') === '1'
 }
 
-/** Opt-in experimental collage photobash (WallCollageBlanket) in place of
- * the tuned, currently-live WallFaceBlanket reveal. */
+/** Collage photobash (WallCollageBlanket) is the live wall reveal.
+ * Pass collage=0 to fall back to the older WallFaceBlanket glitch. */
 export function parseWallCollage(
   search: string = typeof window === 'undefined' ? '' : window.location.search,
 ) {
   const params = new URLSearchParams(search.startsWith('?') ? search.slice(1) : search)
-  return params.get('collage') === '1'
+  return params.get('collage') !== '0'
 }
 
 /** Hardware notes for the measured Mac Studio wall. */

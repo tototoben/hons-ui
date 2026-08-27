@@ -24,6 +24,7 @@ vi.mock('./MirrorGuideOrb', () => ({
 import { StationTwo } from './StationTwo'
 import { applyStationVibe } from '../lib/stationVibe'
 import { setVisitorProfile } from '../lib/visitorProfile'
+import { clearDeviceLock, writeDeviceLock } from '../lib/deviceLock'
 
 function emptyProfile() {
   return {
@@ -63,6 +64,7 @@ describe('StationTwo', () => {
     vi.restoreAllMocks()
     container.remove()
     setVisitorProfile(emptyProfile())
+    clearDeviceLock()
   })
 
   it('moves from the category readout through the question set, height, and lightning round', async () => {
@@ -155,6 +157,41 @@ describe('StationTwo', () => {
     expect(container.textContent).toContain("When you're ready")
     expect(container.querySelector('.journey-complete h1 .journey-headline-canvas')).not.toBeNull()
     expect(container.querySelector('a')?.getAttribute('href')).toBe('#/mirror')
+  })
+
+  it('hides the Station III link when this machine is production-locked', async () => {
+    writeDeviceLock('station-2')
+    setVisitorProfile({ ...emptyProfile(), age: 15, previousRelationships: 'no' })
+    act(() => root.render(<StationTwo phaseDurationMs={20} />))
+
+    for (let step = 0; step < 3; step += 1) {
+      await act(async () => {
+        vi.advanceTimersByTime(20)
+        await Promise.resolve()
+      })
+    }
+
+    const answerNo = () => {
+      act(() => container.querySelectorAll<HTMLButtonElement>('.journey-choice button')[1]!.click())
+    }
+    answerNo()
+    answerNo()
+    answerNo()
+    answerNo()
+    answerNo()
+    answerNo()
+
+    act(() => container.querySelector<HTMLButtonElement>('.journey-height-confirm')!.click())
+    await act(async () => {
+      vi.advanceTimersByTime(20)
+      await Promise.resolve()
+    })
+    for (let i = 0; i < 7; i += 1) {
+      act(() => container.querySelectorAll<HTMLButtonElement>('.journey-choice button')[0]!.click())
+    }
+
+    expect(container.textContent).toContain("When you're ready")
+    expect(container.querySelector('a')).toBeNull()
   })
 
   it('skips the adult-gated and follow-up questions for a visitor under 18', async () => {

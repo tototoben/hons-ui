@@ -9,6 +9,7 @@ import {
 } from 'react'
 import { mirrorSettings } from '../dev/mirrorSettingsStore'
 import { getDeviceQuality } from '../lib/deviceQuality'
+import { readDeviceLock } from '../lib/deviceLock'
 import { useStationVibe } from '../hooks/useStationVibe'
 import type { WallPhase } from '../lib/wallPhaseSync'
 import { MirrorGuideOrb } from './MirrorGuideOrb'
@@ -481,7 +482,7 @@ export function ThirdStation() {
         ) : null}
       </div>
 
-      {import.meta.env.DEV ? (
+      {import.meta.env.DEV && !readDeviceLock() ? (
         <Suspense fallback={null}>
           <MirrorDevPanel />
         </Suspense>

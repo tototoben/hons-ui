@@ -31,12 +31,10 @@ function loadImage(src: string) {
 }
 
 /**
- * Experimental successor to WallFaceBlanket: instead of one fixed match
- * face, assembles a collage from the local synthetic face bank, then
- * slowly swaps pieces for the visitor's own captured face (visitorFaceCapture)
- * as the loading phase progresses. Opt-in via ?collage=1 — see
- * parseWallCollage in wallRole.ts — so the tuned, currently-live
- * WallFaceBlanket reveal is untouched.
+ * Live wall photobash (replaces WallFaceBlanket). Assembles a collage from
+ * the local synthetic face bank, then slowly swaps pieces for the visitor's
+ * own captured face (visitorFaceCapture) as the loading phase progresses.
+ * Pass collage=0 to restore the older WallFaceBlanket glitch reveal.
  */
 export function WallCollageBlanket({
   role,

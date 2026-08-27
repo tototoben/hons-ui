@@ -7,8 +7,8 @@ import './WallSim.css'
 
 function panelSrc(role: WallRole, collage: boolean) {
   const url = new URL(window.location.href)
-  url.search = collage ? `?wallRole=${role}&collage=1` : `?wallRole=${role}`
-  url.hash = '#/mirror'
+  url.search = collage ? `?wallRole=${role}&collage=1` : `?wallRole=${role}&collage=0`
+  url.hash = '#/photobash'
   return url.toString()
 }
 
@@ -24,7 +24,7 @@ export function WallSim() {
   }))
   const [showLabels, setShowLabels] = useState(true)
   const [mode, setMode] = useState<WallSimMode>('css')
-  const [collage, setCollage] = useState(false)
+  const [collage, setCollage] = useState(true)
   const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {

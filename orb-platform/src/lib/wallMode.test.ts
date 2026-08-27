@@ -79,10 +79,10 @@ describe('wallDesignPlacement', () => {
 })
 
 describe('buildWallModeUrl', () => {
-  it('builds a station III wall URL with panel bounds', () => {
+  it('builds a photobash wall URL with panel bounds', () => {
     const url = buildWallModeUrl(
       'https://house-of-negotiated-selves.vercel.app/',
-      '#/mirror',
+      '#/photobash',
       {
         wallWidth: 6000,
         wallHeight: 2000,
@@ -95,6 +95,6 @@ describe('buildWallModeUrl', () => {
     expect(url).toContain('wall=1')
     expect(url).toContain('panelX=0')
     expect(url).not.toContain('quality=kiosk')
-    expect(url).toContain('#/mirror')
+    expect(url).toContain('#/photobash')
   })
 })
