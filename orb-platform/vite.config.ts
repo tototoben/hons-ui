@@ -1,9 +1,12 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
+const isVercel = Boolean(process.env.VERCEL)
+
 export default defineConfig({
   plugins: [react()],
-  base: '/orb/',
+  // Visualizer embeds this app at /orb/. The Vercel preview is the app itself at /.
+  base: isVercel ? '/' : '/orb/',
   test: {
     css: true,
   },
@@ -15,7 +18,7 @@ export default defineConfig({
     allowedHosts: true,
   },
   build: {
-    outDir: '../../visualizer/public/orb',
+    outDir: isVercel ? 'dist' : '../../visualizer/public/orb',
     emptyOutDir: true,
   },
 })
