@@ -35,8 +35,8 @@ export function formingStagger(seed: number, rectCount: number): number[] {
   return delays
 }
 
-export function formingElapsedMs(loadingProgress: number, fillMs: number = PHOTOBASH_FILL_MS) {
-  return Math.max(0, Math.min(1, loadingProgress)) * fillMs
+export function formingElapsedMs(loadingProgress: number) {
+  return Math.max(0, Math.min(1, loadingProgress)) * PHOTOBASH_FILL_MS
 }
 
 export function formingTileOpacity(elapsedMs: number, delayMs: number) {

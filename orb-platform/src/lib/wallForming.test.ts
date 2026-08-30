@@ -57,6 +57,7 @@ describe('wallForming', () => {
   })
 
   it('maps loadingProgress onto the 4s fill clock', () => {
+    expect(formingElapsedMs.length).toBe(1)
     expect(formingElapsedMs(0)).toBe(0)
     expect(formingElapsedMs(0.5)).toBe(PHOTOBASH_FILL_MS / 2)
     expect(formingElapsedMs(1)).toBe(PHOTOBASH_FILL_MS)
