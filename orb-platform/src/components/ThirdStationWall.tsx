@@ -5,10 +5,6 @@ import { WallCalibrate } from './WallCalibrate'
 import { CodePanel, MiniBar } from './HudDebris'
 import { MirrorGuideOrb } from './MirrorGuideOrb'
 import { MirrorHeadline } from './MirrorHeadline'
-import {
-  DebraVoiceClip,
-  thirdStationDebraClipFor,
-} from './DebraVoice'
 import { WallFaceBlanket } from './WallFaceBlanket'
 import { mirrorSettings } from '../dev/mirrorSettingsStore'
 import './ThirdStation.css'
@@ -295,9 +291,6 @@ export function ThirdStationWall({ role: roleProp }: { role?: WallRole }) {
       ref={rootRef}
     >
       {calibrate ? <WallCalibrate role={role} /> : null}
-      {!calibrate && role === 'debra' ? (
-        <DebraVoiceClip src={thirdStationDebraClipFor(phase)} />
-      ) : null}
       {calibrate ? null : phase === 'loading' ? (
         <WallFaceBlanket role={role} photobashSeed={photobashSeed} />
       ) : (

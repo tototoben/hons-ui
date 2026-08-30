@@ -25,23 +25,10 @@ Short continue note: **[`HANDOFF.md`](HANDOFF.md)**.
 cd orb-platform && npm install && npm run dev   # http://localhost:5176
 ```
 
-### Also in repo: Datebooth
-
-**Datebooth** — dark boutique matching UI (charcoal void + soft rose). Romance / “perfect AI companion” framing with uncanny retail certainty (`AVAILABLE TONIGHT`).
-
-| Doc / code | Status |
-|------------|--------|
-| `DESIGN.md` | **Datebooth system** locked from approved Entry screen |
-| `datebooth-ui/` | **Active React app** — stations About You → How You Love → Matches → Forging → Reveal (no Entry intro screen in code yet) |
-| `mock-ui/` | Legacy Institutional + Soft Future gallery; still holds canonical station scripts in `src/data/content.ts` |
-| Entry Stitch/Firefly | Datebooth Entry designed; Entry not yet ported into `datebooth-ui` App flow |
-| Stitch MCP | Optional local MCP via `npx stitch-mcp-stdio` + `STITCH_API_KEY` in `~/.cursor/mcp.json` (never commit the key) |
-
 **Next useful steps**
 
 1. **Preferred:** implement face parallax from the plan in `docs/superpowers/plans/` (see `HANDOFF.md`)  
-2. Or Datebooth: `cd datebooth-ui && npm install && npm run dev` → http://localhost:5174 — port Entry screen  
-3. Physical journey scripts: `userjourney2.pdf` is local-only (gitignored, >100MB)
+2. Physical journey scripts: `userjourney2.pdf` is local-only (gitignored, >100MB)
 
 ---
 
@@ -67,7 +54,7 @@ Interactive solo installation about the line between human autonomy and machine 
 - Exit curtained near entry (“end of the loop”)  
 - Latex curtains + red/green lighting between stages  
 - Physical aesthetic: **factory/clinical** (muted, matte, latex)  
-- Production mirrors: **24″ portrait**; digital Datebooth is portrait-first (pillarboxed on wide browsers)
+- Production mirrors: **24″ portrait**
 
 ---
 
@@ -78,13 +65,13 @@ Interactive solo installation about the line between human autonomy and machine 
 | Outside / Entry | Terms, queue, Debra intro (spatial + voice); on-screen Entry is short intro only |
 | Station 1 — Self | Survey + ID photo; Debra coaches |
 | Station 2 — Desire | Partner preferences; silhouette densifies |
-| Station 3 — Matches | Life vision / dealbreakers / yes-no (or persona questions in Datebooth port) |
+| Station 3 — Matches | Life vision / dealbreakers / yes-no |
 | Revealing chamber | Multi-screen avatar encounter (Unity); not in mock yet |
 | Exit | Photocard + QR data receipt (EU AI Act) |
 
 **Characters**
 
-- **Debra:** Companion Guide. Datebooth UI: faceless rose-rim silhouette (not glass orb). Voice: pre-recorded ElevenLabs v3.  
+- **Debra:** Companion Guide. Voice: pre-recorded ElevenLabs v3.  
 - **Final companion avatar:** live TTS in chamber; only live voice in the piece.  
 - **Orchestrator:** hidden human (+ AI), can be glimpsed behind a curtain.
 
@@ -97,19 +84,11 @@ Canonical spoken entrance monologue: `scripts/debra-intro.txt` (on-screen Entry 
 ```
 ARS-electronica/
 ├── CONTEXT.md              ← this file
-├── DESIGN.md               ← Datebooth design system (active)
 ├── PRODUCT.md              ← Impeccable product context
 ├── README.md
 ├── package.json            ← root scripts
-├── datebooth-ui/           ← ACTIVE Datebooth Vite + React app
-│   ├── src/screens/        ← AboutYou, HowYouLove, Matches, Forging, Reveal
-│   ├── src/components/     ← ScreenShell, NightTag, CompanionVitrine, …
-│   ├── public/assets/      ← personas + ambient / forging stills
-│   └── README.md
-├── mock-ui/                ← legacy Institutional + Soft Future gallery
-│   ├── src/data/content.ts ← Debra station scripts (word-for-word)
-│   ├── stitch/             ← Stitch HTML + screenshots
-│   └── public/stitch/
+├── orb-platform/           ← ACTIVE installation app (stations + photobash wall)
+├── orb-ui/                 ← earlier orb experiments
 ├── mirror/                 ← Flutter room sim (local copy)
 ├── work/
 │   ├── README.md           ← how to clone team repo
@@ -121,60 +100,6 @@ ARS-electronica/
 ```
 
 **Not committed:** `.env`, `node_modules/`, `samples/*.mp3`, `*/dist/`, `userjourney.pdf` / `userjourney2.pdf` (too large for GitHub), Cursor/Claude local config, Stitch API keys.
-
----
-
-## Datebooth UI (active)
-
-Portrait boutique matching flow.
-
-**Flow in code today:** About You → How You Love → Matches → Forging → Reveal  
-
-**Run on a new machine:**
-
-```bash
-git clone https://github.com/martinorav-png/house-of-negotiated-selves.git
-cd house-of-negotiated-selves/datebooth-ui
-npm install
-npm run dev
-```
-
-Open **http://localhost:5174**.
-
-**Design tokens (see `DESIGN.md`):**
-
-- Void `#0D0D0D` · Rose `#F5B8C4` · ink on rose near-black  
-- Display: Cormorant Garamond (tracked caps) · Body: Manrope  
-- Components: NightTag (`AVAILABLE TONIGHT` / `RESERVED` / `MATCHED`), heart-key CTA, silhouette + pedestal, diamond/heart ornaments  
-
-**Entry screen (designed, not in App yet):**
-
-- Title: `YOUR PERFECT COMPANION`  
-- Debra = Companion Guide; short intro only; CTA `BEGIN VIEWING`  
-- Tag: `AVAILABLE TONIGHT`  
-
----
-
-## Legacy mock-ui
-
-Still useful for:
-
-- Multi-direction design gallery  
-- Station scripts in `mock-ui/src/data/content.ts` (`DEBRA_STATION`, Self / Desire / Station3 steps)  
-- Older Soft Future / Institutional Stitch exports  
-
-```bash
-cd mock-ui && npm install && npm run dev
-```
-
----
-
-## Stitch / Firefly / Figma
-
-- **Stitch MCP (Cursor):** `stitch` server via `npx -y stitch-mcp-stdio` and `STITCH_API_KEY` in `~/.cursor/mcp.json`. Do not commit keys. After adding MCP mid-chat, open a **new** Agent chat so tools load.  
-- **SDK:** `@google/stitch-sdk` in `mock-ui` (older Soft Future project id `695494198560560923`).  
-- **Figma (older Soft Future):** https://www.figma.com/design/7Aas74MjjERLHKuc9blj8y  
-- **Datebooth comps:** Entry approved in Stitch/Firefly exploration; keep regenerating other stations against `DESIGN.md` + Entry reference.
 
 ---
 
@@ -222,18 +147,16 @@ Root `mirror/` is a sibling copy for convenience; **`work/eka-ars26-house/mirror
 - No hologram → screen + Unity  
 - Keyboard at interactive stations  
 - Factory/clinical **physical** space  
-- Digital direction currently **Datebooth** (rose boutique), not Soft Future blush  
-- Debra = Companion Guide (Datebooth silhouette; older docs may still say orb)  
+- Digital direction currently **`orb-platform/`** (scan / point-cloud stations); Datebooth rose boutique is deprecated  
+- Debra = Companion Guide  
 - One live companion avatar per visitor + fallback library  
 - Copy rule: **no em dashes** in UI copy  
 - Content: **SFW**, gallery-safe  
 
 ## Still open
 
-- Wire Entry into `datebooth-ui`  
 - Desire station vs How You Love naming / order vs journey PDF  
 - Hexagon exit door vs retrace  
-- Align physical factory finish with Datebooth digital rose  
 - Exact production display sizes  
 
 ---
@@ -249,9 +172,7 @@ Paula, Tõnis (Bender), Carina, Johannes Martin, Hendra, Sara, Anett, Martin (di
 1. `git clone` / `git pull` **main**  
 2. Read **`HANDOFF.md`** (current next step: face parallax)  
 3. `cd orb-platform && npm install && npm run dev` → http://localhost:5176  
-4. Optional Datebooth: `cd datebooth-ui && npm install && npm run dev`  
-5. Clone team repo: `git clone https://github.com/tototoben/eka-ars26-house.git work/eka-ars26-house`  
-6. Optional: `work/eka-ars26-house/mirror` for Flutter sim (team source of truth)  
-7. Optional: Stitch MCP key in local Cursor config only  
+4. Clone team repo: `git clone https://github.com/tototoben/eka-ars26-house.git work/eka-ars26-house`  
+5. Optional: `work/eka-ars26-house/mirror` for Flutter sim (team source of truth)  
 
-**Bottom line:** Continue **`orb-platform`** face parallax from the plan under `docs/superpowers/`. Datebooth remains in **`datebooth-ui`** + **`DESIGN.md`**. Legacy **`mock-ui`** keeps scripts and the old gallery.
+**Bottom line:** Continue **`orb-platform`** from the plan under `docs/superpowers/`. Datebooth (`datebooth-ui/`, `DESIGN.md`) and `mock-ui/` are removed.

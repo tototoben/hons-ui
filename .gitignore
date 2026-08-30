@@ -4,11 +4,6 @@ node_modules/
 samples/
 *.mp3
 !orb-platform/public/audio/debra/*.mp3
-mock-ui/dist/
-mock-ui/node_modules/
-mock-ui/stitch/assets/
-datebooth-ui/dist/
-datebooth-ui/node_modules/
 orb-platform/dist/
 orb-platform/node_modules/
 orb-ui/dist/
