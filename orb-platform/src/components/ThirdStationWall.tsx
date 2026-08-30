@@ -7,6 +7,8 @@ import { MirrorGuideOrb } from './MirrorGuideOrb'
 import { MirrorHeadline } from './MirrorHeadline'
 import { WallFaceBlanket } from './WallFaceBlanket'
 import { WallCollageBlanket } from './WallCollageBlanket'
+import { WallFormingBlanket } from './WallFormingBlanket'
+import { pickWallLoadingSurface, shouldShowFormingCaption } from '../lib/wallForming'
 import { mirrorSettings } from '../dev/mirrorSettingsStore'
 import './ThirdStation.css'
 import './ThirdStationWall.css'
@@ -286,6 +288,8 @@ export function ThirdStationWall({ role: roleProp }: { role?: WallRole }) {
     root.style.setProperty('--mirror-accent', mirrorSettings.accent.color)
   }, [])
 
+  const loadingSurface = pickWallLoadingSurface(collage, loadingProgress)
+
   return (
     <section
       className={`third-station third-station-wall third-station-wall-${role}`}
@@ -294,7 +298,14 @@ export function ThirdStationWall({ role: roleProp }: { role?: WallRole }) {
     >
       {calibrate ? <WallCalibrate role={role} /> : null}
       {calibrate ? null : phase === 'loading' ? (
-        collage ? (
+        loadingSurface === 'forming' ? (
+          <WallFormingBlanket
+            role={role}
+            photobashSeed={photobashSeed}
+            loadingProgress={loadingProgress}
+            showCaption={shouldShowFormingCaption(role)}
+          />
+        ) : loadingSurface === 'collage' ? (
           <WallCollageBlanket role={role} photobashSeed={photobashSeed} />
         ) : (
           <WallFaceBlanket role={role} photobashSeed={photobashSeed} />
