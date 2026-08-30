@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest'
 import { PHOTOBASH_FILL_MS } from './photobashLoop'
 import { collageRects } from './wallCollagePhotobash'
 import {
+  drawWallForming,
   FLESH_SWATCHES,
   FORMING_COPY,
   FORMING_FROM_SCALE,
+  FORMING_PLATE_BG,
   FORMING_STAGGER_MS,
   FORMING_TILE_MS,
   fleshFillForRect,
@@ -16,6 +18,84 @@ import {
   shouldShowForming,
   shouldShowFormingCaption,
 } from './wallForming'
+
+type FillCall = {
+  fillStyle: string | CanvasGradient | CanvasPattern
+  args: [number, number, number, number]
+}
+
+function recordingContext() {
+  const fillCalls: FillCall[] = []
+  const context = {
+    fillStyle: '',
+    strokeStyle: '',
+    lineWidth: 0,
+    globalAlpha: 1,
+    clearRect() {},
+    fillRect(...args: [number, number, number, number]) {
+      fillCalls.push({ fillStyle: this.fillStyle, args })
+    },
+    strokeRect() {},
+    save() {},
+    restore() {},
+    translate() {},
+    scale() {},
+  }
+  return {
+    ctx: context as unknown as CanvasRenderingContext2D,
+    fillCalls,
+  }
+}
+
+describe('drawWallForming', () => {
+  it('paints only the forming plate at elapsed zero', () => {
+    const { ctx, fillCalls } = recordingContext()
+
+    drawWallForming(ctx, {
+      width: 1000,
+      height: 500,
+      rects: collageRects(1),
+      seed: 1,
+      elapsedMs: 0,
+    })
+
+    expect(fillCalls).toEqual([
+      {
+        fillStyle: FORMING_PLATE_BG,
+        args: [0, 0, 1000, 500],
+      },
+    ])
+    expect(FORMING_PLATE_BG).toBe('#120d0a')
+  })
+
+  it('fills every collage rectangle at its scaled coordinates after forming completes', () => {
+    const width = 1000
+    const height = 500
+    const rects = collageRects(1)
+    const { ctx, fillCalls } = recordingContext()
+
+    drawWallForming(ctx, {
+      width,
+      height,
+      rects,
+      seed: 1,
+      elapsedMs: 4000,
+    })
+
+    expect(fillCalls[0]).toEqual({
+      fillStyle: FORMING_PLATE_BG,
+      args: [0, 0, width, height],
+    })
+    expect(fillCalls.slice(1).map(({ args }) => args)).toEqual(
+      rects.map((rect) => [
+        rect.x * width,
+        rect.y * height,
+        rect.w * width,
+        rect.h * height,
+      ]),
+    )
+  })
+})
 
 describe('wallForming', () => {
   it('keeps the locked mixed-bruise swatch list', () => {

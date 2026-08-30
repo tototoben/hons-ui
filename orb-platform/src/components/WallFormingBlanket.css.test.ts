@@ -25,4 +25,10 @@ describe('WallFormingBlanket caption', () => {
     expect(formingStyles).toContain('#f2c8b4')
     expect(formingStyles).not.toContain('255, 244, 232')
   })
+
+  it('suppresses the shared face mount fade for a hard cut', () => {
+    expect(formingStyles).toMatch(
+      /\.wall-forming-blanket\s*\{[^}]*animation:\s*none;?[^}]*\}/,
+    )
+  })
 })

@@ -1,5 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
-import { PHOTOBASH_CYCLE_MS, mintPhotobashSeed, photobashProgress } from './photobashLoop'
+import {
+  PHOTOBASH_CYCLE_MS,
+  PHOTOBASH_FILL_MS,
+  mintPhotobashSeed,
+  photobashProgress,
+} from './photobashLoop'
 
 export type WallPhase = 'intro' | 'prompt' | 'recording' | 'loading'
 
@@ -76,6 +81,9 @@ export function useWallSyncedPhase(isConductor: boolean) {
       }
       return loadingSeedRef.current
     }
+
+    // Keep conductor state aligned with the zero progress published outside loading.
+    if (phase !== 'loading') setLoadingProgress(0)
 
     if (phase === 'intro') {
       publish({
@@ -190,7 +198,7 @@ export function useWallSyncedPhase(isConductor: boolean) {
   useEffect(() => {
     if (!isConductor || phase !== 'loading') return
     // Fill "processing" progress quickly, then hold the face for the rest of loadingSeconds.
-    const fillMs = 4000
+    const fillMs = PHOTOBASH_FILL_MS
     const holdMs = WALL_TIMING.loadingSeconds * 1000
     const start = performance.now()
     const seed = loadingSeedRef.current ?? photobashSeed
