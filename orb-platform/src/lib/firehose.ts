@@ -72,12 +72,12 @@ export function publish(station: string, event: string, data?: unknown): void {
 export function firehoseReducer<S, A>(
   station: string,
   reducer: (state: S, action: A) => S,
-  actionToEvent?: (action: A) => { event: string; data?: unknown },
+  actionToEvent?: (action: A) => { event: string; data?: unknown } | null,
 ): (state: S, action: A) => S {
   return (state: S, action: A): S => {
     if (actionToEvent) {
-      const { event, data } = actionToEvent(action)
-      publish(station, event, data)
+      const mapped = actionToEvent(action)
+      if (mapped) publish(station, mapped.event, mapped.data)
     } else {
       // Default: use the action type as the event name.
       const event = typeof action === 'object' && action !== null && 'type' in action

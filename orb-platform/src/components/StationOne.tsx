@@ -9,6 +9,7 @@ import {
   type StationOneAction,
   type StationOneState,
 } from '../lib/mirrorJourney'
+import { loadStationOneState, saveStationOneState } from '../lib/interviewStore'
 import { setVisitorProfile, visitorProfileFromAnswers } from '../lib/visitorProfile'
 import { JourneyHeadline } from './JourneyHeadline'
 import { MirrorChoice } from './MirrorChoice'
@@ -53,7 +54,7 @@ export function StationOne({ phaseDurationMs = 2200 }: { phaseDurationMs?: numbe
   const [state, dispatch] = useReducer(
     firehoseReducer(STATION_ID, stationOneReducer, actionToEvent),
     undefined,
-    createStationOneState,
+    () => loadStationOneState() ?? createStationOneState(),
   )
   const [draft, setDraft] = useState('')
   const question = STATION_ONE_INTAKE[state.questionIndex]
@@ -82,10 +83,11 @@ export function StationOne({ phaseDurationMs = 2200 }: { phaseDurationMs?: numbe
   }, [phaseDurationMs, state.phase])
 
   useEffect(() => {
-    if (state.phase === 'analysis-intro') {
+    saveStationOneState(state)
+    if (Object.keys(state.answers).length > 0) {
       setVisitorProfile(visitorProfileFromAnswers(state.answers))
     }
-  }, [state.phase, state.answers])
+  }, [state])
 
   // Announce station readiness on mount.
   useEffect(() => {
@@ -143,7 +145,7 @@ export function StationOne({ phaseDurationMs = 2200 }: { phaseDurationMs?: numbe
           <JourneyHeadline lines={(warm ? INTAKE_LINES_WARM : INTAKE_LINES_ORIGINAL)[state.questionIndex]}>
             {question.prompt}
           </JourneyHeadline>
-          <MirrorChoice onAnswer={answer} hideButtons />
+          <MirrorChoice onAnswer={answer} />
         </div>
       ) : null}
 

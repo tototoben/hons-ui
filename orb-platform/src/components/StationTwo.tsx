@@ -1,13 +1,17 @@
-import { lazy, Suspense, useCallback, useEffect, useReducer, useState, type FormEvent } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useReducer, useRef, useState, type FormEvent } from 'react'
 import {
   createStationTwoState,
   STATION_TWO_LIGHTNING,
   STATION_TWO_QUESTIONS,
   stationTwoReducer,
   type BinaryAnswer,
+  type StationTwoAction,
   type StationTwoPhase,
+  type StationTwoState,
   type ThisOrThatPair,
 } from '../lib/mirrorJourney'
+import { firehoseReducer, publish } from '../lib/firehose'
+import { loadStationTwoState, saveStationTwoState } from '../lib/interviewStore'
 import { getVisitorProfile } from '../lib/visitorProfile'
 import { journeySettings } from '../dev/journeySettingsStore'
 import { CompanionOutline } from './CompanionOutline'
@@ -79,6 +83,42 @@ const QUESTION_LINES_ORIGINAL = QUESTION_LINES_WARM.map((lines) =>
   lines.map((line) => line.toUpperCase()),
 )
 
+const STATION_ID = 'station-2'
+
+function actionToEvent(action: StationTwoAction): { event: string; data?: unknown } | null {
+  switch (action.type) {
+    case 'SUBMIT_TEXT':
+      return { event: 'text_submitted', data: { value: action.value.trim() } }
+    case 'ANSWER':
+      return { event: 'desire_answer', data: { answer: action.value } }
+    case 'ADVANCE':
+      return { event: 'phase_advance' }
+    case 'SET_SCALE':
+    case 'SET_HEIGHT':
+      return null
+  }
+}
+
+function phaseEvent(phase: StationTwoState['phase']): string {
+  return `phase:${phase}`
+}
+
+function initialStationTwoState(): StationTwoState {
+  const profile = getVisitorProfile()
+  const saved = loadStationTwoState()
+  if (saved) {
+    return {
+      ...saved,
+      age: profile.age ?? saved.age,
+      previousRelationships: profile.previousRelationships ?? saved.previousRelationships,
+    }
+  }
+  return createStationTwoState({
+    age: profile.age,
+    previousRelationships: profile.previousRelationships,
+  })
+}
+
 function lightningLines(pair: ThisOrThatPair, warm: boolean): string[] {
   const lines = [`${pair.left} or`, `${pair.right.toLowerCase()}?`]
   return warm ? lines : lines.map((line) => line.toUpperCase())
@@ -87,14 +127,37 @@ function lightningLines(pair: ThisOrThatPair, warm: boolean): string[] {
 export function StationTwo({ phaseDurationMs }: { phaseDurationMs?: number }) {
   const [vibe] = useStationVibe()
   const warm = vibe === 'warm'
-  const [state, dispatch] = useReducer(stationTwoReducer, undefined, () => {
-    const profile = getVisitorProfile()
-    return createStationTwoState({
-      age: profile.age,
-      previousRelationships: profile.previousRelationships,
-    })
-  })
+  const [state, dispatch] = useReducer(
+    firehoseReducer(STATION_ID, stationTwoReducer, actionToEvent),
+    undefined,
+    initialStationTwoState,
+  )
   useLiveJourneyTheme()
+
+  const prevPhaseRef = useRef<StationTwoState['phase'] | null>(null)
+  useEffect(() => {
+    if (prevPhaseRef.current !== state.phase) {
+      if (prevPhaseRef.current !== null) {
+        publish(STATION_ID, phaseEvent(state.phase), { phase: state.phase })
+      }
+      prevPhaseRef.current = state.phase
+    }
+    if (state.phase === 'complete') {
+      publish(STATION_ID, 'interview_done', {
+        answers: state.answers,
+        lightningAnswers: state.lightningAnswers,
+        height: state.height,
+      })
+    }
+  }, [state.phase, state.answers, state.lightningAnswers, state.height])
+
+  useEffect(() => {
+    saveStationTwoState(state)
+  }, [state])
+
+  useEffect(() => {
+    publish(STATION_ID, 'station_mounted', { phase: 'percentile' })
+  }, [])
 
   useEffect(() => {
     const automaticDurationMs = getAutoPhaseDurationMs(state.phase)

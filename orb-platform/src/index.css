@@ -1,3 +1,8 @@
+:root {
+  --question-desk-bottom: 12vh;
+  --question-controls-min-height: 180px;
+}
+
 *,
 *::before,
 *::after {

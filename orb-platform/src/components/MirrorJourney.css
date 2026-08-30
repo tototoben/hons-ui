@@ -1,4 +1,6 @@
 :root {
+  --question-desk-bottom: 12vh;
+  --question-controls-min-height: 180px;
   --mirror-white: #fff6eb;
   --mirror-frost: #120d0a;
   --mirror-ice: #e8b88c;
@@ -240,7 +242,7 @@
   display: grid;
   gap: 24px;
   align-self: end;
-  margin-bottom: 14vh;
+  margin-bottom: var(--question-desk-bottom);
 }
 
 .journey-intake label,
@@ -303,18 +305,26 @@
 
 .journey-message {
   align-self: end;
-  margin-bottom: 10vh;
+  margin-bottom: var(--question-desk-bottom);
+  padding-bottom: var(--question-controls-min-height);
 }
 
 .journey-message-bottom {
-  margin-bottom: 7vh;
+  margin-bottom: var(--question-desk-bottom);
+}
+
+.journey-complete {
+  text-align: center;
+  align-self: end;
+  margin-bottom: var(--question-desk-bottom);
+  padding-bottom: var(--question-controls-min-height);
 }
 
 .journey-question {
   position: relative;
   z-index: 3;
   align-self: end;
-  margin-bottom: 8vh;
+  margin-bottom: var(--question-desk-bottom);
 }
 
 .journey-choice {
@@ -338,16 +348,12 @@
   text-align: center;
 }
 
-.journey-complete {
-  text-align: center;
-}
-
 .journey-scale {
   position: relative;
   z-index: 3;
   align-self: end;
   width: min(100%, 430px);
-  margin-bottom: 8vh;
+  margin-bottom: var(--question-desk-bottom);
 }
 
 .journey-scale label {
@@ -383,7 +389,8 @@
 .journey-debra-copy {
   align-self: end;
   width: min(100%, 430px);
-  margin-bottom: 8vh;
+  margin-bottom: var(--question-desk-bottom);
+  padding-bottom: var(--question-controls-min-height);
 }
 
 .journey-debra-copy h1,
@@ -405,7 +412,7 @@
   z-index: 3;
   left: 0;
   right: 0;
-  bottom: 3vh;
+  bottom: var(--question-desk-bottom);
   padding: 24px 0 0;
   background: rgba(0, 0, 0, 0.88);
 }
@@ -480,7 +487,6 @@
 @media (max-height: 700px) {
   .journey-status { top: 32px; }
   .journey-content { inset-block: 58px; }
-  .journey-intake { margin-bottom: 8vh; }
   .journey-appearance { top: 62px; }
 }
 

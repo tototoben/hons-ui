@@ -18,9 +18,10 @@ vi.mock('../hooks/useMirrorCamera', () => ({
 }))
 
 import { StationOne } from './StationOne'
-import { STATION_ONE_INTAKE } from '../lib/mirrorJourney'
+import { createStationOneState, STATION_ONE_INTAKE } from '../lib/mirrorJourney'
 import { applyStationVibe } from '../lib/stationVibe'
 import { getVisitorProfile, resetVisitorProfile } from '../lib/visitorProfile'
+import { saveStationOneState } from '../lib/interviewStore'
 
 function setInput(input: HTMLInputElement, value: string) {
   const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set
@@ -196,6 +197,48 @@ describe('StationOne', () => {
 
     const originInput = container.querySelector<HTMLInputElement>('input[name="origin"]')!
     expect(originInput.value).toBe('')
+  })
+
+  it('shows Yes/No buttons on binary questions and saves a tap', () => {
+    act(() => root.render(<StationOne phaseDurationMs={20} />))
+
+    for (const [name, value] of [
+      ['callName', 'Ada'],
+      ['age', '34'],
+      ['identity', 'woman'],
+      ['orientation', 'bisexual'],
+    ]) {
+      const input = container.querySelector<HTMLInputElement>(`input[name="${name}"]`)!
+      act(() => {
+        setInput(input, value)
+        submit(input.form!)
+      })
+    }
+
+    const buttons = container.querySelectorAll<HTMLButtonElement>('.journey-choice button')
+    expect(buttons).toHaveLength(2)
+    expect(buttons[0].textContent).toMatch(/yes/i)
+    act(() => buttons[1].click())
+    act(() =>
+      container.querySelectorAll<HTMLButtonElement>('.journey-choice button')[0].click(),
+    )
+
+    expect(container.querySelector<HTMLInputElement>('input[name="origin"]')).not.toBeNull()
+    expect(getVisitorProfile().doubtedOrientation).toBe('no')
+    expect(getVisitorProfile().previousRelationships).toBe('yes')
+  })
+
+  it('restores in-progress intake answers after a remount', () => {
+    saveStationOneState(
+      createStationOneState({
+        questionIndex: 3,
+        answers: { callName: 'Ada', age: '34', identity: 'woman' },
+      }),
+    )
+    act(() => root.render(<StationOne phaseDurationMs={20} />))
+
+    expect(container.querySelector<HTMLInputElement>('input[name="orientation"]')).not.toBeNull()
+    expect(getVisitorProfile().callName).toBe('Ada')
   })
 
   it('has no station-marker header regardless of vibe', () => {

@@ -4,14 +4,9 @@ import type { BinaryAnswer } from '../lib/mirrorJourney'
 
 export function MirrorChoice({
   onAnswer,
-  hideButtons = false,
   labels,
 }: {
   onAnswer: (answer: BinaryAnswer) => void
-  /** Station I answers by keyboard only now — Station II still shows the
-   * on-screen Yes/No buttons, so this defaults to keeping them rather
-   * than changing both stations' behavior at once. */
-  hideButtons?: boolean
   /** Overrides the Yes/No button text — used by Station II's "this or
    * that" lightning round, where the two options are literal words
    * rather than a real yes/no. Keyboard y/n still picks them in order. */
@@ -41,16 +36,12 @@ export function MirrorChoice({
       role="group"
       aria-label={labels ? `Choose ${yesLabel} or ${noLabel}` : 'Answer yes or no'}
     >
-      {hideButtons ? null : (
-        <>
-          <button type="button" onClick={() => onAnswer('yes')}>
-            {yesLabel}
-          </button>
-          <button type="button" onClick={() => onAnswer('no')}>
-            {noLabel}
-          </button>
-        </>
-      )}
+      <button type="button" onClick={() => onAnswer('yes')}>
+        {yesLabel}
+      </button>
+      <button type="button" onClick={() => onAnswer('no')}>
+        {noLabel}
+      </button>
       <p>{vibe === 'warm' ? 'or press Y / N' : 'Press Y or N'}</p>
     </div>
   )

@@ -11,6 +11,10 @@ import cardSwapSource from './CardSwap.jsx?raw'
 import cardSwapStyles from './CardSwap.css?raw'
 import appSource from '../App.tsx?raw'
 import photobashSource from './PhotobashScreen.tsx?raw'
+import stationOneSource from './StationOne.tsx?raw'
+import stationTwoSource from './StationTwo.tsx?raw'
+import journeyStyles from './MirrorJourney.css?raw'
+import thirdStationStyles from './ThirdStation.css?raw'
 
 describe('station composition', () => {
   it('keeps developer station-switcher and overlays the production picker', () => {
@@ -111,5 +115,19 @@ describe('station composition', () => {
   it('keeps moving scan bands out of the orb point cloud', () => {
     expect(pointCloudShaders).not.toContain('vScan')
     expect(pointCloudShaders).not.toContain('scanLocal')
+  })
+
+  it('lets Station I yes/no be tapped and persists both station interviews', () => {
+    expect(stationOneSource).not.toContain('hideButtons')
+    expect(stationOneSource).toContain('saveStationOneState')
+    expect(stationTwoSource).toContain('firehoseReducer')
+    expect(stationTwoSource).toContain('saveStationTwoState')
+  })
+
+  it('pins station copy to a shared question-desk height and enlarges Station III frame', () => {
+    expect(journeyStyles).toContain('--question-desk-bottom: 12vh')
+    expect(journeyStyles).toContain('margin-bottom: var(--question-desk-bottom)')
+    expect(thirdStationStyles).toContain('min(86vw, 440px)')
+    expect(thirdStationStyles).toContain('var(--question-desk-bottom, 12vh)')
   })
 })

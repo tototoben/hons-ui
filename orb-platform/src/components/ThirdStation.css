@@ -34,8 +34,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 8vh 24px;
+  justify-content: flex-end;
+  padding: 8vh 24px var(--question-desk-bottom, 12vh);
 }
 
 /* Persistent outer HUD chrome — just the status readout now (the corner
@@ -139,6 +139,13 @@
   }
 }
 
+.mirror-screen-intro,
+.mirror-screen-prompt,
+.mirror-screen-loading {
+  width: 100%;
+  padding-bottom: var(--question-controls-min-height, 180px);
+}
+
 .mirror-headline {
   width: 100%;
   max-width: 480px;
@@ -187,7 +194,7 @@
 
 .mirror-record-frame {
   position: relative;
-  width: min(78vw, 360px);
+  width: min(86vw, 440px);
   aspect-ratio: 3 / 4;
   border: 1px dashed rgba(255, 244, 232, 0.4);
   border-radius: 6px;

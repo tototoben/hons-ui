@@ -23,8 +23,10 @@ vi.mock('./MirrorGuideOrb', () => ({
 
 import { StationTwo } from './StationTwo'
 import { applyStationVibe } from '../lib/stationVibe'
-import { setVisitorProfile } from '../lib/visitorProfile'
+import { resetVisitorProfile, setVisitorProfile } from '../lib/visitorProfile'
 import { clearDeviceLock, writeDeviceLock } from '../lib/deviceLock'
+import { saveStationTwoState } from '../lib/interviewStore'
+import { createStationTwoState } from '../lib/mirrorJourney'
 
 function emptyProfile() {
   return {
@@ -54,6 +56,7 @@ describe('StationTwo', () => {
     root = createRoot(container)
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => null)
     applyStationVibe('warm')
+    resetVisitorProfile()
     setVisitorProfile({ ...emptyProfile(), age: 25, previousRelationships: 'yes' })
   })
 
@@ -63,7 +66,7 @@ describe('StationTwo', () => {
     vi.useRealTimers()
     vi.restoreAllMocks()
     container.remove()
-    setVisitorProfile(emptyProfile())
+    resetVisitorProfile()
     clearDeviceLock()
   })
 
@@ -253,5 +256,21 @@ describe('StationTwo', () => {
       await Promise.resolve()
     })
     expect(container.textContent).toContain('Is attractiveness important to you?')
+  })
+
+  it('restores an in-progress Station II interview after a remount', () => {
+    saveStationTwoState(
+      createStationTwoState({
+        phase: 'question',
+        questionIndex: 0,
+        answers: {},
+        age: 25,
+        previousRelationships: 'yes',
+      }),
+    )
+    act(() => root.render(<StationTwo phaseDurationMs={20} />))
+
+    expect(container.textContent).toContain('Is attractiveness important to you?')
+    expect(container.textContent).not.toContain('category Rho106')
   })
 })
