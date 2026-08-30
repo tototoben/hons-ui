@@ -19,8 +19,8 @@ describe('station vibe', () => {
     expect(readStationVibe({ getItem: () => null })).toBe('original')
   })
 
-  it('restores the warm look from storage', () => {
-    expect(readStationVibe({ getItem: () => 'warm' })).toBe('warm')
+  it('ignores a leftover warm look in storage', () => {
+    expect(readStationVibe({ getItem: () => 'warm' })).toBe('original')
   })
 
   it('rejects invalid saved values', () => {

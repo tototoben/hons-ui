@@ -28,13 +28,9 @@ export const TRACKING_RGB: Record<StationVibe, string> = {
 let current: StationVibe | null = null
 
 export function readStationVibe(
-  storage: Pick<Storage, 'getItem'> | undefined = defaultStorage(),
+  _storage: Pick<Storage, 'getItem'> | undefined = defaultStorage(),
 ): StationVibe {
-  try {
-    return storage?.getItem(STORAGE_KEY) === 'warm' ? 'warm' : 'original'
-  } catch {
-    return 'original'
-  }
+  return 'original'
 }
 
 export function writeStationVibe(
@@ -49,7 +45,10 @@ export function writeStationVibe(
 }
 
 export function getStationVibe() {
-  if (current === null) current = readStationVibe()
+  if (current === null) {
+    current = 'original'
+    writeStationVibe('original')
+  }
   return current
 }
 
