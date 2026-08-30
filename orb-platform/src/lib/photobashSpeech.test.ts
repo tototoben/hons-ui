@@ -1,5 +1,7 @@
-import { describe, expect, it } from 'vitest'
-import { pickFemaleVoice } from './photobashSpeech'
+// @vitest-environment jsdom
+
+import { describe, expect, it, vi } from 'vitest'
+import { pickFemaleVoice, speakText } from './photobashSpeech'
 
 function voice(name: string, lang = 'en-US'): SpeechSynthesisVoice {
   return { name, lang } as SpeechSynthesisVoice
@@ -20,5 +22,14 @@ describe('pickFemaleVoice', () => {
     expect(
       pickFemaleVoice([voice('Alex'), voice('Samantha', 'en-US')])?.name,
     ).toBe('Samantha')
+  })
+})
+
+describe('speakText', () => {
+  it('does not speak when the document is hidden', async () => {
+    const speak = vi.fn()
+    Object.defineProperty(document, 'hidden', { configurable: true, value: true })
+    await speakText('hello', { speak, cancel() {}, pause() {}, getVoices: () => [] } as unknown as SpeechSynthesis)
+    expect(speak).not.toHaveBeenCalled()
   })
 })

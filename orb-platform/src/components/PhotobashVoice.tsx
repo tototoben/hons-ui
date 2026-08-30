@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { loadStationTwoState } from '../lib/interviewStore'
 import { buildPhotobashScript } from '../lib/photobashScript'
-import { cancelSpeech, playAudioUrl, speakText } from '../lib/photobashSpeech'
+import { cancelSpeech, playAudioUrl, speakText, stopPhotobashPlayback } from '../lib/photobashSpeech'
 import { getVisitorProfile } from '../lib/visitorProfile'
 import { getVisitorVoiceUrl } from '../lib/visitorVoiceCapture'
 
@@ -17,6 +17,17 @@ export function PhotobashVoice({
 
   useEffect(() => {
     let cancelled = false
+    const stop = () => {
+      cancelled = true
+      stopPhotobashPlayback()
+    }
+    const onVisibility = () => {
+      if (document.hidden) stop()
+    }
+    window.addEventListener('pagehide', stop)
+    window.addEventListener('beforeunload', stop)
+    document.addEventListener('visibilitychange', onVisibility)
+
     const waitForCollage = () =>
       new Promise<void>((resolve) => {
         const tick = () => {
@@ -30,6 +41,7 @@ export function PhotobashVoice({
       })
 
     const run = async () => {
+      if (document.hidden) return
       cancelSpeech()
       const script = buildPhotobashScript({
         profile: getVisitorProfile(),
@@ -50,8 +62,10 @@ export function PhotobashVoice({
 
     void run()
     return () => {
-      cancelled = true
-      cancelSpeech()
+      stop()
+      window.removeEventListener('pagehide', stop)
+      window.removeEventListener('beforeunload', stop)
+      document.removeEventListener('visibilitychange', onVisibility)
     }
   }, [cycleKey])
 
