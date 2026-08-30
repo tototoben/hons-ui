@@ -17,7 +17,7 @@ import { mirrorSettings } from './mirrorSettingsStore'
  */
 export function JourneyDevPanel() {
   const orb = useControls('Journey — Orb', {
-    sizePx: { value: journeySettings.orbSizePx, min: 32, max: 160, step: 4 },
+    sizePx: { value: journeySettings.orbSizePx, min: 32, max: 200, step: 4 },
     pointScale: { value: mirrorSettings.orb.pointScale, min: 0.1, max: 3, step: 0.01 },
     radius: { value: mirrorSettings.orb.radius, min: 0.3, max: 2, step: 0.05 },
     cameraDistance: { value: mirrorSettings.orb.cameraDistance, min: 2, max: 16, step: 0.1 },

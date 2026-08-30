@@ -1,3 +1,5 @@
+import { lightingCueFor, postLightingCue } from './lightingCues'
+
 /**
  * Firehose — transport-agnostic event emitter for orb-platform.
  *
@@ -47,13 +49,28 @@ export function publish(station: string, event: string, data?: unknown): void {
     ts: Date.now(),
   }
 
+  postFirehose(msg)
+
+  const cue = lightingCueFor(station, event)
+  if (!cue) return
+  postLightingCue(cue, station, event)
+  postFirehose({
+    source: SOURCE,
+    station: 'lighting',
+    event: 'cue',
+    data: { cue, from: { station, event } },
+    ts: Date.now(),
+  })
+}
+
+function postFirehose(msg: FirehoseMessage) {
   if (isEmbedded() && window.parent) {
     window.parent.postMessage(msg, '*')
   }
 
   // Always log in dev so standalone `pnpm dev` shows the event stream.
   if (import.meta.env.DEV) {
-    console.log('[firehose]', station, event, data ?? '')
+    console.log('[firehose]', msg.station, msg.event, msg.data ?? '')
   }
 }
 

@@ -102,10 +102,8 @@ export function MirrorCameraLayer({ mode }: { mode: MirrorOverlayMode }) {
         <video ref={camera.videoRef} className="journey-camera-video" muted playsInline autoPlay />
         <div className="journey-camera-veil" />
         <canvas ref={canvasRef} className="journey-landmarks" />
-        {camera.status !== 'active' ? (
-          <div className="journey-camera-fallback">
-            {camera.status === 'starting' ? 'Starting camera' : 'Camera unavailable'}
-          </div>
+        {camera.status === 'denied' || camera.status === 'unavailable' ? (
+          <div className="journey-camera-fallback">Camera unavailable</div>
         ) : null}
       </div>
       {/* Outside the zoom-transformed stage above on purpose — this HUD

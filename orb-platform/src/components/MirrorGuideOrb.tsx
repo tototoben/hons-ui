@@ -6,6 +6,10 @@ import { kioskOrbCounts, webGlMaxDpr, getDeviceQuality } from '../lib/deviceQual
 import { sampleSphere, buildPointGeometry } from '../lib/samplePoints'
 import { orbPointVertexShader, orbPointFragmentShader } from '../shaders/pointCloudShaders'
 import { mirrorSettings } from '../dev/mirrorSettingsStore'
+import { base } from '../config'
+
+const DEBRA_LOOP_WEBP = base('/assets/debra-orb.webp')
+const DEBRA_LOOP_PNG = base('/assets/debra-orb.png')
 
 const COUNT_POLL_MS = 200
 
@@ -41,19 +45,28 @@ function readCounts() {
 }
 
 /**
- * A compact, self-contained version of the main Orb — same point-cloud
- * shader and shape, but idle (no hover/click/audio reactivity) since it's
- * only ever a passive guide presence on the Mirror station's screens, never
- * an interactive target. Renders on a transparent background so the page's
- * own CSS gradient shows through.
- *
- * Point counts live in mirrorSettings (mutated directly by the leva panel,
- * not React state), but rebuilding the geometry needs an actual React
- * update — polled at a throttled interval and mirrored into local state,
- * same bridging pattern as CardsPostBridge/useLiveCardSettings.
+ * Debra's guide orb on Stations II and III. Plays the recorded transparent
+ * loop by default so kiosks stay cheap. Pass `live` to render the WebGL
+ * point cloud (used by the capture page).
  */
-export function MirrorGuideOrb({ className }: { className?: string }) {
-  if (getDeviceQuality() === 'kiosk') {
+export function MirrorGuideOrb({
+  className,
+  live = false,
+}: {
+  className?: string
+  live?: boolean
+}) {
+  if (!live) {
+    return <MirrorGuideOrbLite className={className} />
+  }
+
+  return <MirrorGuideOrbCanvas className={className} />
+}
+
+/** Transparent APNG/WebP loop. Falls back to a CSS glow if the file is missing. */
+function MirrorGuideOrbLite({ className }: { className?: string }) {
+  const [failed, setFailed] = useState(false)
+  if (failed) {
     return (
       <div
         className={[className, 'mirror-guide-orb-lite'].filter(Boolean).join(' ')}
@@ -61,8 +74,17 @@ export function MirrorGuideOrb({ className }: { className?: string }) {
       />
     )
   }
-
-  return <MirrorGuideOrbCanvas className={className} />
+  return (
+    <picture className={[className, 'mirror-guide-orb-loop'].filter(Boolean).join(' ')}>
+      <source srcSet={DEBRA_LOOP_WEBP} type="image/webp" />
+      <img
+        src={DEBRA_LOOP_PNG}
+        alt=""
+        aria-hidden="true"
+        onError={() => setFailed(true)}
+      />
+    </picture>
+  )
 }
 
 function MirrorGuideOrbCanvas({ className }: { className?: string }) {
@@ -124,7 +146,12 @@ function MirrorGuideOrbCanvas({ className }: { className?: string }) {
     <div className={className}>
       <Canvas
         dpr={[1, webGlMaxDpr()]}
-        gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
+        gl={{
+          antialias: true,
+          alpha: true,
+          preserveDrawingBuffer: true,
+          powerPreference: 'high-performance',
+        }}
         camera={{ fov: 32, near: 0.1, far: 20, position: [0, 0, mirrorSettings.orb.cameraDistance] }}
       >
         <GuideOrbCamera />

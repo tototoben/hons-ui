@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 const loop = vi.hoisted(() => ({
   photobashSeed: 1,
   loadingProgress: 0,
+  cycleKey: 0,
 }))
 
 vi.mock('../lib/wallPhaseSync', async (importOriginal) => {

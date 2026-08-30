@@ -9,6 +9,7 @@ export type StationRoute =
   | 'wall-sim'
   | 'wall-cal'
   | 'photobash'
+  | 'debra-capture'
 
 export function getStationFromHash(hash: string): StationRoute {
   if (hash === '#/cards') return 'cards'
@@ -20,6 +21,7 @@ export function getStationFromHash(hash: string): StationRoute {
   if (hash === '#/wall-sim') return 'wall-sim'
   if (hash === '#/wall-cal') return 'wall-cal'
   if (hash === '#/photobash') return 'photobash'
+  if (hash === '#/debra-capture') return 'debra-capture'
   return 'orb'
 }
 

@@ -12,6 +12,9 @@ import { getDeviceQuality } from '../lib/deviceQuality'
 import { readDeviceLock } from '../lib/deviceLock'
 import { useStationVibe } from '../hooks/useStationVibe'
 import type { WallPhase } from '../lib/wallPhaseSync'
+import { publish } from '../lib/firehose'
+import { useVisitorVoiceRecorder } from '../hooks/useVisitorVoiceRecorder'
+import { notifyRevealReady } from '../lib/photobashTrigger'
 import { MirrorGuideOrb } from './MirrorGuideOrb'
 import { MirrorHeadline } from './MirrorHeadline'
 import { CodePanel, MiniBar } from './HudDebris'
@@ -355,6 +358,22 @@ export function ThirdStation() {
   const [countdown, setCountdown] = useState<number | null>(null)
   const [recordSecondsLeft, setRecordSecondsLeft] = useState(mirrorSettings.timing.recordingSeconds)
   const [loadingProgress, setLoadingProgress] = useState(0)
+  const prevPhaseRef = useRef<Phase | null>(null)
+  useVisitorVoiceRecorder(phase === 'recording')
+
+  useEffect(() => {
+    publish('station-3', 'station_mounted', { phase: 'intro' })
+  }, [])
+
+  useEffect(() => {
+    if (prevPhaseRef.current !== phase) {
+      if (prevPhaseRef.current !== null) {
+        publish('station-3', `phase:${phase}`, { phase })
+      }
+      prevPhaseRef.current = phase
+    }
+    if (phase === 'loading') notifyRevealReady()
+  }, [phase])
 
   // Phase advance chain — reads current durations at the moment each timer
   // is scheduled, so tuning the panel mid-loop takes effect next cycle

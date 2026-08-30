@@ -1,0 +1,20 @@
+html,
+body,
+#root,
+.experience,
+.debra-capture {
+  background: transparent !important;
+}
+
+.debra-capture {
+  width: 512px;
+  height: 512px;
+  margin: 0;
+}
+
+.debra-capture-orb,
+.debra-capture-orb canvas {
+  display: block;
+  width: 512px;
+  height: 512px;
+}

@@ -42,6 +42,10 @@ describe('getStationFromHash', () => {
     expect(getStationFromHash('#/photobash')).toBe('photobash')
   })
 
+  it('resolves the Debra capture hash', () => {
+    expect(getStationFromHash('#/debra-capture')).toBe('debra-capture')
+  })
+
   it('falls back to orb for unknown hashes', () => {
     expect(getStationFromHash('#/unknown')).toBe('orb')
   })

@@ -52,6 +52,9 @@ const OrbStation = lazy(() =>
 const PhotobashScreen = lazy(() =>
   import('./components/PhotobashScreen').then((m) => ({ default: m.PhotobashScreen })),
 )
+const DebraCapture = lazy(() =>
+  import('./components/DebraCapture').then((m) => ({ default: m.DebraCapture })),
+)
 
 export default function App() {
   const [lock, setLock] = useState<DeviceLock | null>(() => readDeviceLock())
@@ -71,7 +74,8 @@ export default function App() {
     wallCropMode ||
     isWallRoleMode() ||
     station === 'wall-sim' ||
-    station === 'wall-cal'
+    station === 'wall-cal' ||
+    station === 'debra-capture'
   const showMainNav = !hideChrome
 
   const applyLock = useCallback((next: DeviceLock) => {
@@ -252,6 +256,8 @@ export default function App() {
           )
         ) : station === 'photobash' ? (
           <PhotobashScreen />
+        ) : station === 'debra-capture' ? (
+          <DebraCapture />
         ) : (
           <AvatarStation />
         )}

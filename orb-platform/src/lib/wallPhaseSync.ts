@@ -5,10 +5,15 @@ import {
   mintPhotobashSeed,
   photobashProgress,
 } from './photobashLoop'
+import {
+  isRevealReadyMessage,
+  readLastRevealReady,
+  WALL_PHASE_CHANNEL,
+} from './photobashTrigger'
 
 export type WallPhase = 'intro' | 'prompt' | 'recording' | 'loading'
 
-const CHANNEL = 'hons-station3-wall-phase'
+const CHANNEL = WALL_PHASE_CHANNEL
 
 /** Fast lead-in, long face reveal — wall install only. */
 export const WALL_TIMING = {
@@ -226,21 +231,31 @@ export function useWallSyncedPhase(isConductor: boolean) {
 
 /** Collage-only loop for the Photobash wall. No intro / prompt / recording. */
 export function usePhotobashLoop(isConductor: boolean) {
-  const [photobashSeed, setPhotobashSeed] = useState(1)
+  const [photobashSeed, setPhotobashSeed] = useState(() => readLastRevealReady()?.photobashSeed ?? 1)
   const [loadingProgress, setLoadingProgress] = useState(0)
+  const [cycleKey, setCycleKey] = useState(0)
   const channelRef = useRef<BroadcastChannel | null>(null)
+  const pendingSeedRef = useRef<number | null>(readLastRevealReady()?.photobashSeed ?? null)
 
   useEffect(() => {
     if (typeof BroadcastChannel === 'undefined') return
     const channel = new BroadcastChannel(CHANNEL)
     channelRef.current = channel
-    channel.onmessage = (event: MessageEvent<PhaseMessage>) => {
-      if (isConductor || event.data?.type !== 'phase') return
-      if (typeof event.data.photobashSeed === 'number') {
-        setPhotobashSeed(event.data.photobashSeed)
+    channel.onmessage = (event: MessageEvent<PhaseMessage | { type: string }>) => {
+      if (isRevealReadyMessage(event.data)) {
+        if (isConductor) {
+          pendingSeedRef.current = event.data.photobashSeed
+          setCycleKey((key) => key + 1)
+        }
+        return
       }
-      if (typeof event.data.loadingProgress === 'number') {
-        setLoadingProgress(event.data.loadingProgress)
+      if (isConductor || event.data?.type !== 'phase') return
+      const phase = event.data as PhaseMessage
+      if (typeof phase.photobashSeed === 'number') {
+        setPhotobashSeed(phase.photobashSeed)
+      }
+      if (typeof phase.loadingProgress === 'number') {
+        setLoadingProgress(phase.loadingProgress)
       }
     }
     return () => {
@@ -253,45 +268,40 @@ export function usePhotobashLoop(isConductor: boolean) {
     if (!isConductor) return
     let cancelled = false
     let raf = 0
-    let interval = 0
-
-    const runCycle = () => {
-      if (cancelled) return
-      cancelAnimationFrame(raf)
-      const seed = mintPhotobashSeed()
-      const start = performance.now()
-      setPhotobashSeed(seed)
-      setLoadingProgress(0)
-      const publish = (progress: number) => {
-        channelRef.current?.postMessage({
-          type: 'phase',
-          phase: 'loading',
-          countdown: null,
-          recordSecondsLeft: 0,
-          loadingProgress: progress,
-          photobashSeed: seed,
-        } satisfies PhaseMessage)
-      }
-      publish(0)
-      const tick = () => {
-        if (cancelled) return
-        const elapsed = performance.now() - start
-        const progress = photobashProgress(elapsed)
-        setLoadingProgress(progress)
-        publish(progress)
-        if (elapsed < PHOTOBASH_CYCLE_MS) raf = requestAnimationFrame(tick)
-      }
-      raf = requestAnimationFrame(tick)
+    const seed = pendingSeedRef.current ?? mintPhotobashSeed()
+    pendingSeedRef.current = null
+    const start = performance.now()
+    setPhotobashSeed(seed)
+    setLoadingProgress(0)
+    const publishProgress = (progress: number) => {
+      channelRef.current?.postMessage({
+        type: 'phase',
+        phase: 'loading',
+        countdown: null,
+        recordSecondsLeft: 0,
+        loadingProgress: progress,
+        photobashSeed: seed,
+      } satisfies PhaseMessage)
     }
-
-    runCycle()
-    interval = window.setInterval(runCycle, PHOTOBASH_CYCLE_MS)
+    publishProgress(0)
+    const tick = () => {
+      if (cancelled) return
+      const elapsed = performance.now() - start
+      const progress = photobashProgress(elapsed)
+      setLoadingProgress(progress)
+      publishProgress(progress)
+      if (elapsed < PHOTOBASH_CYCLE_MS) raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    const timeout = window.setTimeout(() => {
+      if (!cancelled) setCycleKey((key) => key + 1)
+    }, PHOTOBASH_CYCLE_MS)
     return () => {
       cancelled = true
       cancelAnimationFrame(raf)
-      window.clearInterval(interval)
+      window.clearTimeout(timeout)
     }
-  }, [isConductor])
+  }, [isConductor, cycleKey])
 
-  return { photobashSeed, loadingProgress }
+  return { photobashSeed, loadingProgress, cycleKey }
 }

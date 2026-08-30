@@ -13,6 +13,9 @@ import appSource from '../App.tsx?raw'
 import photobashSource from './PhotobashScreen.tsx?raw'
 import stationOneSource from './StationOne.tsx?raw'
 import stationTwoSource from './StationTwo.tsx?raw'
+import thirdStationSource from './ThirdStation.tsx?raw'
+import debraGuideSource from './DebraGuide.tsx?raw'
+import mirrorGuideOrbSource from './MirrorGuideOrb.tsx?raw'
 import journeyStyles from './MirrorJourney.css?raw'
 import thirdStationStyles from './ThirdStation.css?raw'
 
@@ -35,6 +38,7 @@ describe('station composition', () => {
   it('keeps Photobash as collage-only with no Debra or code wall chrome', () => {
     expect(photobashSource).toContain('WallCollageBlanket')
     expect(photobashSource).toContain('usePhotobashLoop')
+    expect(photobashSource).toContain('PhotobashVoice')
     expect(photobashSource).not.toContain('WallDebraPanel')
     expect(photobashSource).not.toContain('WallCodePanel')
     expect(photobashSource).not.toContain('STANDBY')
@@ -118,6 +122,21 @@ describe('station composition', () => {
     expect(pointCloudShaders).not.toContain('scanLocal')
   })
 
+  it('plays the recorded Debra loop on Stations II and III', () => {
+    expect(stationTwoSource).toContain('DebraGuide')
+    expect(debraGuideSource).toContain('MirrorGuideOrb')
+    expect(thirdStationSource).toContain('MirrorGuideOrb')
+    expect(mirrorGuideOrbSource).toContain('debra-orb.webp')
+    expect(mirrorGuideOrbSource).toContain('debra-orb.png')
+    expect(mirrorGuideOrbSource).toContain('live = false')
+  })
+
+  it('records Station III audio and hands Photobash a reveal-ready seed', () => {
+    expect(thirdStationSource).toContain('useVisitorVoiceRecorder')
+    expect(thirdStationSource).toContain('notifyRevealReady')
+    expect(photobashSource).toContain('PhotobashVoice')
+  })
+
   it('lets Station I yes/no be tapped and persists both station interviews', () => {
     expect(stationOneSource).not.toContain('hideButtons')
     expect(stationOneSource).toContain('saveStationOneState')
@@ -128,6 +147,10 @@ describe('station composition', () => {
   it('pins station copy to a shared question-desk height and enlarges Station III frame', () => {
     expect(journeyStyles).toContain('--question-desk-bottom: 12vh')
     expect(journeyStyles).toContain('margin-bottom: var(--question-desk-bottom)')
+    expect(journeyStyles).toMatch(
+      /\.journey-height-control \{[^}]*width: min\(100%, 430px\)[^}]*background: transparent/s,
+    )
+    expect(journeyStyles).not.toContain('rgba(0, 0, 0, 0.88)')
     expect(thirdStationStyles).toContain('min(86vw, 440px)')
     expect(thirdStationStyles).toContain('var(--question-desk-bottom, 12vh)')
   })

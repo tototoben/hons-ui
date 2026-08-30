@@ -20,8 +20,7 @@ export const journeySettings = {
     lightningIntroMs: 3000,
   },
   /** CSS px — .journey-debra-pin's width/height, bridged to
-   * --journey-orb-size by StationTwo's useLiveJourneyTheme. Pinned small
-   * at the top now (not the old large floating guide), so the default
-   * and dev-panel range both stay in icon-sized territory. */
-  orbSizePx: 64,
+   * --journey-orb-size by StationTwo's useLiveJourneyTheme. Docked at the
+   * top, large enough to read against the black station. */
+  orbSizePx: 132,
 }
