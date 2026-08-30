@@ -158,6 +158,21 @@ describe('App production overlay', () => {
     expect(container.querySelector('[data-testid="station-one"]')).not.toBeNull()
   })
 
+  it('shows unlock corner on wall-sim with a stored lock and tilde clears it', async () => {
+    window.localStorage.setItem(STORAGE_KEY, 'station-1')
+    window.location.hash = '#/wall-sim'
+    await renderApp()
+    expect(container.querySelector('[data-testid="wall-sim"]')).not.toBeNull()
+    expect(container.querySelector('[data-unlock-corner]')).not.toBeNull()
+    await act(async () => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: '~', bubbles: true }))
+      await Promise.resolve()
+    })
+    expect(window.localStorage.getItem(STORAGE_KEY)).toBeNull()
+    expect(container.querySelector('[data-unlock-corner]')).toBeNull()
+    expect(container.querySelector('[data-testid="wall-sim"]')).not.toBeNull()
+  })
+
   it('does not open the picker when an input is focused', async () => {
     await renderApp()
     const input = document.createElement('input')

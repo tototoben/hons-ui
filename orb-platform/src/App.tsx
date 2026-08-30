@@ -154,7 +154,7 @@ export default function App() {
 
   return (
     <main className="experience">
-      {lock && !isWallSim && !isWallPanel ? <DeviceUnlockLayer onUnlock={unlock} /> : null}
+      {lock ? <DeviceUnlockLayer onUnlock={unlock} /> : null}
       {import.meta.env.DEV && !hideChrome ? (
         <Suspense fallback={null}>
           <LevaRoot />
