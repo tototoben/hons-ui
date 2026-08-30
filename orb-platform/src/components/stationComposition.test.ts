@@ -13,13 +13,14 @@ import appSource from '../App.tsx?raw'
 import photobashSource from './PhotobashScreen.tsx?raw'
 
 describe('station composition', () => {
-  it('boots a device picker and photobash route instead of the station-switcher', () => {
+  it('keeps developer station-switcher and overlays the production picker', () => {
+    expect(appSource).toContain('station-switcher')
+    expect(appSource).toContain('ThirdStationWall')
     expect(appSource).toContain('DevicePicker')
     expect(appSource).toContain('DeviceUnlockLayer')
     expect(appSource).toContain('PhotobashScreen')
+    expect(appSource).toContain('isProductionHotkey')
     expect(appSource).toContain("station === 'photobash'")
-    expect(appSource).not.toContain('station-switcher')
-    expect(appSource).not.toContain('ThirdStationWall')
   })
 
   it('keeps Station III as the kiosk ThirdStation only', () => {
