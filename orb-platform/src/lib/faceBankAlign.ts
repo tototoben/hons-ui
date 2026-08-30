@@ -20,6 +20,7 @@ const TARGET_LEFT_EYE = { x: 0.36, y: 0.385 }
 const TARGET_RIGHT_EYE = { x: 0.64, y: 0.385 }
 
 let landmarkerPromise: Promise<FaceLandmarker> | null = null
+const alignCache = new WeakMap<HTMLImageElement, Map<number, Promise<VisitorAlign>>>()
 
 function getImageLandmarker() {
   if (!landmarkerPromise) {
@@ -68,6 +69,23 @@ function coverCropRect(
  * is found.
  */
 export async function computeFaceAlign(
+  image: HTMLImageElement,
+  targetRatio: number,
+): Promise<VisitorAlign> {
+  const ratioKey = Math.round(targetRatio * 1000)
+  let byRatio = alignCache.get(image)
+  if (!byRatio) {
+    byRatio = new Map()
+    alignCache.set(image, byRatio)
+  }
+  const cached = byRatio.get(ratioKey)
+  if (cached) return cached
+  const pending = computeFaceAlignUncached(image, targetRatio)
+  byRatio.set(ratioKey, pending)
+  return pending
+}
+
+async function computeFaceAlignUncached(
   image: HTMLImageElement,
   targetRatio: number,
 ): Promise<VisitorAlign> {

@@ -176,7 +176,7 @@ export function drawWallCollage(ctx: CanvasRenderingContext2D, options: CollageC
     const isRevealing = options.revealingCell === index
     const bankIndex = strangerAssignments[index]
     const bankImage = bankIndex >= 0 ? bankImages[bankIndex % Math.max(1, bankImages.length)] : null
-    const bankAlign = bankIndex >= 0 ? bankAligns[bankIndex % Math.max(1, bankAligns.length)] : null
+    const bankAlign = bankIndex >= 0 && bankAligns.length > 0 ? bankAligns[bankIndex % bankAligns.length] : null
 
     if (bankImage && bankAlign) {
       drawRectFromSource(ctx, rect, bankImage, bankAlign, width, height, 1)

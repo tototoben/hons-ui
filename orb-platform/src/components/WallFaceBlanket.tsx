@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { panelFitScale, wallModeTransform } from '../lib/wallMode'
-import { measuredPanelForRole, type WallRole } from '../lib/wallRole'
+import { measuredPanelForRole, parseWallBare, type WallRole } from '../lib/wallRole'
 import {
   composeWallMatchPhotobash,
   glitchShowMergedAt,
@@ -178,7 +178,7 @@ export function WallFaceBlanket({
           </div>
         </div>
       </div>
-      <div className="wall-face-caption">MATCH LOCKED</div>
+      {parseWallBare() ? null : <div className="wall-face-caption">MATCH LOCKED</div>}
     </div>
   )
 }

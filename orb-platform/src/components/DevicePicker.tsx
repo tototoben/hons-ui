@@ -25,6 +25,11 @@ export function DevicePicker({
           </li>
         ))}
       </ul>
+      {quality === 'full' ? (
+        <a className="device-picker-sim" href="#/wall-sim">
+          Wall sim
+        </a>
+      ) : null}
     </section>
   )
 }

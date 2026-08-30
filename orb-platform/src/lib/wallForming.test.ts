@@ -1,19 +1,21 @@
 import { describe, expect, it } from 'vitest'
 import { PHOTOBASH_FILL_MS } from './photobashLoop'
-import { collageRects } from './wallCollagePhotobash'
+import { collageRects, mouthRectIndex } from './wallCollagePhotobash'
 import {
   drawWallForming,
   FLESH_SWATCHES,
-  FORMING_COPY,
-  FORMING_FROM_SCALE,
+  FORMING_APPEAR_STEP_MS,
+  FORMING_DURATION_MS,
   FORMING_PLATE_BG,
-  FORMING_STAGGER_MS,
-  FORMING_TILE_MS,
+  FORMING_PULSE_MS,
+  FORMING_SKELETON_MAX,
+  FORMING_SKELETON_MIN,
   fleshFillForRect,
+  formingAppearAt,
+  formingAppearEndMs,
+  formingAppearOrder,
   formingElapsedMs,
-  formingStagger,
-  formingTileOpacity,
-  formingTileScale,
+  formingTilePose,
   pickWallLoadingSurface,
   shouldShowForming,
   shouldShowFormingCaption,
@@ -40,6 +42,7 @@ function recordingContext() {
     restore() {},
     translate() {},
     scale() {},
+    rotate() {},
   }
   return {
     ctx: context as unknown as CanvasRenderingContext2D,
@@ -48,27 +51,36 @@ function recordingContext() {
 }
 
 describe('drawWallForming', () => {
-  it('paints only the forming plate at elapsed zero', () => {
+  it('paints only the first appearing tile at the start', () => {
+    const width = 1000
+    const height = 500
+    const rects = collageRects(1)
+    const order = formingAppearOrder(1, rects.length)
+    const first = rects[order[0]]
     const { ctx, fillCalls } = recordingContext()
 
     drawWallForming(ctx, {
-      width: 1000,
-      height: 500,
-      rects: collageRects(1),
+      width,
+      height,
+      rects,
       seed: 1,
       elapsedMs: 0,
     })
 
-    expect(fillCalls).toEqual([
+    expect(fillCalls[0]).toEqual({
+      fillStyle: FORMING_PLATE_BG,
+      args: [0, 0, width, height],
+    })
+    expect(fillCalls.slice(1)).toEqual([
       {
-        fillStyle: FORMING_PLATE_BG,
-        args: [0, 0, 1000, 500],
+        fillStyle: fleshFillForRect(1, order[0]),
+        args: [first.x * width, first.y * height, first.w * width, first.h * height],
       },
     ])
     expect(FORMING_PLATE_BG).toBe('#120d0a')
   })
 
-  it('fills every collage rectangle at its scaled coordinates after forming completes', () => {
+  it('keeps every collage rectangle at its scaled coordinates after they have all landed', () => {
     const width = 1000
     const height = 500
     const rects = collageRects(1)
@@ -79,61 +91,33 @@ describe('drawWallForming', () => {
       height,
       rects,
       seed: 1,
-      elapsedMs: 4000,
+      elapsedMs: formingAppearEndMs(rects.length),
     })
 
-    expect(fillCalls[0]).toEqual({
-      fillStyle: FORMING_PLATE_BG,
-      args: [0, 0, width, height],
-    })
     expect(fillCalls.slice(1).map(({ args }) => args)).toEqual(
-      rects.map((rect) => [
-        rect.x * width,
-        rect.y * height,
-        rect.w * width,
-        rect.h * height,
-      ]),
+      rects.map((rect) => [rect.x * width, rect.y * height, rect.w * width, rect.h * height]),
     )
   })
 })
 
 describe('wallForming', () => {
-  it('keeps the locked mixed-bruise swatch list', () => {
+  it('keeps a bleak desaturated flesh list', () => {
     expect([...FLESH_SWATCHES]).toEqual([
-      '#e8b48c',
-      '#c97a6e',
-      '#d4a574',
-      '#8e5a58',
-      '#f0c4b0',
-      '#a07068',
-      '#d4927a',
-      '#b86b5c',
-      '#c4a080',
+      '#c5b8ae',
+      '#a89b94',
+      '#b7aaa0',
+      '#8e827c',
+      '#d2c8c0',
+      '#9b8f88',
+      '#b3a49c',
+      '#7a706c',
+      '#c8bdb4',
     ])
-  })
-
-  it('uses PARTNER FORMING as the only forming copy', () => {
-    expect(FORMING_COPY).toBe('PARTNER FORMING')
   })
 
   it('assigns the same swatch for the same seed and index', () => {
     expect(fleshFillForRect(7, 0)).toBe(fleshFillForRect(7, 0))
     expect(FLESH_SWATCHES).toContain(fleshFillForRect(7, 0))
-  })
-
-  it('staggers every rect inside the 2500ms window, stably', () => {
-    const rects = collageRects(1)
-    const a = formingStagger(1, rects.length)
-    const b = formingStagger(1, rects.length)
-    expect(a).toEqual(b)
-    expect(a).toHaveLength(rects.length)
-    expect(new Set(a).size).toBe(rects.length)
-    a.forEach((delay) => {
-      expect(delay).toBeGreaterThanOrEqual(0)
-      expect(delay).toBeLessThanOrEqual(FORMING_STAGGER_MS)
-    })
-    expect(Math.min(...a)).toBe(0)
-    expect(Math.max(...a)).toBe(FORMING_STAGGER_MS)
   })
 
   it('maps loadingProgress onto the 4s fill clock', () => {
@@ -145,28 +129,79 @@ describe('wallForming', () => {
     expect(formingElapsedMs(-1)).toBe(0)
   })
 
-  it('keeps a tile invisible before its delay and settled after the ease', () => {
-    expect(formingTileOpacity(0, 1000)).toBe(0)
-    expect(formingTileOpacity(1000, 1000)).toBe(0)
-    expect(formingTileOpacity(1000 + FORMING_TILE_MS, 1000)).toBe(1)
-    expect(formingTileScale(0, 1000)).toBe(FORMING_FROM_SCALE)
-    expect(formingTileScale(1000 + FORMING_TILE_MS, 1000)).toBe(1)
+  it('reveals tiles slowly, one by one, with the mouth last', () => {
+    const rects = collageRects(1)
+    const order = formingAppearOrder(1, rects.length)
+    expect(order).toEqual(formingAppearOrder(1, rects.length))
+    expect(new Set(order)).toEqual(new Set(rects.map((_, index) => index)))
+    expect(order[order.length - 1]).toBe(mouthRectIndex(rects))
+    expect(FORMING_APPEAR_STEP_MS).toBeGreaterThanOrEqual(280)
+    expect(formingAppearAt(0)).toBe(0)
+    expect(formingAppearAt(1)).toBe(FORMING_APPEAR_STEP_MS)
+    expect(formingAppearEndMs(rects.length)).toBe((rects.length - 1) * FORMING_APPEAR_STEP_MS)
+    expect(formingAppearEndMs(rects.length)).toBeLessThan(FORMING_DURATION_MS)
   })
 
-  it('shows forming only while progress is below 1', () => {
+  it('keeps a tile on once it has appeared', () => {
+    const rects = collageRects(1)
+    const order = formingAppearOrder(1, rects.length)
+    const first = order[0]
+    const last = order[order.length - 1]
+    const beforeLast = formingAppearAt(order.length - 1) - 1
+    const afterLast = formingAppearAt(order.length - 1)
+    const late = FORMING_DURATION_MS - 1
+
+    expect(formingTilePose(1, first, rects[first], 0, rects.length).opacity).toBeGreaterThan(0)
+    expect(formingTilePose(1, last, rects[last], beforeLast, rects.length).opacity).toBe(0)
+    expect(formingTilePose(1, last, rects[last], afterLast, rects.length).opacity).toBeGreaterThan(0)
+    expect(formingTilePose(1, first, rects[first], late, rects.length).opacity).toBeGreaterThan(0)
+    expect(formingTilePose(1, last, rects[last], late, rects.length).opacity).toBeGreaterThan(0)
+  })
+
+  it('stays solid while tiles are still appearing, then pulses together', () => {
+    const rects = collageRects(1)
+    const appearEnd = formingAppearEndMs(rects.length)
+    const midAppear = appearEnd / 2
+    const during = rects.map((rect, index) => formingTilePose(1, index, rect, midAppear, rects.length))
+    const visible = during.filter((pose) => pose.opacity > 0)
+    expect(visible.length).toBeGreaterThan(0)
+    expect(visible.length).toBeLessThan(rects.length)
+    visible.forEach((pose) => expect(pose.opacity).toBe(1))
+
+    const pulseA = appearEnd
+    const pulseB = appearEnd + FORMING_PULSE_MS / 2
+    const opacitiesA = rects.map((rect, index) => formingTilePose(1, index, rect, pulseA, rects.length).opacity)
+    const opacitiesB = rects.map((rect, index) => formingTilePose(1, index, rect, pulseB, rects.length).opacity)
+    expect(new Set(opacitiesA).size).toBe(1)
+    expect(new Set(opacitiesB).size).toBe(1)
+    expect(opacitiesA[0]).toBe(FORMING_SKELETON_MAX)
+    expect(opacitiesB[0]).toBeCloseTo(FORMING_SKELETON_MIN, 5)
+    expect(opacitiesA[0]).not.toBeCloseTo(opacitiesB[0], 2)
+    expect(FORMING_DURATION_MS).toBe(PHOTOBASH_FILL_MS)
+  })
+
+  it('keeps every visible tile on its collage rect', () => {
+    const rects = collageRects(1)
+    const order = formingAppearOrder(1, rects.length)
+    const target = rects[order[0]]
+    const mid = formingTilePose(1, order[0], target, 80, rects.length)
+    const landed = formingTilePose(1, order[0], target, FORMING_DURATION_MS, rects.length)
+    expect(mid).toMatchObject({ ...target, rotation: 0 })
+    expect(landed).toMatchObject({ ...target, rotation: 0 })
+    expect(mid.opacity).toBeGreaterThan(0)
+    expect(landed.opacity).toBeGreaterThan(0)
+  })
+
+  it('shows forming only while the fill clock is running', () => {
     expect(shouldShowForming(0)).toBe(true)
     expect(shouldShowForming(0.99)).toBe(true)
     expect(shouldShowForming(1)).toBe(false)
   })
 
-  it('shows the caption on Debra and on a null Photobash role only', () => {
-    expect(shouldShowFormingCaption('debra')).toBe(true)
-    expect(shouldShowFormingCaption(null)).toBe(true)
+  it('keeps forming copy off every wall role', () => {
+    expect(shouldShowFormingCaption('debra')).toBe(false)
+    expect(shouldShowFormingCaption(null)).toBe(false)
     expect(shouldShowFormingCaption('copy')).toBe(false)
-    expect(shouldShowFormingCaption('guide')).toBe(false)
-    expect(shouldShowFormingCaption('code')).toBe(false)
-    expect(shouldShowFormingCaption('status')).toBe(false)
-    expect(shouldShowFormingCaption('avatar')).toBe(false)
   })
 
   it('picks forming, collage, or the old face blanket from collage+progress', () => {
@@ -175,5 +210,7 @@ describe('wallForming', () => {
     expect(pickWallLoadingSurface(true, 0)).toBe('forming')
     expect(pickWallLoadingSurface(true, 0.5)).toBe('forming')
     expect(pickWallLoadingSurface(true, 1)).toBe('collage')
+    expect(pickWallLoadingSurface(true, 1, false)).toBe('forming')
+    expect(pickWallLoadingSurface(true, 1, true)).toBe('collage')
   })
 })

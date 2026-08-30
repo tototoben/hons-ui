@@ -21,8 +21,17 @@ vi.mock('../lib/faceBank', () => ({
   loadFaceBankImages: () => Promise.resolve([]),
 }))
 
+vi.mock('../lib/wallCollageBank', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../lib/wallCollageBank')>()
+  return {
+    ...actual,
+    useCollageBankReady: () => true,
+  }
+})
+
 import { PhotobashScreen } from './PhotobashScreen'
-import { FORMING_COPY } from '../lib/wallForming'
+import { FORMING_DURATION_MS } from '../lib/wallForming'
+import { PHOTOBASH_FILL_MS } from '../lib/photobashLoop'
 
 describe('PhotobashScreen forming prelude', () => {
   let container: HTMLDivElement
@@ -45,15 +54,15 @@ describe('PhotobashScreen forming prelude', () => {
     window.history.replaceState({}, '', '/')
   })
 
-  it('mounts forming with PARTNER FORMING when wallRole is missing', () => {
+  it('mounts forming with no caption when wallRole is missing', () => {
     act(() => root.render(<PhotobashScreen />))
-    expect(container.querySelector('.wall-forming-caption')?.textContent).toBe(FORMING_COPY)
+    expect(container.querySelector('.wall-forming-caption')).toBeNull()
     expect(container.querySelector('.wall-forming-canvas')).not.toBeNull()
     expect(container.querySelector('.wall-collage-canvas')).toBeNull()
   })
 
-  it('cuts to collage once loadingProgress reaches 1', () => {
-    loop.loadingProgress = 1
+  it('cuts to collage after the skeleton loading beat', () => {
+    loop.loadingProgress = FORMING_DURATION_MS / PHOTOBASH_FILL_MS
     act(() => root.render(<PhotobashScreen />))
     expect(container.querySelector('.wall-forming-canvas')).toBeNull()
     expect(container.querySelector('.wall-collage-canvas')).not.toBeNull()

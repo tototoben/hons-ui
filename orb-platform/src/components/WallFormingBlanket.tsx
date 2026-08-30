@@ -1,11 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { loadFaceBankImages } from '../lib/faceBank'
 import { collageRects } from '../lib/wallCollagePhotobash'
-import {
-  drawWallForming,
-  formingElapsedMs,
-  FORMING_COPY,
-} from '../lib/wallForming'
+import { drawWallForming, formingElapsedMs } from '../lib/wallForming'
 import { MATCH_FACE_SIZE } from '../lib/wallMatchPhotobash'
 import { panelFitScale, wallModeTransform } from '../lib/wallMode'
 import { measuredPanelForRole, type WallRole } from '../lib/wallRole'
@@ -16,12 +11,10 @@ export function WallFormingBlanket({
   role,
   photobashSeed = 1,
   loadingProgress,
-  showCaption = false,
 }: {
   role: WallRole
   photobashSeed?: number
   loadingProgress: number
-  showCaption?: boolean
 }) {
   const seed = photobashSeed || 1
   const panel = measuredPanelForRole(role)
@@ -30,6 +23,8 @@ export function WallFormingBlanket({
     height: window.innerHeight,
   }))
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const progressRef = useRef(loadingProgress)
+  progressRef.current = loadingProgress
   const rects = useMemo(() => collageRects(seed), [seed])
 
   useEffect(() => {
@@ -39,21 +34,23 @@ export function WallFormingBlanket({
   }, [])
 
   useEffect(() => {
-    void loadFaceBankImages()
-  }, [])
-
-  useEffect(() => {
     const canvas = canvasRef.current
     const ctx = canvas?.getContext('2d')
     if (!canvas || !ctx) return
-    drawWallForming(ctx, {
-      width: canvas.width,
-      height: canvas.height,
-      rects,
-      seed,
-      elapsedMs: formingElapsedMs(loadingProgress),
-    })
-  }, [loadingProgress, rects, seed])
+    let raf = 0
+    const tick = () => {
+      drawWallForming(ctx, {
+        width: canvas.width,
+        height: canvas.height,
+        rects,
+        seed,
+        elapsedMs: formingElapsedMs(progressRef.current),
+      })
+      raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [rects, seed])
 
   const layout = useMemo(() => {
     if (!panel) return null
@@ -124,7 +121,6 @@ export function WallFormingBlanket({
           />
         </div>
       </div>
-      {showCaption ? <div className="wall-forming-caption">{FORMING_COPY}</div> : null}
     </div>
   )
 }

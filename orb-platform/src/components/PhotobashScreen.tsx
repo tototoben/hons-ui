@@ -1,7 +1,8 @@
 import { useEffect } from 'react'
 import { parseWallCollage, parseWallRole } from '../lib/wallRole'
 import { usePhotobashLoop } from '../lib/wallPhaseSync'
-import { pickWallLoadingSurface, shouldShowFormingCaption } from '../lib/wallForming'
+import { useCollageBankReady } from '../lib/wallCollageBank'
+import { pickWallLoadingSurface, shouldShowForming } from '../lib/wallForming'
 import { WallCollageBlanket } from './WallCollageBlanket'
 import { WallFaceBlanket } from './WallFaceBlanket'
 import { WallFormingBlanket } from './WallFormingBlanket'
@@ -13,7 +14,8 @@ export function PhotobashScreen() {
   const isConductor = role === 'debra' || role === null
   const { photobashSeed, loadingProgress } = usePhotobashLoop(isConductor)
   const crop = role ?? 'copy'
-  const surface = pickWallLoadingSurface(collage, loadingProgress)
+  const collageReady = useCollageBankReady(photobashSeed || 1, !shouldShowForming(loadingProgress))
+  const surface = pickWallLoadingSurface(collage, loadingProgress, collageReady)
 
   useEffect(() => {
     document.documentElement.dataset.wallMode = 'true'
@@ -31,7 +33,6 @@ export function PhotobashScreen() {
           role={crop}
           photobashSeed={photobashSeed}
           loadingProgress={loadingProgress}
-          showCaption={shouldShowFormingCaption(role)}
         />
       ) : surface === 'collage' ? (
         <WallCollageBlanket role={crop} photobashSeed={photobashSeed} />

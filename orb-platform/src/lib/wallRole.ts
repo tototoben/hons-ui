@@ -32,6 +32,14 @@ export function parseWallCollage(
   return params.get('collage') !== '0'
 }
 
+/** Wall-sim iframes hide on-panel copy so the six frames read as hardware. */
+export function parseWallBare(
+  search: string = typeof window === 'undefined' ? '' : window.location.search,
+) {
+  const params = new URLSearchParams(search.startsWith('?') ? search.slice(1) : search)
+  return params.get('bare') === '1'
+}
+
 /** Hardware notes for the measured Mac Studio wall. */
 export const WALL_DISPLAY_HARDWARE = {
   monitor: {

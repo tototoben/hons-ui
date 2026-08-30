@@ -1,67 +1,103 @@
 import { PHOTOBASH_FILL_MS } from './photobashLoop'
-import { visitorRevealOrder, type CollageRect } from './wallCollagePhotobash'
+import { type CollageRect } from './wallCollagePhotobash'
+import { mulberry32 } from './wallMatchPhotobash'
 import type { WallRole } from './wallRole'
 
 export const FLESH_SWATCHES = [
-  '#e8b48c',
-  '#c97a6e',
-  '#d4a574',
-  '#8e5a58',
-  '#f0c4b0',
-  '#a07068',
-  '#d4927a',
-  '#b86b5c',
-  '#c4a080',
+  '#c5b8ae',
+  '#a89b94',
+  '#b7aaa0',
+  '#8e827c',
+  '#d2c8c0',
+  '#9b8f88',
+  '#b3a49c',
+  '#7a706c',
+  '#c8bdb4',
 ] as const
 
-export const FORMING_COPY = 'PARTNER FORMING'
-export const FORMING_STAGGER_MS = 2500
-export const FORMING_TILE_MS = 600
-export const FORMING_FROM_SCALE = 0.96
 export const FORMING_PLATE_BG = '#120d0a'
+export const FORMING_APPEAR_STEP_MS = 300
+export const FORMING_PULSE_MS = 1200
+export const FORMING_DURATION_MS = PHOTOBASH_FILL_MS
+export const FORMING_SKELETON_MIN = 0.42
+export const FORMING_SKELETON_MAX = 1
 
-export function fleshFillForRect(seed: number, index: number): string {
-  const order = visitorRevealOrder(seed + 3, FLESH_SWATCHES.length)
-  return FLESH_SWATCHES[order[index % order.length]]
+export type FormingPose = CollageRect & {
+  rotation: number
+  opacity: number
 }
 
-export function formingStagger(seed: number, rectCount: number): number[] {
-  const order = visitorRevealOrder(seed + 17, rectCount)
-  const last = Math.max(1, rectCount - 1)
-  const delays = new Array<number>(rectCount)
-  order.forEach((rectIndex, rank) => {
-    delays[rectIndex] = (rank / last) * FORMING_STAGGER_MS
-  })
-  return delays
+function clamp01(value: number) {
+  return Math.max(0, Math.min(1, value))
+}
+
+export function fleshFillForRect(seed: number, index: number): string {
+  const rand = mulberry32((seed + 3 + index * 19) >>> 0)
+  return FLESH_SWATCHES[Math.floor(rand() * FLESH_SWATCHES.length)]
 }
 
 export function formingElapsedMs(loadingProgress: number) {
-  return Math.max(0, Math.min(1, loadingProgress)) * PHOTOBASH_FILL_MS
+  return clamp01(loadingProgress) * PHOTOBASH_FILL_MS
 }
 
-export function formingTileOpacity(elapsedMs: number, delayMs: number) {
-  return Math.max(0, Math.min(1, (elapsedMs - delayMs) / FORMING_TILE_MS))
+export function formingAppearOrder(seed: number, rectCount: number): number[] {
+  const rand = mulberry32((seed + 11) >>> 0)
+  const rest = Array.from({ length: Math.max(0, rectCount - 1) }, (_, index) => index)
+  for (let i = rest.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(rand() * (i + 1))
+    ;[rest[i], rest[j]] = [rest[j], rest[i]]
+  }
+  return rectCount > 0 ? [...rest, rectCount - 1] : []
 }
 
-export function formingTileScale(elapsedMs: number, delayMs: number) {
-  const t = formingTileOpacity(elapsedMs, delayMs)
-  return FORMING_FROM_SCALE + (1 - FORMING_FROM_SCALE) * t
+export function formingAppearAt(orderIndex: number) {
+  return Math.max(0, orderIndex) * FORMING_APPEAR_STEP_MS
+}
+
+export function formingAppearEndMs(rectCount: number) {
+  return formingAppearAt(Math.max(0, rectCount - 1))
+}
+
+export function formingPulseOpacity(elapsedMs: number, rectCount: number) {
+  const appearEnd = formingAppearEndMs(rectCount)
+  if (elapsedMs < appearEnd) return FORMING_SKELETON_MAX
+  const wave = 0.5 + 0.5 * Math.cos(((elapsedMs - appearEnd) / FORMING_PULSE_MS) * Math.PI * 2)
+  return FORMING_SKELETON_MIN + (FORMING_SKELETON_MAX - FORMING_SKELETON_MIN) * wave
 }
 
 export function shouldShowForming(loadingProgress: number) {
-  return loadingProgress < 1
+  return formingElapsedMs(loadingProgress) < FORMING_DURATION_MS
 }
 
-export function shouldShowFormingCaption(role: WallRole | null) {
-  return role === 'debra' || role === null
+export function shouldShowFormingCaption(_role: WallRole | null) {
+  return false
 }
 
 export function pickWallLoadingSurface(
   collage: boolean,
   loadingProgress: number,
+  collageReady = true,
 ): 'forming' | 'collage' | 'face' {
   if (!collage) return 'face'
-  return shouldShowForming(loadingProgress) ? 'forming' : 'collage'
+  if (shouldShowForming(loadingProgress) || !collageReady) return 'forming'
+  return 'collage'
+}
+
+export function formingTilePose(
+  seed: number,
+  index: number,
+  target: CollageRect,
+  elapsedMs: number,
+  rectCount: number,
+): FormingPose {
+  const order = formingAppearOrder(seed, rectCount)
+  const orderIndex = order.indexOf(index)
+  const visible = orderIndex >= 0 && elapsedMs >= formingAppearAt(orderIndex)
+  return {
+    ...target,
+    rotation: 0,
+    opacity: visible ? formingPulseOpacity(elapsedMs, rectCount) : 0,
+  }
 }
 
 export type DrawWallFormingOptions = {
@@ -72,42 +108,45 @@ export type DrawWallFormingOptions = {
   elapsedMs: number
 }
 
+function drawPose(
+  ctx: CanvasRenderingContext2D,
+  pose: FormingPose,
+  fill: string,
+  width: number,
+  height: number,
+) {
+  const x = pose.x * width
+  const y = pose.y * height
+  const w = pose.w * width
+  const h = pose.h * height
+  if (w <= 0.5 || h <= 0.5 || pose.opacity <= 0) return
+  ctx.save()
+  ctx.globalAlpha = pose.opacity
+  ctx.fillStyle = fill
+  ctx.fillRect(x, y, w, h)
+  ctx.restore()
+}
+
 export function drawWallForming(
   ctx: CanvasRenderingContext2D,
   { width, height, rects, seed, elapsedMs }: DrawWallFormingOptions,
 ) {
-  const delays = formingStagger(seed, rects.length)
   ctx.clearRect(0, 0, width, height)
   ctx.fillStyle = FORMING_PLATE_BG
   ctx.fillRect(0, 0, width, height)
 
   rects.forEach((rect, index) => {
-    const opacity = formingTileOpacity(elapsedMs, delays[index])
-    if (opacity <= 0) return
-    const scale = formingTileScale(elapsedMs, delays[index])
-    const x = rect.x * width
-    const y = rect.y * height
-    const w = rect.w * width
-    const h = rect.h * height
-    const cx = x + w / 2
-    const cy = y + h / 2
-    ctx.save()
-    ctx.translate(cx, cy)
-    ctx.scale(scale, scale)
-    ctx.translate(-cx, -cy)
-    ctx.globalAlpha = opacity
-    ctx.fillStyle = fleshFillForRect(seed, index)
-    ctx.fillRect(x, y, w, h)
-    ctx.restore()
+    const pose = formingTilePose(seed, index, rect, elapsedMs, rects.length)
+    drawPose(ctx, pose, fleshFillForRect(seed, index), width, height)
   })
 
   ctx.save()
-  ctx.strokeStyle = 'rgba(8, 6, 4, 0.35)'
+  ctx.strokeStyle = 'rgba(8, 6, 4, 0.32)'
   ctx.lineWidth = Math.max(1, width * 0.0015)
   rects.forEach((rect, index) => {
-    const opacity = formingTileOpacity(elapsedMs, delays[index])
-    if (opacity <= 0) return
-    ctx.globalAlpha = opacity
+    const pose = formingTilePose(seed, index, rect, elapsedMs, rects.length)
+    if (pose.opacity <= 0) return
+    ctx.globalAlpha = pose.opacity
     ctx.strokeRect(rect.x * width, rect.y * height, rect.w * width, rect.h * height)
   })
   ctx.restore()

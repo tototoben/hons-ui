@@ -8,7 +8,8 @@ import { MirrorHeadline } from './MirrorHeadline'
 import { WallFaceBlanket } from './WallFaceBlanket'
 import { WallCollageBlanket } from './WallCollageBlanket'
 import { WallFormingBlanket } from './WallFormingBlanket'
-import { pickWallLoadingSurface, shouldShowFormingCaption } from '../lib/wallForming'
+import { useCollageBankReady } from '../lib/wallCollageBank'
+import { pickWallLoadingSurface, shouldShowForming } from '../lib/wallForming'
 import { mirrorSettings } from '../dev/mirrorSettingsStore'
 import './ThirdStation.css'
 import './ThirdStationWall.css'
@@ -269,6 +270,7 @@ export function ThirdStationWall({ role: roleProp }: { role?: WallRole }) {
   const isConductor = role === 'debra' && !calibrate
   const { phase, countdown, recordSecondsLeft, loadingProgress, photobashSeed } =
     useWallSyncedPhase(isConductor)
+  const collageReady = useCollageBankReady(photobashSeed || 1, !shouldShowForming(loadingProgress))
   const rootRef = useRef<HTMLElement>(null)
 
   useEffect(() => {
@@ -288,7 +290,7 @@ export function ThirdStationWall({ role: roleProp }: { role?: WallRole }) {
     root.style.setProperty('--mirror-accent', mirrorSettings.accent.color)
   }, [])
 
-  const loadingSurface = pickWallLoadingSurface(collage, loadingProgress)
+  const loadingSurface = pickWallLoadingSurface(collage, loadingProgress, collageReady)
 
   return (
     <section
@@ -303,7 +305,6 @@ export function ThirdStationWall({ role: roleProp }: { role?: WallRole }) {
             role={role}
             photobashSeed={photobashSeed}
             loadingProgress={loadingProgress}
-            showCaption={shouldShowFormingCaption(role)}
           />
         ) : loadingSurface === 'collage' ? (
           <WallCollageBlanket role={role} photobashSeed={photobashSeed} />

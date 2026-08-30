@@ -31,6 +31,12 @@ describe('DevicePicker', () => {
     act(() => root.render(<DevicePicker quality="kiosk" onLock={onLock} />))
     const kioskLabels = [...container.querySelectorAll('button')].map((button) => button.textContent)
     expect(kioskLabels).toEqual(['Station I', 'Station II', 'Station III'])
+    expect(container.querySelector('a[href="#/wall-sim"]')).toBeNull()
+  })
+
+  it('links to the wall simulator on full quality', () => {
+    act(() => root.render(<DevicePicker quality="full" onLock={vi.fn()} />))
+    expect(container.querySelector('a[href="#/wall-sim"]')?.textContent).toBe('Wall sim')
   })
 
   it('emits station-1 when Station I is chosen', () => {

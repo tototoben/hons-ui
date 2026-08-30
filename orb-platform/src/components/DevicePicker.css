@@ -48,3 +48,16 @@
   color: #2a1a10;
   outline: none;
 }
+
+.device-picker-sim {
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(255, 244, 232, 0.55);
+  text-decoration: none;
+}
+
+.device-picker-sim:hover,
+.device-picker-sim:focus-visible {
+  color: #fff4e8;
+}

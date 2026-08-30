@@ -3,6 +3,7 @@ import {
   MEASURED_WALL_BOUNDS,
   MEASURED_WALL_PANELS,
   measuredPanelForRole,
+  parseWallBare,
   parseWallCalibrate,
   parseWallCollage,
   parseWallRole,
@@ -32,6 +33,16 @@ describe('parseWallCalibrate', () => {
 
   it('turns on with wallCal=1', () => {
     expect(parseWallCalibrate('?wallRole=code&wallCal=1')).toBe(true)
+  })
+})
+
+describe('parseWallBare', () => {
+  it('is off by default so gallery captions stay', () => {
+    expect(parseWallBare('?wallRole=code&collage=1')).toBe(false)
+  })
+
+  it('turns on with bare=1', () => {
+    expect(parseWallBare('?wallRole=code&bare=1')).toBe(true)
   })
 })
 

@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react'
-import { MEASURED_WALL_BOUNDS } from '../lib/wallRole'
 import { getStationHref } from '../lib/stationRoute'
 import { buildWallSimLayout, type WallSimMode } from '../lib/wallSimLayout'
 import type { WallRole } from '../lib/wallRole'
@@ -7,7 +6,7 @@ import './WallSim.css'
 
 function panelSrc(role: WallRole, collage: boolean) {
   const url = new URL(window.location.href)
-  url.search = collage ? `?wallRole=${role}&collage=1` : `?wallRole=${role}&collage=0`
+  url.search = collage ? `?wallRole=${role}&collage=1&bare=1` : `?wallRole=${role}&collage=0&bare=1`
   url.hash = '#/photobash'
   return url.toString()
 }
@@ -22,7 +21,6 @@ export function WallSim() {
     width: window.innerWidth,
     height: window.innerHeight,
   }))
-  const [showLabels, setShowLabels] = useState(true)
   const [mode, setMode] = useState<WallSimMode>('css')
   const [collage, setCollage] = useState(true)
   const [reloadKey, setReloadKey] = useState(0)
@@ -43,25 +41,6 @@ export function WallSim() {
   return (
     <div className="wall-sim">
       <header className="wall-sim-header">
-        <div>
-          <p className="wall-sim-kicker">Install simulator</p>
-          <h1>6-display wall</h1>
-          <p className="wall-sim-copy">
-            {mode === 'physical' ? (
-              <>
-                <strong>Physical mode</strong> — Lenovo L24i vs TCL 43″ real sizes, bezel gaps, and TV
-                overscan. The face will <em>not</em> line up cleanly (like the gallery). Switch to CSS
-                mode to see the ideal software seam.
-              </>
-            ) : (
-              <>
-                <strong>CSS mode</strong> — measured {MEASURED_WALL_BOUNDS.wallW}×
-                {MEASURED_WALL_BOUNDS.wallH} pixel grid. Seams look perfect; this is what the code
-                assumes, not what mixed PPI/overscan does in the room.
-              </>
-            )}
-          </p>
-        </div>
         <div className="wall-sim-actions">
           <label className="wall-sim-toggle">
             Mode
@@ -69,14 +48,6 @@ export function WallSim() {
               <option value="physical">Physical (realistic)</option>
               <option value="css">CSS (ideal)</option>
             </select>
-          </label>
-          <label className="wall-sim-toggle">
-            <input
-              type="checkbox"
-              checked={showLabels}
-              onChange={(e) => setShowLabels(e.target.checked)}
-            />
-            Labels
           </label>
           <label className="wall-sim-toggle">
             <input
@@ -129,23 +100,10 @@ export function WallSim() {
                   }
                 />
               </div>
-              {showLabels ? (
-                <div className="wall-sim-label">
-                  <strong>{panel.role}</strong>
-                  <span>
-                    {panel.nativeW}×{panel.nativeH}
-                  </span>
-                  <span className="wall-sim-label-meta">{panel.label}</span>
-                </div>
-              ) : null}
             </div>
           ))}
         </div>
       </div>
-
-      <p className="wall-sim-scale">
-        {mode} · scale {layout.scale.toFixed(3)} · 4× L24i-4A + 2× TCL 43P615
-      </p>
     </div>
   )
 }

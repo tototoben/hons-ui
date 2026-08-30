@@ -2,13 +2,8 @@
 
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { FORMING_COPY } from '../lib/wallForming'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { WallFormingBlanket } from './WallFormingBlanket'
-
-vi.mock('../lib/faceBank', () => ({
-  loadFaceBankImages: () => Promise.resolve([]),
-}))
 
 describe('WallFormingBlanket', () => {
   let container: HTMLDivElement
@@ -27,21 +22,17 @@ describe('WallFormingBlanket', () => {
     container.remove()
   })
 
-  it('shows PARTNER FORMING on Debra and paints a forming canvas', () => {
+  it('paints a forming canvas with no caption on Debra', () => {
     act(() =>
-      root.render(
-        <WallFormingBlanket role="debra" photobashSeed={1} loadingProgress={0} showCaption />,
-      ),
+      root.render(<WallFormingBlanket role="debra" photobashSeed={1} loadingProgress={0} />),
     )
-    expect(container.querySelector('.wall-forming-caption')?.textContent).toBe(FORMING_COPY)
+    expect(container.querySelector('.wall-forming-caption')).toBeNull()
     expect(container.querySelector('canvas.wall-forming-canvas')).not.toBeNull()
   })
 
   it('hides the caption on copy', () => {
     act(() =>
-      root.render(
-        <WallFormingBlanket role="copy" photobashSeed={1} loadingProgress={0} showCaption={false} />,
-      ),
+      root.render(<WallFormingBlanket role="copy" photobashSeed={1} loadingProgress={0} />),
     )
     expect(container.querySelector('.wall-forming-caption')).toBeNull()
     expect(container.querySelector('canvas.wall-forming-canvas')).not.toBeNull()

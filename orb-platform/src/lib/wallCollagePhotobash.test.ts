@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   collageRects,
   collageRevealAt,
+  drawWallCollage,
   mouthRectIndex,
   pickStrangerAssignments,
   visitorRevealOrder,
@@ -77,5 +78,76 @@ describe('wallCollagePhotobash', () => {
     const done = collageRevealAt(10_000, 10_000, total)
     expect(done.revealedCount).toBe(total)
     expect(done.nextOpacity).toBe(0)
+  })
+
+  it('does not draw bank photos until face aligns are ready', () => {
+    const rects = collageRects(1)
+    const image = { width: 64, height: 64 }
+    let drawImageCalls = 0
+    const ctx = {
+      fillStyle: '',
+      strokeStyle: '',
+      lineWidth: 0,
+      globalAlpha: 1,
+      clearRect() {},
+      save() {},
+      restore() {},
+      beginPath() {},
+      rect() {},
+      clip() {},
+      drawImage() {
+        drawImageCalls += 1
+      },
+      strokeRect() {},
+    } as unknown as CanvasRenderingContext2D
+
+    drawWallCollage(ctx, {
+      width: 100,
+      height: 100,
+      rects,
+      bankImages: [image],
+      bankAligns: [],
+      strangerAssignments: pickStrangerAssignments(1, rects.length, 1),
+      visitorImage: null,
+      revealedCells: new Set(),
+    })
+
+    expect(drawImageCalls).toBe(0)
+  })
+
+  it('draws bank photos once face aligns are ready', () => {
+    const rects = collageRects(1)
+    const image = { width: 64, height: 64 }
+    const align = { scale: 1.2, offsetX: 0, offsetY: 0 }
+    let drawImageCalls = 0
+    const ctx = {
+      fillStyle: '',
+      strokeStyle: '',
+      lineWidth: 0,
+      globalAlpha: 1,
+      clearRect() {},
+      save() {},
+      restore() {},
+      beginPath() {},
+      rect() {},
+      clip() {},
+      drawImage() {
+        drawImageCalls += 1
+      },
+      strokeRect() {},
+    } as unknown as CanvasRenderingContext2D
+
+    drawWallCollage(ctx, {
+      width: 100,
+      height: 100,
+      rects,
+      bankImages: [image],
+      bankAligns: [align],
+      strangerAssignments: pickStrangerAssignments(1, rects.length, 1),
+      visitorImage: null,
+      revealedCells: new Set(),
+    })
+
+    expect(drawImageCalls).toBe(rects.length)
   })
 })

@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { panelFitScale, wallModeTransform } from '../lib/wallMode'
-import { measuredPanelForRole, type WallRole } from '../lib/wallRole'
+import { measuredPanelForRole, parseWallBare, type WallRole } from '../lib/wallRole'
 import { DEFAULT_VISITOR_ALIGN, MATCH_FACE_SIZE, type VisitorAlign } from '../lib/wallMatchPhotobash'
-import { loadFaceBankImages } from '../lib/faceBank'
+import { ensureCollageBank, peekCollageBank } from '../lib/wallCollageBank'
 import { computeFaceAlign } from '../lib/faceBankAlign'
 import { getVisitorFaceCapture } from '../lib/visitorFaceCapture'
 import {
@@ -51,8 +51,9 @@ export function WallCollageBlanket({
   }))
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const lipCanvasRef = useRef<HTMLCanvasElement>(null)
-  const [bankImages, setBankImages] = useState<HTMLImageElement[]>([])
-  const [bankAligns, setBankAligns] = useState<VisitorAlign[]>([])
+  const peeked = peekCollageBank(seed)
+  const [bankImages, setBankImages] = useState<HTMLImageElement[]>(() => peeked?.images ?? [])
+  const [bankAligns, setBankAligns] = useState<VisitorAlign[]>(() => peeked?.aligns ?? [])
   const [visitorImage, setVisitorImage] = useState<HTMLImageElement | null>(null)
   const [visitorAlign, setVisitorAlign] = useState<VisitorAlign>(DEFAULT_VISITOR_ALIGN)
   const [lipSprite, setLipSprite] = useState<HTMLImageElement | null>(null)
@@ -72,19 +73,15 @@ export function WallCollageBlanket({
 
   useEffect(() => {
     let cancelled = false
-    loadFaceBankImages().then(async (images) => {
+    void ensureCollageBank(seed).then((bank) => {
       if (cancelled) return
-      setBankImages(images)
-      // One-time per image; each bank photo is framed differently, so this
-      // is what makes a given shard (e.g. "left eye") reliably show the
-      // right anatomy no matter which photo fills it.
-      const aligns = await Promise.all(images.map((image) => computeFaceAlign(image, PLATE_RATIO)))
-      if (!cancelled) setBankAligns(aligns)
+      setBankImages(bank.images)
+      setBankAligns(bank.aligns)
     })
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [seed])
 
   useEffect(() => {
     let cancelled = false
@@ -289,7 +286,7 @@ export function WallCollageBlanket({
             className="wall-face-image wall-collage-canvas"
             style={faceStyle}
           />
-          {lipSprite ? (
+          {lipSprite && bankAligns.length > 0 ? (
             <canvas
               ref={lipCanvasRef}
               width={mouthWidth}
@@ -300,7 +297,7 @@ export function WallCollageBlanket({
           ) : null}
         </div>
       </div>
-      <div className="wall-face-caption">MATCH LOCKED</div>
+      {parseWallBare() ? null : <div className="wall-face-caption">MATCH LOCKED</div>}
     </div>
   )
 }

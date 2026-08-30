@@ -5,31 +5,3 @@
 .wall-forming-canvas {
   background: #120d0a;
 }
-
-.wall-forming-caption {
-  position: absolute;
-  left: 50%;
-  bottom: 4%;
-  z-index: 2;
-  transform: translateX(-50%);
-  padding: 8px 14px;
-  border: 1px solid rgba(242, 200, 180, 0.28);
-  background: rgba(8, 6, 4, 0.42);
-  font: 500 11px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: #f2c8b4;
-  text-shadow: 0 0 10px rgba(232, 180, 164, 0.55);
-  pointer-events: none;
-  animation: wall-forming-caption-glow 2.4s ease-in-out infinite;
-}
-
-@keyframes wall-forming-caption-glow {
-  0%,
-  100% {
-    opacity: 0.65;
-  }
-  50% {
-    opacity: 1;
-  }
-}
