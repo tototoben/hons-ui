@@ -32,10 +32,12 @@ export function buildPhotobashScript({
   profile = getVisitorProfile(),
   stationTwo = loadStationTwoState(),
   hasVoice = false,
+  transcript = '',
 }: {
   profile?: VisitorProfile
   stationTwo?: StationTwoState | null
   hasVoice?: boolean
+  transcript?: string
 } = {}): PhotobashScript {
   const opening = ['I have been listening. Let me show you who we made.']
   const name = cleanName(profile.callName)
@@ -54,6 +56,12 @@ export function buildPhotobashScript({
     }
     const lightning = lightningLine(stationTwo)
     if (lightning) middle.push(lightning)
+  }
+
+  const spoken = transcript.trim()
+  if (spoken) {
+    middle.push('You introduced yourself.')
+    middle.push(`You said: ${spoken}`)
   }
 
   const closing = ['This is the companion we negotiated. Look closely.']

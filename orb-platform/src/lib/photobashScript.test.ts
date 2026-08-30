@@ -42,6 +42,16 @@ describe('buildPhotobashScript', () => {
     expect(script.closing).toContain('And this is you, introducing yourself.')
   })
 
+  it('quotes a Station III dictation in the middle of the script', () => {
+    const script = buildPhotobashScript({
+      profile: emptyProfile,
+      stationTwo: null,
+      transcript: 'I want someone kind',
+    })
+    expect(script.middle).toContain('You introduced yourself.')
+    expect(script.middle).toContain('You said: I want someone kind')
+  })
+
   it('skips optional lines when the interview is empty', () => {
     const script = buildPhotobashScript({ profile: emptyProfile, stationTwo: null, hasVoice: false })
     expect(script.opening).toEqual(['I have been listening. Let me show you who we made.'])

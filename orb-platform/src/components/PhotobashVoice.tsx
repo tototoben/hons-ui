@@ -3,7 +3,7 @@ import { loadStationTwoState } from '../lib/interviewStore'
 import { buildPhotobashScript } from '../lib/photobashScript'
 import { cancelSpeech, playAudioUrl, speakText, stopPhotobashPlayback } from '../lib/photobashSpeech'
 import { getVisitorProfile } from '../lib/visitorProfile'
-import { getVisitorVoiceUrl } from '../lib/visitorVoiceCapture'
+import { getVisitorVoiceTranscript, getVisitorVoiceUrl } from '../lib/visitorVoiceCapture'
 
 export function PhotobashVoice({
   cycleKey,
@@ -46,7 +46,8 @@ export function PhotobashVoice({
       const script = buildPhotobashScript({
         profile: getVisitorProfile(),
         stationTwo: loadStationTwoState(),
-        hasVoice: Boolean(getVisitorVoiceUrl()),
+        hasVoice: Boolean(getVisitorVoiceUrl() || getVisitorVoiceTranscript()),
+        transcript: getVisitorVoiceTranscript(),
       })
       for (const line of script.opening) {
         if (cancelled) return

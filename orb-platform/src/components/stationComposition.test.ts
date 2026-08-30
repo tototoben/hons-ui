@@ -134,6 +134,9 @@ describe('station composition', () => {
   it('records Station III audio and hands Photobash a reveal-ready seed', () => {
     expect(thirdStationSource).toContain('useVisitorVoiceRecorder')
     expect(thirdStationSource).toContain('notifyRevealReady')
+    expect(thirdStationSource).toContain('transcript')
+    expect(thirdStationSource).toContain('caption')
+    expect(thirdStationStyles).toContain('mirror-record-transcript')
     expect(photobashSource).toContain('PhotobashVoice')
   })
 

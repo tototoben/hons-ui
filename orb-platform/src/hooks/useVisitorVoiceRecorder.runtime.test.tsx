@@ -4,7 +4,7 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useVisitorVoiceRecorder } from './useVisitorVoiceRecorder'
-import { getVisitorVoiceBlob, resetVisitorVoiceCapture } from '../lib/visitorVoiceCapture'
+import { getVisitorVoiceTranscript, resetVisitorVoiceCapture } from '../lib/visitorVoiceCapture'
 
 class FakeMediaRecorder {
   state = 'inactive'
@@ -23,9 +23,40 @@ class FakeMediaRecorder {
   }
 }
 
+class FakeSpeechRecognition {
+  continuous = false
+  interimResults = false
+  lang = ''
+  maxAlternatives = 1
+  onresult: ((event: { results: ArrayLike<{ isFinal: boolean; 0: { transcript: string } }> }) => void) | null =
+    null
+  onerror: (() => void) | null = null
+  onend: (() => void) | null = null
+
+  start() {
+    this.onresult?.({
+      results: [{ isFinal: false, 0: { transcript: 'hello' } }],
+    })
+    this.onresult?.({
+      results: [
+        { isFinal: true, 0: { transcript: 'hello' } },
+        { isFinal: false, 0: { transcript: 'partner' } },
+      ],
+    })
+  }
+
+  stop() {
+    this.onend?.()
+  }
+
+  abort() {
+    this.onend?.()
+  }
+}
+
 function Probe({ active }: { active: boolean }) {
-  useVisitorVoiceRecorder(active)
-  return null
+  const { caption } = useVisitorVoiceRecorder(active)
+  return <p data-testid="live">{caption}</p>
 }
 
 describe('useVisitorVoiceRecorder', () => {
@@ -39,6 +70,7 @@ describe('useVisitorVoiceRecorder', () => {
     document.body.append(container)
     root = createRoot(container)
     vi.stubGlobal('MediaRecorder', FakeMediaRecorder)
+    vi.stubGlobal('webkitSpeechRecognition', FakeSpeechRecognition)
     vi.stubGlobal('navigator', {
       ...navigator,
       mediaDevices: {
@@ -56,15 +88,17 @@ describe('useVisitorVoiceRecorder', () => {
     vi.unstubAllGlobals()
   })
 
-  it('stores a clip when recording stops', async () => {
+  it('shows live dictation while recording', async () => {
     act(() => root.render(<Probe active />))
     await act(async () => {
       await Promise.resolve()
+      await Promise.resolve()
     })
+    expect(container.querySelector('[data-testid="live"]')?.textContent).toBe('hello partner')
     act(() => root.render(<Probe active={false} />))
     await act(async () => {
       await Promise.resolve()
     })
-    expect(getVisitorVoiceBlob()).not.toBeNull()
+    expect(getVisitorVoiceTranscript()).toBe('hello partner')
   })
 })

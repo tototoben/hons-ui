@@ -1,58 +1,132 @@
-import { useEffect } from 'react'
-import { resetVisitorVoiceCapture, setVisitorVoiceCapture } from '../lib/visitorVoiceCapture'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import {
+  dictationCaption,
+  joinUtterance,
+  normalizeTranscript,
+  speechRecognitionCtor,
+  transcriptFromRecognitionResults,
+} from '../lib/speechDictation'
+import {
+  resetVisitorVoiceCapture,
+  setVisitorVoiceTranscript,
+} from '../lib/visitorVoiceCapture'
 
-function pickRecorderMime() {
-  if (typeof MediaRecorder === 'undefined' || typeof MediaRecorder.isTypeSupported !== 'function') {
-    return undefined
-  }
-  if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) return 'audio/webm;codecs=opus'
-  if (MediaRecorder.isTypeSupported('audio/webm')) return 'audio/webm'
-  if (MediaRecorder.isTypeSupported('audio/mp4')) return 'audio/mp4'
-  return undefined
-}
+type Recognition = ReturnType<NonNullable<ReturnType<typeof speechRecognitionCtor>>>
 
-/** Starts a mic take while `active`, then stores the blob for Photobash. */
+/** Chrome dictation only. Holding getUserMedia at the same time aborts captions. */
 export function useVisitorVoiceRecorder(active: boolean) {
+  const [transcript, setTranscript] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const recognitionRef = useRef<Recognition | null>(null)
+  const hasApi = typeof window !== 'undefined' && Boolean(speechRecognitionCtor())
+
   useEffect(() => {
     if (!active) return
-    if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) return
-    if (typeof MediaRecorder === 'undefined') return
+    if (typeof navigator === 'undefined') return
 
     let cancelled = false
-    let recorder: MediaRecorder | null = null
-    let stream: MediaStream | null = null
-    const chunks: Blob[] = []
+    let committed = ''
+    let latest = ''
+    let restartTimer = 0
+    const Ctor = speechRecognitionCtor()
 
     resetVisitorVoiceCapture()
+    setTranscript('')
+    setError(Ctor ? null : 'unavailable')
 
-    void (async () => {
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+    const persistTranscript = () => {
+      const text = normalizeTranscript(latest)
+      setVisitorVoiceTranscript(text)
+      if (!cancelled) setTranscript(text)
+    }
+
+    const startDictation = () => {
+      if (!Ctor || cancelled) return
+      const recognition = new Ctor()
+      recognitionRef.current = recognition
+      recognition.continuous = true
+      recognition.interimResults = true
+      recognition.maxAlternatives = 1
+      recognition.lang = 'en-US'
+      recognition.onresult = (event) => {
+        const current = transcriptFromRecognitionResults(event.results)
+        latest = joinUtterance(committed, current)
+        setError(null)
+        setTranscript(latest)
+      }
+      recognition.onerror = (event) => {
+        const code = event.error ?? ''
+        if (code === 'no-speech' || code === 'aborted') return
+        if (!cancelled) setError(code)
+      }
+      recognition.onend = () => {
+        committed = latest
         if (cancelled) {
-          stream.getTracks().forEach((track) => track.stop())
+          persistTranscript()
           return
         }
-        const mimeType = pickRecorderMime()
-        recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream)
-        recorder.ondataavailable = (event) => {
-          if (event.data.size > 0) chunks.push(event.data)
-        }
-        recorder.onstop = () => {
-          stream?.getTracks().forEach((track) => track.stop())
-          stream = null
-          if (chunks.length === 0) return
-          setVisitorVoiceCapture(new Blob(chunks, { type: recorder?.mimeType || 'audio/webm' }))
-        }
-        recorder.start()
-      } catch {
-        stream?.getTracks().forEach((track) => track.stop())
+        restartTimer = window.setTimeout(() => {
+          if (cancelled) return
+          try {
+            recognition.start()
+          } catch {
+            persistTranscript()
+          }
+        }, 160)
       }
+      try {
+        recognition.start()
+      } catch {
+        recognitionRef.current = null
+        if (!cancelled) setError('audio-capture')
+      }
+    }
+
+    void (async () => {
+      if (navigator.mediaDevices?.getUserMedia) {
+        try {
+          const permission = await navigator.mediaDevices.getUserMedia({
+            audio: true,
+            video: false,
+          })
+          permission.getTracks().forEach((track) => track.stop())
+        } catch (err) {
+          const name = err instanceof DOMException ? err.name : ''
+          if (!cancelled && name === 'NotAllowedError') setError('not-allowed')
+          if (!cancelled && name === 'NotReadableError') setError('audio-capture')
+        }
+      }
+      if (cancelled) return
+      startDictation()
     })()
 
     return () => {
       cancelled = true
-      if (recorder && recorder.state !== 'inactive') recorder.stop()
-      else stream?.getTracks().forEach((track) => track.stop())
+      window.clearTimeout(restartTimer)
+      persistTranscript()
+      const recognition = recognitionRef.current
+      recognitionRef.current = null
+      if (recognition) {
+        try {
+          recognition.stop()
+        } catch {
+          recognition.abort()
+        }
+      }
     }
   }, [active])
+
+  const arm = useCallback(() => {
+    try {
+      recognitionRef.current?.start()
+    } catch {
+      // already started
+    }
+  }, [])
+
+  return {
+    transcript,
+    caption: dictationCaption(transcript, error, hasApi),
+    arm,
+  }
 }

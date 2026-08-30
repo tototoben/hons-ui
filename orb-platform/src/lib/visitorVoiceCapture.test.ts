@@ -3,9 +3,11 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import {
   getVisitorVoiceBlob,
+  getVisitorVoiceTranscript,
   getVisitorVoiceUrl,
   resetVisitorVoiceCapture,
   setVisitorVoiceCapture,
+  setVisitorVoiceTranscript,
 } from './visitorVoiceCapture'
 
 describe('visitorVoiceCapture', () => {
@@ -16,6 +18,7 @@ describe('visitorVoiceCapture', () => {
   it('starts empty', () => {
     expect(getVisitorVoiceBlob()).toBeNull()
     expect(getVisitorVoiceUrl()).toBeNull()
+    expect(getVisitorVoiceTranscript()).toBe('')
   })
 
   it('stores a blob and exposes an object URL', () => {
@@ -27,8 +30,10 @@ describe('visitorVoiceCapture', () => {
 
   it('clears on reset', () => {
     setVisitorVoiceCapture(new Blob(['hello'], { type: 'audio/webm' }))
+    setVisitorVoiceTranscript('hello partner')
     resetVisitorVoiceCapture()
     expect(getVisitorVoiceBlob()).toBeNull()
     expect(getVisitorVoiceUrl()).toBeNull()
+    expect(getVisitorVoiceTranscript()).toBe('')
   })
 })

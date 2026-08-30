@@ -5,6 +5,7 @@
 
 let currentBlob: Blob | null = null
 let currentUrl: string | null = null
+let currentTranscript = ''
 
 function revokeCurrentUrl() {
   if (currentUrl) URL.revokeObjectURL(currentUrl)
@@ -25,7 +26,16 @@ export function getVisitorVoiceUrl(): string | null {
   return currentUrl
 }
 
+export function setVisitorVoiceTranscript(text: string) {
+  currentTranscript = text.trim()
+}
+
+export function getVisitorVoiceTranscript(): string {
+  return currentTranscript
+}
+
 export function resetVisitorVoiceCapture() {
   revokeCurrentUrl()
   currentBlob = null
+  currentTranscript = ''
 }

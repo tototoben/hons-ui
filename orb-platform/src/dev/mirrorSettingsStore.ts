@@ -45,9 +45,9 @@ export const mirrorSettings = {
     color: '#e8b88c',
   },
   timing: {
-    introSeconds: 20,
-    promptSeconds: 20,
-    countdownStepSeconds: 3,
+    introSeconds: 4,
+    promptSeconds: 8,
+    countdownStepSeconds: 1,
     recordingSeconds: 30,
     loadingSeconds: 5,
   },
