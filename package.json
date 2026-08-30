@@ -8,6 +8,7 @@
     "orb:build": "npm --prefix orb-ui run build",
     "install:orb-platform": "npm --prefix orb-platform install",
     "orb-platform": "npm --prefix orb-platform run dev",
-    "orb-platform:build": "npm --prefix orb-platform run build"
+    "orb-platform:build": "npm --prefix orb-platform run build",
+    "face-bank:manifest": "node scripts/generate-face-bank-manifest.mjs"
   }
 }

@@ -16,6 +16,7 @@ import { JourneyHeadline } from './JourneyHeadline'
 import { MirrorChoice } from './MirrorChoice'
 import { MirrorStationShell } from './MirrorStationShell'
 import { useStationVibe } from '../hooks/useStationVibe'
+import { readDeviceLock } from '../lib/deviceLock'
 
 const JourneyDevPanel = lazy(() =>
   import('../dev/JourneyDevPanel').then((m) => ({ default: m.JourneyDevPanel })),
@@ -119,7 +120,7 @@ export function StationTwo({ phaseDurationMs }: { phaseDurationMs?: number }) {
         fully mounts <StationTwo/>. Cards/Mirror have the same lazy-panel
         shape but happen to never be runtime-tested at their station-root
         level, so they've never hit this. */}
-    {import.meta.env.DEV && import.meta.env.MODE !== 'test' ? (
+    {import.meta.env.DEV && import.meta.env.MODE !== 'test' && !readDeviceLock() ? (
       <Suspense fallback={null}>
         <JourneyDevPanel />
       </Suspense>
@@ -283,7 +284,7 @@ export function StationTwo({ phaseDurationMs }: { phaseDurationMs?: number }) {
           <JourneyHeadline lines={warm ? ["When you're", 'ready'] : ['PROCEED TO THE', 'NEXT STATION']}>
             {warm ? "When you're ready" : 'Proceed to the next station'}
           </JourneyHeadline>
-          <a href="#/mirror">Continue to Station III</a>
+          {readDeviceLock() ? null : <a href="#/mirror">Continue to Station III</a>}
         </div>
       ) : null}
     </MirrorStationShell>

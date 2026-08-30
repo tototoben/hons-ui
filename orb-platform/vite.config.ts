@@ -8,7 +8,7 @@ export default defineConfig({
     css: true,
   },
   server: {
-    port: 5176,
+    port: Number(process.env.PORT) || 5176,
     host: true,
     strictPort: true,
     open: process.env.VITE_NO_OPEN !== '1',

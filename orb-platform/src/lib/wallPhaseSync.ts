@@ -1,4 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
+import {
+  PHOTOBASH_CYCLE_MS,
+  PHOTOBASH_FILL_MS,
+  mintPhotobashSeed,
+  photobashProgress,
+} from './photobashLoop'
 
 export type WallPhase = 'intro' | 'prompt' | 'recording' | 'loading'
 
@@ -75,6 +81,9 @@ export function useWallSyncedPhase(isConductor: boolean) {
       }
       return loadingSeedRef.current
     }
+
+    // Keep conductor state aligned with the zero progress published outside loading.
+    if (phase !== 'loading') setLoadingProgress(0)
 
     if (phase === 'intro') {
       publish({
@@ -189,7 +198,7 @@ export function useWallSyncedPhase(isConductor: boolean) {
   useEffect(() => {
     if (!isConductor || phase !== 'loading') return
     // Fill "processing" progress quickly, then hold the face for the rest of loadingSeconds.
-    const fillMs = 4000
+    const fillMs = PHOTOBASH_FILL_MS
     const holdMs = WALL_TIMING.loadingSeconds * 1000
     const start = performance.now()
     const seed = loadingSeedRef.current ?? photobashSeed
@@ -213,4 +222,76 @@ export function useWallSyncedPhase(isConductor: boolean) {
   }, [isConductor, phase, photobashSeed])
 
   return { phase, countdown, recordSecondsLeft, loadingProgress, photobashSeed }
+}
+
+/** Collage-only loop for the Photobash wall. No intro / prompt / recording. */
+export function usePhotobashLoop(isConductor: boolean) {
+  const [photobashSeed, setPhotobashSeed] = useState(1)
+  const [loadingProgress, setLoadingProgress] = useState(0)
+  const channelRef = useRef<BroadcastChannel | null>(null)
+
+  useEffect(() => {
+    if (typeof BroadcastChannel === 'undefined') return
+    const channel = new BroadcastChannel(CHANNEL)
+    channelRef.current = channel
+    channel.onmessage = (event: MessageEvent<PhaseMessage>) => {
+      if (isConductor || event.data?.type !== 'phase') return
+      if (typeof event.data.photobashSeed === 'number') {
+        setPhotobashSeed(event.data.photobashSeed)
+      }
+      if (typeof event.data.loadingProgress === 'number') {
+        setLoadingProgress(event.data.loadingProgress)
+      }
+    }
+    return () => {
+      channel.close()
+      channelRef.current = null
+    }
+  }, [isConductor])
+
+  useEffect(() => {
+    if (!isConductor) return
+    let cancelled = false
+    let raf = 0
+    let interval = 0
+
+    const runCycle = () => {
+      if (cancelled) return
+      cancelAnimationFrame(raf)
+      const seed = mintPhotobashSeed()
+      const start = performance.now()
+      setPhotobashSeed(seed)
+      setLoadingProgress(0)
+      const publish = (progress: number) => {
+        channelRef.current?.postMessage({
+          type: 'phase',
+          phase: 'loading',
+          countdown: null,
+          recordSecondsLeft: 0,
+          loadingProgress: progress,
+          photobashSeed: seed,
+        } satisfies PhaseMessage)
+      }
+      publish(0)
+      const tick = () => {
+        if (cancelled) return
+        const elapsed = performance.now() - start
+        const progress = photobashProgress(elapsed)
+        setLoadingProgress(progress)
+        publish(progress)
+        if (elapsed < PHOTOBASH_CYCLE_MS) raf = requestAnimationFrame(tick)
+      }
+      raf = requestAnimationFrame(tick)
+    }
+
+    runCycle()
+    interval = window.setInterval(runCycle, PHOTOBASH_CYCLE_MS)
+    return () => {
+      cancelled = true
+      cancelAnimationFrame(raf)
+      window.clearInterval(interval)
+    }
+  }, [isConductor])
+
+  return { photobashSeed, loadingProgress }
 }

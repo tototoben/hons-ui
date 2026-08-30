@@ -5,10 +5,10 @@ import { buildWallSimLayout, type WallSimMode } from '../lib/wallSimLayout'
 import type { WallRole } from '../lib/wallRole'
 import './WallSim.css'
 
-function panelSrc(role: WallRole) {
+function panelSrc(role: WallRole, collage: boolean) {
   const url = new URL(window.location.href)
-  url.search = `?wallRole=${role}`
-  url.hash = '#/mirror'
+  url.search = collage ? `?wallRole=${role}&collage=1` : `?wallRole=${role}&collage=0`
+  url.hash = '#/photobash'
   return url.toString()
 }
 
@@ -24,6 +24,7 @@ export function WallSim() {
   }))
   const [showLabels, setShowLabels] = useState(true)
   const [mode, setMode] = useState<WallSimMode>('css')
+  const [collage, setCollage] = useState(true)
   const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {
@@ -77,6 +78,14 @@ export function WallSim() {
             />
             Labels
           </label>
+          <label className="wall-sim-toggle">
+            <input
+              type="checkbox"
+              checked={collage}
+              onChange={(e) => setCollage(e.target.checked)}
+            />
+            Collage photobash
+          </label>
           <button type="button" onClick={() => setReloadKey((n) => n + 1)}>
             Reload panels
           </button>
@@ -108,10 +117,10 @@ export function WallSim() {
             >
               <div className="wall-sim-frame-clip">
                 <iframe
-                  key={`${panel.role}-${reloadKey}-${mode}`}
+                  key={`${panel.role}-${reloadKey}-${mode}-${collage}`}
                   className="wall-sim-frame"
                   title={`Wall panel ${panel.role}`}
-                  src={panelSrc(panel.role)}
+                  src={panelSrc(panel.role, collage)}
                   allow="autoplay; microphone; camera"
                   style={
                     panel.overscan !== 1

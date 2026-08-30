@@ -29,7 +29,7 @@ on run
 		set sw to item 3 of p
 		set sh to item 4 of p
 		set wallRole to item 5 of p
-		set targetUrl to baseUrl & "?wallRole=" & wallRole & "#/mirror"
+		set targetUrl to baseUrl & "?wallRole=" & wallRole & "#/photobash"
 
 		tell application "Google Chrome"
 			set newWin to make new window

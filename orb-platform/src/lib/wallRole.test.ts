@@ -4,6 +4,7 @@ import {
   MEASURED_WALL_PANELS,
   measuredPanelForRole,
   parseWallCalibrate,
+  parseWallCollage,
   parseWallRole,
   WALL_ROLES,
 } from './wallRole'
@@ -31,6 +32,20 @@ describe('parseWallCalibrate', () => {
 
   it('turns on with wallCal=1', () => {
     expect(parseWallCalibrate('?wallRole=code&wallCal=1')).toBe(true)
+  })
+})
+
+describe('parseWallCollage', () => {
+  it('is on by default so the collage photobash is live', () => {
+    expect(parseWallCollage('?wallRole=code')).toBe(true)
+  })
+
+  it('stays on with collage=1', () => {
+    expect(parseWallCollage('?wallRole=code&collage=1')).toBe(true)
+  })
+
+  it('falls back to WallFaceBlanket with collage=0', () => {
+    expect(parseWallCollage('?wallRole=code&collage=0')).toBe(false)
   })
 })
 

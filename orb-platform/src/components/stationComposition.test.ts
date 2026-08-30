@@ -10,17 +10,30 @@ import pointCloudShaders from '../shaders/pointCloudShaders.ts?raw'
 import cardSwapSource from './CardSwap.jsx?raw'
 import cardSwapStyles from './CardSwap.css?raw'
 import appSource from '../App.tsx?raw'
+import photobashSource from './PhotobashScreen.tsx?raw'
 
 describe('station composition', () => {
-  it('routes the two new mirror journeys without removing the existing showcases', () => {
-    expect(appSource).toContain("import('./components/StationOne')")
-    expect(appSource).toContain("import('./components/StationTwo')")
-    expect(appSource).toContain("station === 'station-1'")
-    expect(appSource).toContain("station === 'station-2'")
-    expect(appSource).toContain('<StationOne />')
-    expect(appSource).toContain('<StationTwo />')
+  it('boots a device picker and photobash route instead of the station-switcher', () => {
+    expect(appSource).toContain('DevicePicker')
+    expect(appSource).toContain('DeviceUnlockLayer')
+    expect(appSource).toContain('PhotobashScreen')
+    expect(appSource).toContain("station === 'photobash'")
+    expect(appSource).not.toContain('station-switcher')
+    expect(appSource).not.toContain('ThirdStationWall')
+  })
+
+  it('keeps Station III as the kiosk ThirdStation only', () => {
     expect(appSource).toContain('<ThirdStation />')
-    expect(appSource).toContain('<SecondStation />')
+    expect(appSource).not.toContain('WallCollageBlanket')
+  })
+
+  it('keeps Photobash as collage-only with no Debra or code wall chrome', () => {
+    expect(photobashSource).toContain('WallCollageBlanket')
+    expect(photobashSource).toContain('usePhotobashLoop')
+    expect(photobashSource).not.toContain('WallDebraPanel')
+    expect(photobashSource).not.toContain('WallCodePanel')
+    expect(photobashSource).not.toContain('STANDBY')
+    expect(photobashSource).not.toContain('RECORDING')
   })
 
   it('uses the registry CardSwap implementation and stylesheet', () => {

@@ -38,6 +38,10 @@ describe('getStationFromHash', () => {
     expect(getStationFromHash('#/wall-cal')).toBe('wall-cal')
   })
 
+  it('resolves the photobash reveal hash', () => {
+    expect(getStationFromHash('#/photobash')).toBe('photobash')
+  })
+
   it('falls back to orb for unknown hashes', () => {
     expect(getStationFromHash('#/unknown')).toBe('orb')
   })
@@ -54,5 +58,6 @@ describe('getStationHref', () => {
     expect(getStationHref('face-align')).toBe('#/face-align')
     expect(getStationHref('wall-sim')).toBe('#/wall-sim')
     expect(getStationHref('wall-cal')).toBe('#/wall-cal')
+    expect(getStationHref('photobash')).toBe('#/photobash')
   })
 })
