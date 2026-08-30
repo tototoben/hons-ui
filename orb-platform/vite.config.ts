@@ -10,7 +10,9 @@ export default defineConfig({
   server: {
     port: 5176,
     host: true,
-    open: true,
+    strictPort: true,
+    open: process.env.VITE_NO_OPEN !== '1',
+    allowedHosts: true,
   },
   build: {
     outDir: '../../visualizer/public/orb',
