@@ -72,6 +72,7 @@ describe('station composition', () => {
     expect(cardPointCloudRoom).toContain('CardStationPostProcessing')
     expect(cardStationPostProcessing).toContain('Bloom')
     expect(cardStationPostProcessing).toContain('ChromaticAberration')
+    expect(cardStationPostProcessing).toContain('radialModulation')
     expect(cardStationPostProcessing).toContain('Noise')
     expect(cardStationPostProcessing).toContain('bloomIntensity')
   })

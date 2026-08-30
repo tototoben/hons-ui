@@ -1,4 +1,4 @@
-import { Suspense, useMemo } from 'react'
+import { Suspense, useMemo, type ComponentProps } from 'react'
 import {
   Bloom,
   ChromaticAberration,
@@ -44,10 +44,13 @@ export function CardStationPostProcessing({ post: postOverride }: { post?: PostS
           luminanceSmoothing={post.bloomSmoothing}
           mipmapBlur
         />
+        {/* r3f 3.0.5 JSX types omit radialModulation even though the effect accepts it */}
         <ChromaticAberration
-          offset={chromaOffset}
-          radialModulation
-          modulationOffset={0}
+          {...({
+            offset: chromaOffset,
+            radialModulation: true,
+            modulationOffset: 0,
+          } as ComponentProps<typeof ChromaticAberration>)}
         />
         <Noise opacity={noise} blendFunction={BlendFunction.SOFT_LIGHT} />
       </EffectComposer>
