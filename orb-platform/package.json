@@ -10,6 +10,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
+    "build:reveal": "tsc --noEmit && vite build --outDir ../components/reveal/ui/orb",
     "preview": "vite preview",
     "test": "vitest run"
   },

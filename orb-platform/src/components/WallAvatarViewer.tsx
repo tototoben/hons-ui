@@ -2,9 +2,10 @@ import { Suspense, useMemo, useRef } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { Center, useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
+import { base } from '../config'
 import './WallAvatarViewer.css'
 
-export const WALL_AVATAR_URL = '/assets/wall-avatar/miku.gltf'
+export const WALL_AVATAR_URL = base('/assets/wall-avatar/miku.gltf')
 
 function SpinningMiku({ reducedMotion }: { reducedMotion: boolean }) {
   const { scene } = useGLTF(WALL_AVATAR_URL)

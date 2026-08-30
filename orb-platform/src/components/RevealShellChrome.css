@@ -1,0 +1,64 @@
+/* Operational chrome for reveal-shell-hosted windows (Tauri only).
+   Hidden on plain-browser loads of the orb app; revealed on hover in the
+   shell. Mounted above all station content; does not capture events while
+   closed. */
+
+.reveal-shell-chrome {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483000;
+  pointer-events: none;
+}
+
+.reveal-shell-chrome.is-open {
+  pointer-events: auto;
+}
+
+/* Whole-window drag surface while the picker is open (like the shell's
+   placeholder veil): the window is movable by grabbing anywhere. */
+.reveal-shell-drag-veil {
+  position: fixed;
+  inset: 0;
+  display: none;
+}
+
+.reveal-shell-chrome.is-open .reveal-shell-drag-veil {
+  display: block;
+}
+
+.reveal-shell-bar {
+  position: fixed;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  display: none;
+  align-items: center;
+  gap: 6px;
+}
+
+.reveal-shell-chrome.is-open .reveal-shell-bar {
+  display: flex;
+}
+
+.reveal-shell-select,
+.reveal-shell-btn {
+  font: 600 12px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid #ffffff2e;
+  background: #0b0b0ff2;
+  color: #e8e8ef;
+  opacity: 0.85;
+  cursor: pointer;
+}
+
+.reveal-shell-select:hover,
+.reveal-shell-btn:hover {
+  opacity: 1;
+}
+
+.reveal-shell-note {
+  font: 600 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: #88889a;
+  margin-left: 2px;
+}

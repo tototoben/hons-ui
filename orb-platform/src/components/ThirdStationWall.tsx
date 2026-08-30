@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { useWallSyncedPhase } from '../lib/wallPhaseSync'
 import { parseWallCalibrate, parseWallCollage, parseWallRole, type WallRole } from '../lib/wallRole'
+import { RevealShellChrome } from './RevealShellChrome'
 import { WallCalibrate } from './WallCalibrate'
 import { CodePanel, MiniBar } from './HudDebris'
 import { MirrorGuideOrb } from './MirrorGuideOrb'
@@ -320,6 +321,7 @@ export function ThirdStationWall({ role: roleProp }: { role?: WallRole }) {
           loadingProgress={loadingProgress}
         />
       )}
+      <RevealShellChrome />
     </section>
   )
 }

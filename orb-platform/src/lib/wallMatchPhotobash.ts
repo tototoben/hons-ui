@@ -1,5 +1,7 @@
-export const MATCH_FACE_URL = '/assets/wall-avatar/match-face.png'
-export const VISITOR_FACE_URL = '/assets/wall-avatar/visitor-face.jpg'
+import { base } from '../config'
+
+export const MATCH_FACE_URL = base('/assets/wall-avatar/match-face.png')
+export const VISITOR_FACE_URL = base('/assets/wall-avatar/visitor-face.jpg')
 export const MATCH_FACE_SIZE = { width: 864, height: 960 }
 
 export const VISITOR_ALIGN_STORAGE_KEY = 'hons-wall-visitor-align'
