@@ -11,7 +11,7 @@ import {
   setVisitorVoiceTranscript,
 } from '../lib/visitorVoiceCapture'
 
-type Recognition = ReturnType<NonNullable<ReturnType<typeof speechRecognitionCtor>>>
+type Recognition = InstanceType<NonNullable<ReturnType<typeof speechRecognitionCtor>>>
 
 /** Chrome dictation only. Holding getUserMedia at the same time aborts captions. */
 export function useVisitorVoiceRecorder(active: boolean) {
