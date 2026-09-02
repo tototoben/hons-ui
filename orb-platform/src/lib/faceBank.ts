@@ -1,3 +1,4 @@
+import { base } from '../config'
 import { mulberry32 } from './wallMatchPhotobash'
 
 /**
@@ -10,7 +11,7 @@ import { mulberry32 } from './wallMatchPhotobash'
  * photo would raise. Run `npm run face-bank:manifest` after adding images to
  * public/assets/wall-avatar/face-bank/.
  */
-export const FACE_BANK_DIR = '/assets/wall-avatar/face-bank/'
+export const FACE_BANK_DIR = base('/assets/wall-avatar/face-bank/')
 const MANIFEST_URL = `${FACE_BANK_DIR}manifest.json`
 
 let manifestPromise: Promise<string[]> | null = null
