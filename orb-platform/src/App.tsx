@@ -6,6 +6,7 @@ import { WallModeViewport } from './components/WallModeViewport'
 import { applyDeviceQuality, getDeviceQuality } from './lib/deviceQuality'
 import { resetVisitorProfile } from './lib/visitorProfile'
 import { resetVisitorFaceCapture } from './lib/visitorFaceCapture'
+import { perfSetView } from './lib/perfMonitor'
 import {
   STORAGE_KEY,
   clearDeviceLock,
@@ -114,6 +115,10 @@ export default function App() {
   useEffect(() => {
     applyDeviceQuality()
   }, [])
+
+  useEffect(() => {
+    perfSetView(station)
+  }, [station])
 
   useEffect(() => {
     const onHashChange = () => {

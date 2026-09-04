@@ -4,6 +4,7 @@ import { CAMERA, RENDERER } from '../config'
 import { OrbProvider } from '../context/OrbProvider'
 import { useOrbContext } from '../context/OrbContext'
 import { Scene } from './Scene'
+import { PerfMonitorBridge } from './PerfMonitorBridge'
 import { useMediaSensors } from '../hooks/useMediaSensors'
 import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion'
 import { getDeviceQuality, webGlMaxDpr } from '../lib/deviceQuality'
@@ -110,6 +111,7 @@ function ExperienceShell({
           gl.compile(scene, camera)
         }}
       >
+        <PerfMonitorBridge />
         <Scene
           postEnabled={postEnabled && !kiosk}
           parallaxEnabled={parallaxEnabled && !kiosk}
