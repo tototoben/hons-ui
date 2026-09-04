@@ -4,6 +4,7 @@ import { useTexture } from '@react-three/drei'
 import * as THREE from 'three'
 import { CAMERA, PLATFORM, RENDERER, ROOM } from '../config'
 import { avatarPortraits, type AvatarPortrait } from '../lib/avatarPortraits'
+import { PerfMonitorBridge } from './PerfMonitorBridge'
 import './AvatarStation.css'
 
 const PORTRAIT_HEIGHT = 1.22
@@ -156,6 +157,7 @@ export function AvatarStation() {
         >
           <color attach="background" args={['#030406']} />
           <AvatarRoomCamera />
+          <PerfMonitorBridge />
           <WireRoom />
           <WirePlatform />
           <Suspense fallback={null}>

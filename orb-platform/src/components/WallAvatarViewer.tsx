@@ -3,6 +3,7 @@ import { Canvas, useFrame } from '@react-three/fiber'
 import { Center, useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import { base } from '../config'
+import { PerfMonitorBridge } from './PerfMonitorBridge'
 import './WallAvatarViewer.css'
 
 export const WALL_AVATAR_URL = base('/assets/wall-avatar/miku.gltf')
@@ -51,6 +52,7 @@ export function WallAvatarViewer({ reducedMotion = false }: { reducedMotion?: bo
         gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
       >
         <color attach="background" args={['#0a0806']} />
+        <PerfMonitorBridge />
         <ambientLight intensity={1.35} />
         <directionalLight position={[4, 6, 3]} intensity={2.2} color="#f4d5dc" />
         <directionalLight position={[-4, 2, 2]} intensity={1.1} color="#8ec5ff" />

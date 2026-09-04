@@ -4,6 +4,7 @@ import { DeviceUnlockLayer } from './components/DeviceUnlockLayer'
 import { MirrorPreviewFrame } from './components/MirrorPreviewToggle'
 import { WallModeViewport } from './components/WallModeViewport'
 import { applyDeviceQuality, getDeviceQuality } from './lib/deviceQuality'
+import { perfSetView } from './lib/perfMonitor'
 import {
   STORAGE_KEY,
   clearDeviceLock,
@@ -96,6 +97,10 @@ export default function App() {
   useEffect(() => {
     applyDeviceQuality()
   }, [])
+
+  useEffect(() => {
+    perfSetView(station)
+  }, [station])
 
   useEffect(() => {
     const onHashChange = () => setStation(getStationFromHash(window.location.hash))

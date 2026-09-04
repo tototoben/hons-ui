@@ -16,6 +16,7 @@ import {
 } from '../shaders/cardPointCloudShaders'
 import { CardScanSweep } from './CardScanSweep'
 import { CardStationPostProcessing } from './CardStationPostProcessing'
+import { PerfMonitorBridge } from './PerfMonitorBridge'
 import { cardSettings } from '../dev/cardSettingsStore'
 
 function CardRoomCamera() {
@@ -179,6 +180,7 @@ export function CardPointCloudRoom() {
         <color attach="background" args={['#030406']} />
         <fog attach="fog" args={['#030406', 7.5, 18]} />
         <CardRoomCamera />
+        <PerfMonitorBridge />
         <ScannedInstallation quality={quality} />
         <CardScanSweep />
         {kiosk ? null : <CardsPostBridge />}

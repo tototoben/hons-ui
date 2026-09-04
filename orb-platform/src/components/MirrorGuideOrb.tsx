@@ -5,6 +5,7 @@ import { heartbeat } from '../lib/heartbeat'
 import { kioskOrbCounts, webGlMaxDpr, getDeviceQuality } from '../lib/deviceQuality'
 import { sampleSphere, buildPointGeometry } from '../lib/samplePoints'
 import { orbPointVertexShader, orbPointFragmentShader } from '../shaders/pointCloudShaders'
+import { PerfMonitorBridge } from './PerfMonitorBridge'
 import { mirrorSettings } from '../dev/mirrorSettingsStore'
 import { base } from '../config'
 
@@ -155,6 +156,7 @@ function MirrorGuideOrbCanvas({ className }: { className?: string }) {
         camera={{ fov: 32, near: 0.1, far: 20, position: [0, 0, mirrorSettings.orb.cameraDistance] }}
       >
         <GuideOrbCamera />
+        <PerfMonitorBridge />
         <GuideOrbPoints geometry={geometry} material={material} uniforms={uniforms} />
       </Canvas>
     </div>
