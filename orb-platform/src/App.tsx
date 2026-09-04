@@ -17,6 +17,7 @@ import {
 import { isPickerDismissKey, isProductionHotkey } from './lib/productionHotkey'
 import { isWallMode } from './lib/wallMode'
 import { isWallRoleMode, parseWallRole } from './lib/wallRole'
+import { showTuningPanel } from './lib/tune'
 import { getStationFromHash, getStationHref, type StationRoute } from './lib/stationRoute'
 import './index.css'
 
@@ -164,7 +165,7 @@ export default function App() {
   return (
     <main className="experience">
       {lock ? <DeviceUnlockLayer onUnlock={unlock} /> : null}
-      {import.meta.env.DEV && !hideChrome ? (
+      {showTuningPanel() && !hideChrome ? (
         <Suspense fallback={null}>
           <LevaRoot />
           {station === 'orb' ? <DevPanel /> : null}

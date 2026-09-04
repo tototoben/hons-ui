@@ -10,6 +10,7 @@ import {
 import { mirrorSettings } from '../dev/mirrorSettingsStore'
 import { getDeviceQuality } from '../lib/deviceQuality'
 import { readDeviceLock } from '../lib/deviceLock'
+import { showTuningPanel } from '../lib/tune'
 import { useStationVibe } from '../hooks/useStationVibe'
 import type { WallPhase } from '../lib/wallPhaseSync'
 import { publish } from '../lib/firehose'
@@ -532,7 +533,7 @@ export function ThirdStation() {
         ) : null}
       </div>
 
-      {import.meta.env.DEV && !readDeviceLock() ? (
+      {showTuningPanel() && !readDeviceLock() ? (
         <Suspense fallback={null}>
           <MirrorDevPanel />
         </Suspense>

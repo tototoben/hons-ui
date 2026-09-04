@@ -11,6 +11,7 @@ import { sampleFaceTopologyConnections } from '../lib/mirrorFaceTopology'
 import { TRACKING_RGB } from '../lib/stationVibe'
 import { canvasPixelRatio, isKioskQuality } from '../lib/deviceQuality'
 import { readDeviceLock } from '../lib/deviceLock'
+import { showTuningPanel } from '../lib/tune'
 import {
   computeCameraFocus,
   landmarkBounds,
@@ -117,7 +118,7 @@ export function MirrorCameraLayer({ mode }: { mode: MirrorOverlayMode }) {
       {/* Also excluded in Vitest (MODE === 'test'): leva's stitches-based
           styling can't run in jsdom, and MirrorCameraLayer.runtime.test.tsx/
           StationOne.runtime.test.tsx both fully mount this component. */}
-      {import.meta.env.DEV && import.meta.env.MODE !== 'test' && !readDeviceLock() ? (
+      {showTuningPanel() && import.meta.env.MODE !== 'test' && !readDeviceLock() ? (
         <Suspense fallback={null}>
           <CameraDevPanel camera={camera} />
         </Suspense>

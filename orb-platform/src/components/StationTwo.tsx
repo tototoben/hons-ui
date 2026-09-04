@@ -21,6 +21,7 @@ import { MirrorChoice } from './MirrorChoice'
 import { MirrorStationShell } from './MirrorStationShell'
 import { useStationVibe } from '../hooks/useStationVibe'
 import { readDeviceLock } from '../lib/deviceLock'
+import { showTuningPanel } from '../lib/tune'
 
 const JourneyDevPanel = lazy(() =>
   import('../dev/JourneyDevPanel').then((m) => ({ default: m.JourneyDevPanel })),
@@ -183,7 +184,7 @@ export function StationTwo({ phaseDurationMs }: { phaseDurationMs?: number }) {
         fully mounts <StationTwo/>. Cards/Mirror have the same lazy-panel
         shape but happen to never be runtime-tested at their station-root
         level, so they've never hit this. */}
-    {import.meta.env.DEV && import.meta.env.MODE !== 'test' && !readDeviceLock() ? (
+    {showTuningPanel() && import.meta.env.MODE !== 'test' && !readDeviceLock() ? (
       <Suspense fallback={null}>
         <JourneyDevPanel />
       </Suspense>

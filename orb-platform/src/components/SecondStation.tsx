@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react'
 import { QuestionCardDeck } from './QuestionCardDeck'
 import { CardPointCloudRoom } from './CardPointCloudRoom'
+import { showTuningPanel } from '../lib/tune'
 import './SecondStation.css'
 
 // Dynamically imported so `leva` is excluded from the production bundle —
@@ -17,7 +18,7 @@ export function SecondStation() {
     >
       <CardPointCloudRoom />
       <QuestionCardDeck />
-      {import.meta.env.DEV ? (
+      {showTuningPanel() ? (
         <Suspense fallback={null}>
           <CardsDevPanel />
         </Suspense>
