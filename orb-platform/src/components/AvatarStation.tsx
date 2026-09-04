@@ -2,8 +2,9 @@ import { Suspense, useEffect, useMemo, useRef } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { useTexture } from '@react-three/drei'
 import * as THREE from 'three'
-import { CAMERA, PLATFORM, RENDERER, ROOM } from '../config'
+import { CAMERA, PLATFORM, ROOM } from '../config'
 import { avatarPortraits, type AvatarPortrait } from '../lib/avatarPortraits'
+import { getDeviceQuality, webGlMaxDpr } from '../lib/deviceQuality'
 import './AvatarStation.css'
 
 const PORTRAIT_HEIGHT = 1.22
@@ -136,11 +137,13 @@ function PersonaPortraitRow() {
 }
 
 export function AvatarStation() {
+  const kiosk = getDeviceQuality() === 'kiosk'
+
   return (
     <section className="avatar-station" aria-label="Avatar portrait station">
       <div className="avatar-station-canvas" aria-hidden="true">
         <Canvas
-          dpr={[1, RENDERER.maxDpr]}
+          dpr={[1, webGlMaxDpr()]}
           camera={{
             fov: 34,
             near: CAMERA.near,
@@ -148,8 +151,8 @@ export function AvatarStation() {
             position: [0, 2.28, 7.4],
           }}
           gl={{
-            antialias: true,
-            powerPreference: 'high-performance',
+            antialias: !kiosk,
+            powerPreference: kiosk ? 'low-power' : 'high-performance',
             toneMapping: THREE.NoToneMapping,
             toneMappingExposure: 1,
           }}

@@ -28,3 +28,21 @@ export function getStationFromHash(hash: string): StationRoute {
 export function getStationHref(station: StationRoute) {
   return `#/${station}`
 }
+
+export function isEmptyStationHash(hash: string) {
+  return hash === '' || hash === '#' || hash === '#/'
+}
+
+/** Developer / wall-tool hashes that must not mount on a kiosk Pi. */
+export function isKioskBlockedStation(station: StationRoute) {
+  return (
+    station === 'orb' ||
+    station === 'cards' ||
+    station === 'avatars' ||
+    station === 'face-align' ||
+    station === 'wall-sim' ||
+    station === 'wall-cal' ||
+    station === 'debra-capture' ||
+    station === 'photobash'
+  )
+}

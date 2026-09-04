@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useStationVibe } from '../hooks/useStationVibe'
+import { canvasPixelRatio } from '../lib/deviceQuality'
 import { normalizeCompanionHeight } from '../lib/mirrorLandmarks'
 
 export function CompanionOutline({ height }: { height: number }) {
@@ -11,7 +12,7 @@ export function CompanionOutline({ height }: { height: number }) {
     if (!canvas) return
     const context = canvas.getContext('2d')
     if (!context) return
-    const ratio = Math.min(window.devicePixelRatio || 1, 2)
+    const ratio = canvasPixelRatio()
     const width = canvas.clientWidth
     const canvasHeight = canvas.clientHeight
     canvas.width = Math.round(width * ratio)

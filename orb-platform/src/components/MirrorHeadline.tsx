@@ -15,6 +15,9 @@ const CANVAS_HEIGHT = 280
  * "same text styles as before" the Mirror station's copy should carry.
  * Plain <canvas> rather than a 3D mesh/texture since this station is a
  * flat screen-space UI, not a room you're looking into.
+ *
+ * Kiosk keeps the haze (it is the look) but paints it once instead of
+ * drifting at 8 fps — the wet overlay still reads, without a redraw loop.
  */
 export function MirrorHeadline({ lines, className }: { lines: string[]; className?: string }) {
   const [vibe] = useStationVibe()
@@ -36,20 +39,50 @@ export function MirrorHeadline({ lines, className }: { lines: string[]; classNam
     const start = performance.now()
     const parts = text.split('\n')
     const s = mirrorSettings.text
+    const kiosk = isKioskQuality()
 
-    if (isKioskQuality()) {
+    const paint = (t: number) => {
       ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
-      ctx.textAlign = 'center'
-      ctx.textBaseline = 'middle'
-      ctx.fillStyle = s.color
       const lineHeight = s.fontPx * 1.08
       const totalHeight = lineHeight * parts.length
       const startY = CANVAS_HEIGHT / 2 - totalHeight / 2 + lineHeight / 2
-      ctx.font = `350 ${s.fontPx}px "Helvetica Neue", "Nimbus Sans", sans-serif`
       parts.forEach((line, i) => {
-        ctx.fillText(line, CANVAS_WIDTH / 2, startY + i * lineHeight, CANVAS_WIDTH * 0.94)
+        const lineCanvas = document.createElement('canvas')
+        lineCanvas.width = CANVAS_WIDTH
+        lineCanvas.height = lineHeight
+        const lctx = lineCanvas.getContext('2d')!
+        drawGrainyText(lctx, lineCanvas, line, {
+          fontPx: s.fontPx,
+          weight: 350,
+          maxWidthPx: CANVAS_WIDTH * 0.94,
+          shade: 200,
+          shadeVariance: 40,
+          color: hexToRgbUnit(s.color),
+          smudgeColor: hexToRgbUnit(s.smudgeColor),
+          crispAlpha: s.crispAlpha,
+          smudgeAlpha: s.smudgeAlpha,
+          smudgeWeight: s.smudgeWeight,
+          smudgeBoost: s.smudgeBoost,
+          smudgeBlurPx: s.smudgeBlurPx,
+          smudgeCellsX: 10,
+          smudgeCellsY: 3,
+          smudgeContrast: s.smudgeContrast,
+          smudgeFloor: s.smudgeFloor,
+          smudgeDriftTime: t,
+          smudgeDriftPeriod: kiosk ? 0 : s.driftPeriod,
+          grain: s.grain,
+          edgeFade: s.edgeFade,
+        })
+        ctx.drawImage(lineCanvas, 0, startY + i * lineHeight - lineHeight / 2)
       })
-      canvas.style.opacity = '1'
+    }
+
+    if (kiosk) {
+      paint(0)
+      canvas.style.transition = `opacity ${FADE_IN_MS}ms linear`
+      requestAnimationFrame(() => {
+        canvas.style.opacity = '1'
+      })
       return
     }
 
@@ -63,39 +96,7 @@ export function MirrorHeadline({ lines, className }: { lines: string[]; classNam
 
       if (lastDraw < 0 || now - lastDraw >= REDRAW_INTERVAL_MS) {
         lastDraw = now
-        ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
-        const lineHeight = s.fontPx * 1.08
-        const totalHeight = lineHeight * parts.length
-        const startY = CANVAS_HEIGHT / 2 - totalHeight / 2 + lineHeight / 2
-        parts.forEach((line, i) => {
-          const lineCanvas = document.createElement('canvas')
-          lineCanvas.width = CANVAS_WIDTH
-          lineCanvas.height = lineHeight
-          const lctx = lineCanvas.getContext('2d')!
-          drawGrainyText(lctx, lineCanvas, line, {
-            fontPx: s.fontPx,
-            weight: 350,
-            maxWidthPx: CANVAS_WIDTH * 0.94,
-            shade: 200,
-            shadeVariance: 40,
-            color: hexToRgbUnit(s.color),
-            smudgeColor: hexToRgbUnit(s.smudgeColor),
-            crispAlpha: s.crispAlpha,
-            smudgeAlpha: s.smudgeAlpha,
-            smudgeWeight: s.smudgeWeight,
-            smudgeBoost: s.smudgeBoost,
-            smudgeBlurPx: s.smudgeBlurPx,
-            smudgeCellsX: 10,
-            smudgeCellsY: 3,
-            smudgeContrast: s.smudgeContrast,
-            smudgeFloor: s.smudgeFloor,
-            smudgeDriftTime: t,
-            smudgeDriftPeriod: s.driftPeriod,
-            grain: s.grain,
-            edgeFade: s.edgeFade,
-          })
-          ctx.drawImage(lineCanvas, 0, startY + i * lineHeight - lineHeight / 2)
-        })
+        paint(t)
       }
       raf = requestAnimationFrame(draw)
     }

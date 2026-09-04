@@ -429,10 +429,6 @@
   background: rgba(238, 241, 240, 0.12);
 }
 
-:root[data-station-quality="kiosk"] .mirror-loading-arc-glow {
-  display: none;
-}
-
 :root[data-station-quality="kiosk"] .mirror-idle-ring {
   animation: none;
 }

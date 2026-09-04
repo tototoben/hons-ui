@@ -5,6 +5,7 @@ export const SECOND_STATION_POINT_CLOUD_CONFIG = {
   seed: 260810,
   desktop: { pointCount: 150000, orbCount: 26000 },
   mobile: { pointCount: 60000, orbCount: 12000 },
+  kiosk: { pointCount: 30000, orbCount: 6000 },
   pointSize: { min: 1.55, max: 4, scale: 0.58 },
   baseDensity: 0.75,
   densityNoiseScale: 0.35,
@@ -77,7 +78,7 @@ export const SECOND_STATION_POINT_CLOUD_CONFIG = {
   platformTopOffset: 0.012,
 } as const
 
-export type PointCloudQuality = 'desktop' | 'mobile'
+export type PointCloudQuality = 'desktop' | 'mobile' | 'kiosk'
 
 type VectorTuple = readonly [number, number, number]
 
@@ -217,7 +218,7 @@ export function buildScannedPlane(
   if (spec.count === 0) return emptyPointCloud()
 
   const config = SECOND_STATION_POINT_CLOUD_CONFIG
-  const qualitySalt = quality === 'desktop' ? 0x51f15e : 0xa24baed
+  const qualitySalt = quality === 'desktop' ? 0x51f15e : quality === 'mobile' ? 0xa24baed : 0x6b105c
   const random = createRandom((spec.seed ^ qualitySalt) >>> 0)
   const axisU = normalized(spec.axisU)
   const axisV = normalized(spec.axisV)

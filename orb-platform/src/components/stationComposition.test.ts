@@ -18,10 +18,17 @@ import debraGuideSource from './DebraGuide.tsx?raw'
 import mirrorGuideOrbSource from './MirrorGuideOrb.tsx?raw'
 import journeyStyles from './MirrorJourney.css?raw'
 import thirdStationStyles from './ThirdStation.css?raw'
+import mirrorHeadline from './MirrorHeadline.tsx?raw'
 
 describe('station composition', () => {
-  it('keeps developer station-switcher and overlays the production picker', () => {
+  it('keeps a Station I–III switcher and overlays the production picker', () => {
     expect(appSource).toContain('station-switcher')
+    expect(appSource).toContain('Station I')
+    expect(appSource).toContain('Station II')
+    expect(appSource).toContain('Station III')
+    expect(appSource).not.toContain("getStationHref('orb')")
+    expect(appSource).not.toContain("getStationHref('cards')")
+    expect(appSource).not.toContain("getStationHref('avatars')")
     expect(appSource).toContain('ThirdStationWall')
     expect(appSource).toContain('DevicePicker')
     expect(appSource).toContain('DeviceUnlockLayer')
@@ -70,6 +77,10 @@ describe('station composition', () => {
     expect(secondStation).toContain('QuestionCardDeck')
     expect(secondStation).not.toContain('GridScan')
     expect(secondStation).not.toContain('AutoCardStack')
+  })
+
+  it('skips the cards scan sweep on kiosk quality', () => {
+    expect(cardPointCloudRoom).toContain('{kiosk ? null : <CardScanSweep />}')
   })
 
   it('keeps the previous GridScan post stack on the cards point-cloud station', () => {
@@ -145,6 +156,21 @@ describe('station composition', () => {
     expect(stationOneSource).toContain('saveStationOneState')
     expect(stationTwoSource).toContain('firehoseReducer')
     expect(stationTwoSource).toContain('saveStationTwoState')
+  })
+
+  it('keeps grainy headlines and the icy camera grade on kiosk quality', () => {
+    expect(mirrorHeadline).toContain('drawGrainyText')
+    expect(mirrorHeadline).not.toMatch(/if \(isKioskQuality\(\)\)[\s\S]{0,400}fillText/)
+    expect(journeyStyles).toContain('--mirror-ice: #b9dceb')
+    expect(journeyStyles).toContain('filter: contrast(1.1) brightness(0.92)')
+    expect(journeyStyles).not.toContain('data-station-quality="kiosk"] .journey-camera-video')
+    expect(journeyStyles).not.toContain('data-station-quality="kiosk"] .journey-landmarks')
+    expect(thirdStationStyles).not.toContain('data-station-quality="kiosk"] .mirror-loading-arc-glow')
+    expect(journeyStyles).toContain('journey-action-haze')
+    expect(journeyStyles).toContain('color: var(--mirror-ice)')
+    expect(journeyStyles).not.toMatch(
+      /journey-intake button:hover[\s\S]{0,280}color: #000/,
+    )
   })
 
   it('pins station copy to a shared question-desk height and enlarges Station III frame', () => {
