@@ -53,6 +53,14 @@ export default defineConfig({
     strictPort: true,
     open: process.env.VITE_NO_OPEN !== '1',
     allowedHosts: true,
+    // When the dev server is forwarded to a kiosk via socat (localhost:8765
+    // -> dev_host:5176), the Vite HMR client can't establish a WebSocket
+    // through the TCP forwarder. Point the HMR client directly at this
+    // machine's LAN IP so the kiosk browser connects to ws://192.168.88.x:5176
+    // for hot updates, while page loads still go through the forwarder.
+    hmr: process.env.VITE_HMR_HOST
+      ? { host: process.env.VITE_HMR_HOST, port: Number(process.env.PORT) || 5176 }
+      : undefined,
   },
   build: {
     outDir: isVercel ? 'dist' : '../../visualizer/public/orb',
