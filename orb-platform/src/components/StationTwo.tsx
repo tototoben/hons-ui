@@ -16,6 +16,7 @@ import { getVisitorProfile } from '../lib/visitorProfile'
 import { journeySettings } from '../dev/journeySettingsStore'
 import { CompanionOutline } from './CompanionOutline'
 import { DebraGuide } from './DebraGuide'
+import { JourneyButton } from './JourneyButton'
 import { JourneyHeadline } from './JourneyHeadline'
 import { MirrorChoice } from './MirrorChoice'
 import { MirrorStationShell } from './MirrorStationShell'
@@ -275,13 +276,13 @@ export function StationTwo({ phaseDurationMs }: { phaseDurationMs?: number }) {
             />
             <span>Extremely</span>
           </label>
-          <button
+          <JourneyButton
             className="journey-height-confirm"
             type="button"
             onClick={() => dispatch({ type: 'ADVANCE' })}
           >
             {warm ? 'That feels right' : 'Confirm'}
-          </button>
+          </JourneyButton>
         </div>
       ) : null}
 
@@ -309,13 +310,13 @@ export function StationTwo({ phaseDurationMs }: { phaseDurationMs?: number }) {
               />
               <span>Taller</span>
             </label>
-            <button
+            <JourneyButton
               className="journey-height-confirm"
               type="button"
               onClick={() => dispatch({ type: 'ADVANCE' })}
             >
               {warm ? 'That feels right' : 'Confirm height'}
-            </button>
+            </JourneyButton>
           </div>
         </div>
       ) : null}
@@ -348,7 +349,11 @@ export function StationTwo({ phaseDurationMs }: { phaseDurationMs?: number }) {
           <JourneyHeadline lines={warm ? ["When you're", 'ready'] : ['PROCEED TO THE', 'NEXT STATION']}>
             {warm ? "When you're ready" : 'Proceed to the next station'}
           </JourneyHeadline>
-          {readDeviceLock() ? null : <a href="#/mirror">Continue to Station III</a>}
+          {readDeviceLock() ? null : (
+            <JourneyButton as="a" href="#/mirror">
+              Continue to Station III
+            </JourneyButton>
+          )}
         </div>
       ) : null}
     </MirrorStationShell>
@@ -387,7 +392,7 @@ function StationTwoTextQuestion({
         value={draft}
         onChange={(event) => setDraft(event.target.value)}
       />
-      <button type="submit">Continue</button>
+      <JourneyButton type="submit">Continue</JourneyButton>
     </form>
   )
 }

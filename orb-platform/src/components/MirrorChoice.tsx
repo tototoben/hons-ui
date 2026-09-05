@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useStationVibe } from '../hooks/useStationVibe'
 import type { BinaryAnswer } from '../lib/mirrorJourney'
+import { JourneyButton } from './JourneyButton'
 
 export function MirrorChoice({
   onAnswer,
@@ -36,12 +37,12 @@ export function MirrorChoice({
       role="group"
       aria-label={labels ? `Choose ${yesLabel} or ${noLabel}` : 'Answer yes or no'}
     >
-      <button type="button" onClick={() => onAnswer('yes')}>
+      <JourneyButton type="button" onClick={() => onAnswer('yes')}>
         {yesLabel}
-      </button>
-      <button type="button" onClick={() => onAnswer('no')}>
+      </JourneyButton>
+      <JourneyButton type="button" onClick={() => onAnswer('no')}>
         {noLabel}
-      </button>
+      </JourneyButton>
       <p>{vibe === 'warm' ? 'or press Y / N' : 'Press Y or N'}</p>
     </div>
   )

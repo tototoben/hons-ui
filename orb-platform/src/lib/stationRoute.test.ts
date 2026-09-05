@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { getStationFromHash, getStationHref } from './stationRoute'
+import {
+  getStationFromHash,
+  getStationHref,
+  isEmptyStationHash,
+  isKioskBlockedStation,
+} from './stationRoute'
 
 describe('getStationFromHash', () => {
   it('defaults to the orb station for an empty hash', () => {
@@ -48,6 +53,23 @@ describe('getStationFromHash', () => {
 
   it('falls back to orb for unknown hashes', () => {
     expect(getStationFromHash('#/unknown')).toBe('orb')
+  })
+
+  it('treats empty hashes as unset so App can open the picker', () => {
+    expect(isEmptyStationHash('')).toBe(true)
+    expect(isEmptyStationHash('#')).toBe(true)
+    expect(isEmptyStationHash('#/')).toBe(true)
+    expect(isEmptyStationHash('#/station-1')).toBe(false)
+  })
+
+  it('blocks developer and wall hashes on kiosk quality', () => {
+    expect(isKioskBlockedStation('orb')).toBe(true)
+    expect(isKioskBlockedStation('cards')).toBe(true)
+    expect(isKioskBlockedStation('avatars')).toBe(true)
+    expect(isKioskBlockedStation('photobash')).toBe(true)
+    expect(isKioskBlockedStation('station-1')).toBe(false)
+    expect(isKioskBlockedStation('station-2')).toBe(false)
+    expect(isKioskBlockedStation('mirror')).toBe(false)
   })
 })
 

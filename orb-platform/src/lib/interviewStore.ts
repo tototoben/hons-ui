@@ -127,7 +127,13 @@ function writeJson(key: string, value: unknown, storage: InterviewStorage | unde
 export function loadStationOneState(
   storage: InterviewStorage | undefined = defaultStorage(),
 ): StationOneState | null {
-  return parseStationOneState(readJson(STATION_ONE_STORAGE_KEY, storage))
+  const state = parseStationOneState(readJson(STATION_ONE_STORAGE_KEY, storage))
+  if (!state) return null
+  // Finished visits must not boot the next person (or an operator lock)
+  // onto "Proceed to the next station". Intake is the only phase that
+  // should resume across a refresh.
+  if (state.phase !== 'intake') return null
+  return state
 }
 
 export function saveStationOneState(
@@ -140,7 +146,10 @@ export function saveStationOneState(
 export function loadStationTwoState(
   storage: InterviewStorage | undefined = defaultStorage(),
 ): StationTwoState | null {
-  return parseStationTwoState(readJson(STATION_TWO_STORAGE_KEY, storage))
+  const state = parseStationTwoState(readJson(STATION_TWO_STORAGE_KEY, storage))
+  if (!state) return null
+  if (state.phase === 'complete') return null
+  return state
 }
 
 export function saveStationTwoState(

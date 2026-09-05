@@ -286,7 +286,35 @@
   font: 500 12px/1 "Helvetica Neue", sans-serif;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  transition: background 180ms ease, color 180ms ease;
+  transition: background 180ms ease, color 180ms ease, box-shadow 180ms ease;
+}
+
+.journey-action {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.journey-action-copy {
+  position: relative;
+  z-index: 1;
+}
+
+.journey-action-haze {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 180ms ease;
+}
+
+.journey-action-haze canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 .journey-intake button {
@@ -297,6 +325,8 @@
 .journey-intake button:hover,
 .journey-choice button:hover,
 .journey-choice button:focus-visible,
+.journey-complete a:hover,
+.journey-complete a:focus-visible,
 .journey-height-confirm:hover,
 .journey-height-confirm:focus-visible {
   background: var(--mirror-ice);
@@ -318,6 +348,18 @@
   align-self: end;
   margin-bottom: var(--question-desk-bottom);
   padding-bottom: var(--question-controls-min-height);
+}
+
+.journey-complete a {
+  display: inline-block;
+  margin-top: 22px;
+  padding: 14px 32px;
+  text-decoration: none;
+  color: var(--mirror-ink);
+  font: 500 12px/1 "Helvetica Neue", sans-serif;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  transition: background 180ms ease, color 180ms ease, box-shadow 180ms ease;
 }
 
 .journey-question {
@@ -569,13 +611,20 @@
   font-size: 11px;
 }
 
-:root[data-station-vibe="original"] .journey-intake button:hover,
-:root[data-station-vibe="original"] .journey-complete a:hover,
-:root[data-station-vibe="original"] .journey-choice button:hover,
-:root[data-station-vibe="original"] .journey-choice button:focus-visible,
-:root[data-station-vibe="original"] .journey-height-confirm:hover,
-:root[data-station-vibe="original"] .journey-height-confirm:focus-visible {
-  color: #000;
+:root[data-station-vibe="original"] .journey-action:is(:hover, :focus-visible, :active) {
+  background: color-mix(in srgb, var(--mirror-ice) 64%, #102830);
+  color: var(--mirror-ice);
+  box-shadow:
+    inset 0 0 0 1px var(--mirror-ice),
+    0 0 26px rgba(185, 220, 235, 0.42);
+}
+
+:root[data-station-vibe="original"] .journey-action:is(:hover, :focus-visible, :active) .journey-action-copy {
+  opacity: 0;
+}
+
+:root[data-station-vibe="original"] .journey-action:is(:hover, :focus-visible, :active) .journey-action-haze {
+  opacity: 1;
 }
 
 :root[data-station-vibe="original"] .journey-choice {
@@ -604,17 +653,6 @@
   font-size: 10px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-}
-
-:root[data-station-quality="kiosk"] .journey-camera-video,
-:root[data-station-quality="kiosk"][data-station-vibe="original"] .journey-camera-video {
-  filter: none;
-}
-
-:root[data-station-quality="kiosk"] .journey-landmarks,
-:root[data-station-quality="kiosk"][data-station-vibe="original"] .journey-landmarks,
-:root[data-station-quality="kiosk"] .journey-camera-stage.is-dissolving .journey-landmarks {
-  filter: none;
 }
 
 @keyframes mirror-guide-orb-breathe {

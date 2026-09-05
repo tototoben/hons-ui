@@ -1,6 +1,10 @@
+import { STORAGE_KEY as DEVICE_LOCK_STORAGE_KEY } from './deviceLock'
+
 export type DeviceQuality = 'full' | 'kiosk'
 
-const STORAGE_KEY = 'station-quality'
+export const QUALITY_STORAGE_KEY = 'station-quality'
+
+const KIOSK_LOCKS = new Set(['station-1', 'station-2', 'station-3'])
 
 export type DeviceQualityEnv = {
   userAgent?: string
@@ -14,22 +18,29 @@ export type DeviceQualityEnv = {
 let current: DeviceQuality | null = null
 
 export function detectDeviceQuality(env: DeviceQualityEnv = defaultEnv()): DeviceQuality {
-  const override = readOverride(env)
-  if (override) return override
+  const query = readQueryOverride(env)
+  if (query) return query
+
+  if (isKioskDeviceLock(env.storage)) return 'kiosk'
+
+  const stored = readStoredQuality(env)
+  if (stored) return stored
 
   const userAgent = env.userAgent ?? ''
   const platform = env.platform ?? ''
-  const cores = env.hardwareConcurrency ?? 8
-  const memory = env.deviceMemory
   const haystack = `${userAgent} ${platform}`
 
-  if (/Raspberry|Pi-400|RaspberryPi/i.test(haystack)) return 'kiosk'
+  if (/Raspberry|Pi-400|RaspberryPi|WPE|WebKitGTK|\bCog\b/i.test(haystack)) return 'kiosk'
 
   const armLinux =
     /Linux/i.test(haystack) && /(aarch64|arm64|armv7|armv8|\barm\b)/i.test(haystack)
-  if (armLinux && cores <= 4 && (memory === undefined || memory <= 4)) return 'kiosk'
+  if (armLinux) return 'kiosk'
 
-  if (typeof memory === 'number' && memory <= 2 && cores <= 4) return 'kiosk'
+  const cores = env.hardwareConcurrency
+  const memory = env.deviceMemory
+  if (typeof memory === 'number' && memory <= 2 && (cores === undefined || cores <= 4)) {
+    return 'kiosk'
+  }
 
   return 'full'
 }
@@ -48,6 +59,7 @@ export function applyDeviceQuality(quality: DeviceQuality = getDeviceQuality()) 
   if (typeof document !== 'undefined') {
     document.documentElement.dataset.stationQuality = quality
   }
+  if (quality === 'kiosk') persistKioskQuality()
   return quality
 }
 
@@ -55,8 +67,13 @@ export function mirrorCameraConstraints(quality: DeviceQuality = getDeviceQualit
   if (quality === 'kiosk') {
     return {
       facingMode: 'user' as const,
-      width: { ideal: 480, max: 720 },
-      height: { ideal: 640, max: 960 },
+      // Landscape on purpose. A portrait 480×640 ask makes laptop / USB
+      // webcams center-crop their 16:9 sensor, which reads as a tight
+      // face zoom. mapLandmarkToMirror already cover-crops the live
+      // frame into the portrait UI from whatever the camera actually
+      // delivers.
+      width: { ideal: 640, max: 960 },
+      height: { ideal: 480, max: 720 },
       frameRate: { ideal: 15, max: 20 },
     }
   }
@@ -105,19 +122,45 @@ export function kioskOrbCounts(
   }
 }
 
-function readOverride(env: DeviceQualityEnv): DeviceQuality | null {
+function readQueryOverride(env: DeviceQualityEnv): DeviceQuality | null {
   try {
     const params = new URLSearchParams(env.search ?? '')
     const query = params.get('quality') ?? params.get('lowpower')
     if (query === 'low' || query === 'kiosk' || query === '1') return 'kiosk'
     if (query === 'full' || query === 'high') return 'full'
-    const stored = env.storage?.getItem(STORAGE_KEY)
+  } catch {
+    // Privacy-restricted kiosk browsers can block search parsing.
+  }
+  return null
+}
+
+function readStoredQuality(env: DeviceQualityEnv): DeviceQuality | null {
+  try {
+    const stored = env.storage?.getItem(QUALITY_STORAGE_KEY)
     if (stored === 'low' || stored === 'kiosk') return 'kiosk'
     if (stored === 'full') return 'full'
   } catch {
-    // Privacy-restricted kiosk browsers can block storage and search parsing.
+    // Privacy-restricted kiosk browsers can block storage.
   }
   return null
+}
+
+function isKioskDeviceLock(storage: DeviceQualityEnv['storage']) {
+  try {
+    const lock = storage?.getItem(DEVICE_LOCK_STORAGE_KEY)
+    return typeof lock === 'string' && KIOSK_LOCKS.has(lock)
+  } catch {
+    return false
+  }
+}
+
+function persistKioskQuality() {
+  if (typeof window === 'undefined') return
+  try {
+    window.localStorage.setItem(QUALITY_STORAGE_KEY, 'kiosk')
+  } catch {
+    // Privacy-restricted kiosk browsers can block storage.
+  }
 }
 
 function defaultEnv(): DeviceQualityEnv {

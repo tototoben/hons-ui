@@ -20,6 +20,9 @@ vi.mock('./dev/LevaRoot', () => ({ LevaRoot: () => null }))
 
 import App from './App'
 import { STORAGE_KEY } from './lib/deviceLock'
+import { QUALITY_STORAGE_KEY, applyDeviceQuality } from './lib/deviceQuality'
+import { STATION_ONE_STORAGE_KEY, saveStationOneState } from './lib/interviewStore'
+import { createStationOneState } from './lib/mirrorJourney'
 
 function chordEvent(overrides: KeyboardEventInit = {}) {
   return new KeyboardEvent('keydown', {
@@ -41,7 +44,9 @@ describe('App production overlay', () => {
   beforeEach(() => {
     ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT =
       true
+    applyDeviceQuality('full')
     window.localStorage.removeItem(STORAGE_KEY)
+    window.localStorage.removeItem(QUALITY_STORAGE_KEY)
     window.location.hash = '#/orb'
     container = document.createElement('div')
     document.body.append(container)
@@ -52,6 +57,9 @@ describe('App production overlay', () => {
     act(() => root.unmount())
     container.remove()
     window.localStorage.removeItem(STORAGE_KEY)
+    window.localStorage.removeItem(QUALITY_STORAGE_KEY)
+    window.localStorage.removeItem(STATION_ONE_STORAGE_KEY)
+    applyDeviceQuality('full')
     window.location.hash = ''
     document.querySelectorAll('input').forEach((node) => node.remove())
   })
@@ -67,6 +75,28 @@ describe('App production overlay', () => {
     await renderApp()
     expect(container.querySelector('.station-switcher')).not.toBeNull()
     expect(container.querySelector('[aria-label="Production lock"]')).toBeNull()
+  })
+
+  it('opens the production picker on an empty hash instead of the orb', async () => {
+    window.location.hash = ''
+    await renderApp()
+    expect(container.querySelector('[aria-label="Production lock"]')).not.toBeNull()
+    expect(container.querySelector('.station-switcher')).toBeNull()
+    expect(container.querySelector('[data-testid="orb-station"]')).toBeNull()
+  })
+
+  it('lists only Station I–III in the developer switcher', async () => {
+    await renderApp()
+    const labels = [...container.querySelectorAll('.station-switcher a')].map((link) => link.textContent)
+    expect(labels).toEqual(['Station I', 'Station II', 'Station III'])
+  })
+
+  it('opens the picker on kiosk quality instead of mounting the orb', async () => {
+    applyDeviceQuality('kiosk')
+    await renderApp()
+    expect(container.querySelector('[aria-label="Production lock"]')).not.toBeNull()
+    expect(container.querySelector('[data-testid="orb-station"]')).toBeNull()
+    expect(container.querySelector('.station-switcher')).toBeNull()
   })
 
   it('opens the picker on Cmd+Shift+P and hides the switcher', async () => {
@@ -114,6 +144,21 @@ describe('App production overlay', () => {
     expect(container.querySelector('[aria-label="Production lock"]')).toBeNull()
     expect(container.querySelector('[data-testid="station-one"]')).not.toBeNull()
     expect(container.querySelector('[data-unlock-corner]')).not.toBeNull()
+  })
+
+  it('clears a finished Station I visit when locking Station I from the picker', async () => {
+    saveStationOneState(createStationOneState({ phase: 'proceed', questionIndex: 10 }))
+    await renderApp()
+    await act(async () => {
+      window.dispatchEvent(chordEvent())
+      await Promise.resolve()
+    })
+    const stationI = [...container.querySelectorAll('button')].find((button) => button.textContent === 'Station I')
+    await act(async () => {
+      stationI!.click()
+      await Promise.resolve()
+    })
+    expect(window.localStorage.getItem(STATION_ONE_STORAGE_KEY)).toBeNull()
   })
 
   it('boots a stored lock without picker or switcher', async () => {

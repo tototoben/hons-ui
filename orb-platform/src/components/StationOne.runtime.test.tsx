@@ -241,6 +241,14 @@ describe('StationOne', () => {
     expect(getVisitorProfile().callName).toBe('Ada')
   })
 
+  it('starts a new intake instead of restoring proceed', () => {
+    saveStationOneState(createStationOneState({ phase: 'proceed', questionIndex: 10 }))
+    act(() => root.render(<StationOne phaseDurationMs={20} />))
+
+    expect(container.querySelector<HTMLInputElement>('input[name="callName"]')).not.toBeNull()
+    expect(container.textContent).not.toContain('Proceed to the next station')
+  })
+
   it('has no station-marker header regardless of vibe', () => {
     applyStationVibe('original')
     act(() => root.render(<StationOne phaseDurationMs={20} />))

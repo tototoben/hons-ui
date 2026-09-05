@@ -40,6 +40,16 @@ describe('interviewStore', () => {
     expect(storage.snapshot()[STATION_ONE_STORAGE_KEY]).toContain('Ada')
   })
 
+  it('does not resume a finished Station I visit', () => {
+    const storage = memoryStorage()
+    saveStationOneState(createStationOneState({ phase: 'proceed', questionIndex: 10 }), storage)
+    expect(loadStationOneState(storage)).toBeNull()
+    saveStationOneState(createStationOneState({ phase: 'complete', questionIndex: 10 }), storage)
+    expect(loadStationOneState(storage)).toBeNull()
+    saveStationOneState(createStationOneState({ phase: 'scan-face', questionIndex: 10 }), storage)
+    expect(loadStationOneState(storage)).toBeNull()
+  })
+
   it('round-trips Station II answers, height, and lightning picks', () => {
     const storage = memoryStorage()
     const state = createStationTwoState({
@@ -56,6 +66,12 @@ describe('interviewStore', () => {
     saveStationTwoState(state, storage)
 
     expect(loadStationTwoState(storage)).toEqual(state)
+  })
+
+  it('does not resume a finished Station II visit', () => {
+    const storage = memoryStorage()
+    saveStationTwoState(createStationTwoState({ phase: 'complete' }), storage)
+    expect(loadStationTwoState(storage)).toBeNull()
   })
 
   it('rejects corrupt Station I payloads', () => {

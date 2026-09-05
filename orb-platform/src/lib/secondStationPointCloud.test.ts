@@ -24,6 +24,8 @@ describe('second-station stochastic surface sampler', () => {
   it('uses the approved quality budgets', () => {
     expect(SECOND_STATION_POINT_CLOUD_CONFIG.desktop.pointCount).toBe(150_000)
     expect(SECOND_STATION_POINT_CLOUD_CONFIG.mobile.pointCount).toBe(60_000)
+    expect(SECOND_STATION_POINT_CLOUD_CONFIG.kiosk.pointCount).toBe(30_000)
+    expect(SECOND_STATION_POINT_CLOUD_CONFIG.kiosk.orbCount).toBe(6_000)
   })
 
   it('is deterministic for a seed and changes for a different seed', () => {
@@ -131,5 +133,8 @@ describe('second-station stochastic surface sampler', () => {
     expect(desktopRoom.count).toBe(SECOND_STATION_POINT_CLOUD_CONFIG.desktop.pointCount)
     expect(room.count).toBe(SECOND_STATION_POINT_CLOUD_CONFIG.mobile.pointCount)
     expect(platform.count).toBe(expectedPlatformCount)
+    expect(buildSecondStationRoomCloud('kiosk').count).toBe(
+      SECOND_STATION_POINT_CLOUD_CONFIG.kiosk.pointCount,
+    )
   })
 })

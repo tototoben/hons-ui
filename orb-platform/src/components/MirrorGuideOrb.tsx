@@ -90,6 +90,7 @@ function MirrorGuideOrbLite({ className }: { className?: string }) {
 
 function MirrorGuideOrbCanvas({ className }: { className?: string }) {
   const [counts, setCounts] = useState(readCounts)
+  const kiosk = getDeviceQuality() === 'kiosk'
 
   useEffect(() => {
     if (!import.meta.env.DEV) return
@@ -148,10 +149,10 @@ function MirrorGuideOrbCanvas({ className }: { className?: string }) {
       <Canvas
         dpr={[1, webGlMaxDpr()]}
         gl={{
-          antialias: true,
+          antialias: !kiosk,
           alpha: true,
           preserveDrawingBuffer: true,
-          powerPreference: 'high-performance',
+          powerPreference: kiosk ? 'low-power' : 'high-performance',
         }}
         camera={{ fov: 32, near: 0.1, far: 20, position: [0, 0, mirrorSettings.orb.cameraDistance] }}
       >

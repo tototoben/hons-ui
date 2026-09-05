@@ -5,6 +5,8 @@ import { MirrorPreviewFrame } from './components/MirrorPreviewToggle'
 import { WallModeViewport } from './components/WallModeViewport'
 import { applyDeviceQuality, getDeviceQuality } from './lib/deviceQuality'
 import { perfSetView } from './lib/perfMonitor'
+import { resetVisitorProfile } from './lib/visitorProfile'
+import { resetVisitorFaceCapture } from './lib/visitorFaceCapture'
 import {
   STORAGE_KEY,
   clearDeviceLock,
@@ -18,7 +20,13 @@ import { isPickerDismissKey, isProductionHotkey } from './lib/productionHotkey'
 import { isWallMode } from './lib/wallMode'
 import { isWallRoleMode, parseWallRole } from './lib/wallRole'
 import { showTuningPanel } from './lib/tune'
-import { getStationFromHash, getStationHref, type StationRoute } from './lib/stationRoute'
+import {
+  getStationFromHash,
+  getStationHref,
+  isEmptyStationHash,
+  isKioskBlockedStation,
+  type StationRoute,
+} from './lib/stationRoute'
 import './index.css'
 
 const DevPanel = lazy(() => import('./dev/DevPanel').then((m) => ({ default: m.DevPanel })))
@@ -60,19 +68,24 @@ const DebraCapture = lazy(() =>
 
 export default function App() {
   const [lock, setLock] = useState<DeviceLock | null>(() => readDeviceLock())
+  const [quality] = useState(() => getDeviceQuality())
   const [pickerOpen, setPickerOpen] = useState(false)
+  const [routeHash, setRouteHash] = useState(() => window.location.hash)
   const [station, setStation] = useState<StationRoute>(() =>
     getStationFromHash(window.location.hash),
   )
-  const [quality] = useState(() => getDeviceQuality())
   const [wallCropMode] = useState(() => isWallMode())
   const [wallRole] = useState(() => parseWallRole())
   const lockedStation = lock ? lockToStation(lock) : null
   const isWallSim = station === 'wall-sim'
   const isWallPanel = wallRole !== null
+  const showPicker =
+    pickerOpen ||
+    (!lock && isEmptyStationHash(routeHash)) ||
+    (!lock && quality === 'kiosk' && isKioskBlockedStation(station))
   const hideChrome =
     Boolean(lock) ||
-    pickerOpen ||
+    showPicker ||
     wallCropMode ||
     isWallRoleMode() ||
     station === 'wall-sim' ||
@@ -84,8 +97,13 @@ export default function App() {
     writeDeviceLock(next)
     setLock(next)
     setPickerOpen(false)
+    if (next === 'station-1') {
+      resetVisitorProfile()
+      resetVisitorFaceCapture()
+    }
     const href = lockHref(next)
     window.history.replaceState(null, '', href)
+    setRouteHash(href)
     setStation(getStationFromHash(href))
   }, [])
 
@@ -104,24 +122,20 @@ export default function App() {
   }, [station])
 
   useEffect(() => {
-    const onHashChange = () => setStation(getStationFromHash(window.location.hash))
+    const onHashChange = () => {
+      setRouteHash(window.location.hash)
+      setStation(getStationFromHash(window.location.hash))
+    }
     window.addEventListener('hashchange', onHashChange)
     return () => window.removeEventListener('hashchange', onHashChange)
   }, [])
-
-  useEffect(() => {
-    if (lock) return
-    if (!window.location.hash) {
-      window.history.replaceState(null, '', getStationHref('orb'))
-      setStation('orb')
-    }
-  }, [lock])
 
   useEffect(() => {
     if (!lock || isWallSim || isWallPanel) return
     const href = lockHref(lock)
     if (window.location.hash !== href) {
       window.history.replaceState(null, '', href)
+      setRouteHash(href)
       setStation(getStationFromHash(href))
     }
     const onHashChange = () => {
@@ -191,32 +205,10 @@ export default function App() {
           >
             Station III
           </a>
-          <a aria-current={station === 'orb' ? 'page' : undefined} href={getStationHref('orb')}>
-            Orb
-          </a>
-          <a
-            aria-current={station === 'cards' ? 'page' : undefined}
-            href={getStationHref('cards')}
-          >
-            Cards
-          </a>
-          <a
-            aria-current={station === 'avatars' ? 'page' : undefined}
-            href={getStationHref('avatars')}
-          >
-            Avatars
-          </a>
-          <a
-            aria-current={station === 'face-align' ? 'page' : undefined}
-            href={getStationHref('face-align')}
-          >
-            Align
-          </a>
-          <a href={getStationHref('wall-sim')}>Wall sim</a>
         </nav>
       ) : null}
       <Suspense fallback={null}>
-        {pickerOpen ? (
+        {showPicker ? (
           <DevicePicker quality={quality} onLock={applyLock} />
         ) : isWallSim ? (
           <WallSim />

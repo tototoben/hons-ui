@@ -154,11 +154,11 @@ function CardsPostBridge() {
 
 export function CardPointCloudRoom() {
   const kiosk = getDeviceQuality() === 'kiosk'
-  const [quality] = useState<PointCloudQuality>(() =>
-    kiosk || (typeof window !== 'undefined' && window.innerWidth < CAMERA.narrowBreakpoint)
-      ? 'mobile'
-      : 'desktop',
-  )
+  const [quality] = useState<PointCloudQuality>(() => {
+    if (kiosk) return 'kiosk'
+    if (typeof window !== 'undefined' && window.innerWidth < CAMERA.narrowBreakpoint) return 'mobile'
+    return 'desktop'
+  })
 
   return (
     <div className="card-point-room" aria-hidden="true">
@@ -182,7 +182,7 @@ export function CardPointCloudRoom() {
         <CardRoomCamera />
         <PerfMonitorBridge />
         <ScannedInstallation quality={quality} />
-        <CardScanSweep />
+        {kiosk ? null : <CardScanSweep />}
         {kiosk ? null : <CardsPostBridge />}
       </Canvas>
     </div>

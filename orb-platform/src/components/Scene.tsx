@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useLayoutEffect } from 'react'
 import { useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { CAMERA, RENDERER } from '../config'
@@ -17,6 +17,7 @@ import { useOrbContext } from '../context/OrbContext'
 type Props = {
   postEnabled: boolean
   parallaxEnabled: boolean
+  scanSweepEnabled: boolean
   answerText: string
   questionText: string
   submitSerial: number
@@ -29,11 +30,12 @@ type Props = {
 export function Scene({
   postEnabled,
   parallaxEnabled,
+  scanSweepEnabled,
   answerText,
   questionText,
   submitSerial,
 }: Props) {
-  const { camera, size, gl } = useThree()
+  const { camera, size, gl, scene } = useThree()
   const { reducedMotion } = useOrbContext()
 
   useEffect(() => {
@@ -51,6 +53,10 @@ export function Scene({
     persp.updateProjectionMatrix()
   }, [camera, size.width, size.height])
 
+  useLayoutEffect(() => {
+    gl.compile(scene, camera)
+  }, [gl, scene, camera, scanSweepEnabled])
+
   return (
     <>
       <color attach="background" args={['#0b0704']} />
@@ -61,7 +67,7 @@ export function Scene({
       <SpaceRoom />
       <Platform />
       <Orb />
-      <ScanSweep />
+      {scanSweepEnabled ? <ScanSweep /> : null}
       <QuestionPrompt questionText={questionText} submitSerial={submitSerial} />
       <SpatialQuestion answerText={answerText} submitSerial={submitSerial} />
       <CameraParallax enabled={parallaxEnabled} />

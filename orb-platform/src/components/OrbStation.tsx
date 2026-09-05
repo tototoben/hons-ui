@@ -106,14 +106,16 @@ function ExperienceShell({
           powerPreference: kiosk ? 'low-power' : 'high-performance',
           toneMappingExposure: RENDERER.exposure,
         }}
-        onCreated={({ camera }) => {
+        onCreated={({ gl, scene, camera }) => {
           camera.lookAt(...CAMERA.lookAt)
+          gl.compile(scene, camera)
         }}
       >
         <PerfMonitorBridge />
         <Scene
           postEnabled={postEnabled && !kiosk}
           parallaxEnabled={parallaxEnabled && !kiosk}
+          scanSweepEnabled={!kiosk}
           answerText={answerText}
           questionText={questionText}
           submitSerial={submitSerial}

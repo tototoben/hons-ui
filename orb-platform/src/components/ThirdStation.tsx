@@ -14,7 +14,6 @@ import { showTuningPanel } from '../lib/tune'
 import { useStationVibe } from '../hooks/useStationVibe'
 import type { WallPhase } from '../lib/wallPhaseSync'
 import { publish } from '../lib/firehose'
-import { useVisitorVoiceRecorder } from '../hooks/useVisitorVoiceRecorder'
 import { notifyRevealReady } from '../lib/photobashTrigger'
 import { MirrorGuideOrb } from './MirrorGuideOrb'
 import { MirrorHeadline } from './MirrorHeadline'
@@ -323,27 +322,14 @@ function GuideOrb({ variant, progress }: { variant: 'idle' | 'loading'; progress
 function RecordingFrame({
   secondsLeft,
   totalSeconds,
-  caption,
-  hasSpeech,
-  onArm,
 }: {
   secondsLeft: number
   totalSeconds: number
-  caption: string
-  hasSpeech: boolean
-  onArm: () => void
 }) {
   const progress = 1 - secondsLeft / totalSeconds
-  const captionRef = useRef<HTMLParagraphElement>(null)
-
-  useEffect(() => {
-    const node = captionRef.current
-    if (!node) return
-    node.scrollTop = node.scrollHeight
-  }, [caption])
 
   return (
-    <div className="mirror-record-frame" onPointerDown={onArm}>
+    <div className="mirror-record-frame">
       <span className="mirror-hud-corner mirror-hud-corner-tl" />
       <span className="mirror-hud-corner mirror-hud-corner-tr" />
       <span className="mirror-hud-corner mirror-hud-corner-bl" />
@@ -352,14 +338,6 @@ function RecordingFrame({
         <span className="mirror-rec-dot" />
         REC
       </div>
-      <p
-        ref={captionRef}
-        className={
-          hasSpeech ? 'mirror-record-transcript' : 'mirror-record-transcript is-waiting'
-        }
-      >
-        <span>{caption}</span>
-      </p>
       <div className="mirror-record-timer">
         <svg viewBox="0 0 64 64" className="mirror-record-timer-ring">
           <circle cx="32" cy="32" r="28" className="mirror-record-timer-track" />
@@ -388,7 +366,6 @@ export function ThirdStation() {
   const [recordSecondsLeft, setRecordSecondsLeft] = useState(mirrorSettings.timing.recordingSeconds)
   const [loadingProgress, setLoadingProgress] = useState(0)
   const prevPhaseRef = useRef<Phase | null>(null)
-  const { transcript, caption, arm } = useVisitorVoiceRecorder(phase === 'recording')
 
   useEffect(() => {
     publish('station-3', 'station_mounted', { phase: 'intro' })
@@ -510,9 +487,6 @@ export function ThirdStation() {
             <RecordingFrame
               secondsLeft={recordSecondsLeft}
               totalSeconds={mirrorSettings.timing.recordingSeconds}
-              caption={caption}
-              hasSpeech={Boolean(transcript)}
-              onArm={arm}
             />
           </div>
         ) : null}

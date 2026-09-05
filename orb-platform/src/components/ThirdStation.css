@@ -307,30 +307,6 @@
   color: rgba(255, 244, 232, 0.92);
 }
 
-.mirror-record-transcript {
-  position: absolute;
-  left: 22px;
-  right: 22px;
-  top: 52px;
-  bottom: 92px;
-  margin: 0;
-  overflow: auto;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: clamp(16px, 3.6vw, 22px);
-  line-height: 1.4;
-  letter-spacing: 0.03em;
-  color: rgba(255, 244, 232, 0.92);
-  text-align: center;
-}
-
-.mirror-record-transcript.is-waiting {
-  align-items: center;
-  color: rgba(255, 244, 232, 0.42);
-}
-
 /* Loading — headline, guide orb wrapped in a Detroit-style segmented
    spinner ring (now progress-driven instead of idly spinning), small
    diagnostic readout line. */
@@ -427,10 +403,6 @@
 
 :root[data-station-vibe="original"] .mirror-mini-bar {
   background: rgba(238, 241, 240, 0.12);
-}
-
-:root[data-station-quality="kiosk"] .mirror-loading-arc-glow {
-  display: none;
 }
 
 :root[data-station-quality="kiosk"] .mirror-idle-ring {

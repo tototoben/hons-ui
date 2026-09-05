@@ -11,6 +11,7 @@ import {
 } from '../lib/mirrorJourney'
 import { loadStationOneState, saveStationOneState } from '../lib/interviewStore'
 import { setVisitorProfile, visitorProfileFromAnswers } from '../lib/visitorProfile'
+import { JourneyButton } from './JourneyButton'
 import { JourneyHeadline } from './JourneyHeadline'
 import { MirrorChoice } from './MirrorChoice'
 import { MirrorStationShell } from './MirrorStationShell'
@@ -136,7 +137,7 @@ export function StationOne({ phaseDurationMs = 2200 }: { phaseDurationMs?: numbe
               setDraft(next)
             }}
           />
-          <button type="submit">Continue</button>
+          <JourneyButton type="submit">Continue</JourneyButton>
         </form>
       ) : null}
 
