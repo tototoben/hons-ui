@@ -45,7 +45,7 @@ describe('station composition', () => {
   it('keeps Photobash as collage-only with no Debra or code wall chrome', () => {
     expect(photobashSource).toContain('WallCollageBlanket')
     expect(photobashSource).toContain('usePhotobashLoop')
-    expect(photobashSource).toContain('PhotobashVoice')
+    expect(photobashSource).not.toContain('PhotobashVoice')
     expect(photobashSource).not.toContain('WallDebraPanel')
     expect(photobashSource).not.toContain('WallCodePanel')
     expect(photobashSource).not.toContain('STANDBY')
@@ -142,13 +142,12 @@ describe('station composition', () => {
     expect(mirrorGuideOrbSource).toContain('live = false')
   })
 
-  it('records Station III audio and hands Photobash a reveal-ready seed', () => {
-    expect(thirdStationSource).toContain('useVisitorVoiceRecorder')
+  it('hands Photobash a reveal-ready seed without recording speech', () => {
     expect(thirdStationSource).toContain('notifyRevealReady')
-    expect(thirdStationSource).toContain('transcript')
-    expect(thirdStationSource).toContain('caption')
-    expect(thirdStationStyles).toContain('mirror-record-transcript')
-    expect(photobashSource).toContain('PhotobashVoice')
+    expect(thirdStationSource).not.toContain('useVisitorVoiceRecorder')
+    expect(thirdStationSource).not.toContain('transcript')
+    expect(thirdStationStyles).not.toContain('mirror-record-transcript')
+    expect(photobashSource).not.toContain('PhotobashVoice')
   })
 
   it('lets Station I yes/no be tapped and persists both station interviews', () => {
