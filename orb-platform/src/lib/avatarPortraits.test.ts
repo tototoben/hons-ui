@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { base } from '../config'
 import { avatarPortraits } from './avatarPortraits'
 
 describe('avatarPortraits', () => {
@@ -12,11 +13,11 @@ describe('avatarPortraits', () => {
       'persona-5',
     ])
     expect(avatarPortraits.map((portrait) => portrait.image)).toEqual([
-      '/assets/personas/persona-1.png',
-      '/assets/personas/persona-2.png',
-      '/assets/personas/persona-3.png',
-      '/assets/personas/persona-4.png',
-      '/assets/personas/persona-5.png',
+      base('/assets/personas/persona-1.png'),
+      base('/assets/personas/persona-2.png'),
+      base('/assets/personas/persona-3.png'),
+      base('/assets/personas/persona-4.png'),
+      base('/assets/personas/persona-5.png'),
     ])
   })
 })
