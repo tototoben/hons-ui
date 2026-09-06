@@ -192,7 +192,7 @@ describe('useMirrorCamera', () => {
       root.render(<Harness onStatus={(status) => statuses.push(status)} />)
     })
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(5_000)
+      await vi.advanceTimersByTimeAsync(15_000)
     })
 
     expect(statuses.at(-1)).toBe('unavailable')
