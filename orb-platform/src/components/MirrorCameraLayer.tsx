@@ -1,6 +1,13 @@
-import { lazy, Suspense, useEffect, useRef, type CSSProperties } from 'react'
+import {
+  lazy,
+  Suspense,
+  useEffect,
+  useRef,
+  useSyncExternalStore,
+  type CSSProperties,
+} from 'react'
 import { FaceLandmarker } from '@mediapipe/tasks-vision'
-import { useMirrorCamera } from '../hooks/useMirrorCamera'
+import { useMirrorCamera, type MirrorCameraSample } from '../hooks/useMirrorCamera'
 import { useStationVibe } from '../hooks/useStationVibe'
 import {
   formatMorphometricLine,
@@ -48,53 +55,96 @@ export function MirrorCameraLayer({ mode }: { mode: MirrorOverlayMode }) {
   const [vibe] = useStationVibe()
   const trackingRgb = TRACKING_RGB[vibe]
   const camera = useMirrorCamera({ tracking: mode !== 'none' })
+  // The handle is a fresh object every render; the paint loop below wants
+  // the latest one without being torn down and restarted for it.
+  const cameraRef = useRef(camera)
+  cameraRef.current = camera
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const stageRef = useRef<HTMLDivElement>(null)
+  const appearanceStoreRef = useRef<AppearanceStore | null>(null)
+  appearanceStoreRef.current ??= createAppearanceStore()
+  const appearanceStore = appearanceStoreRef.current
   const focusMode: CameraFocusMode = mode === 'eyes' ? 'eyes' : mode === 'none' ? 'full' : 'face'
-  const focus = computeCameraFocus(camera.landmarks, focusMode)
-  const focusX = clamp(focus.originX + camera.signals.headYaw * 2.8, 22, 78)
-  const focusY = clamp(focus.originY + camera.signals.headPitch * 2.2, 22, 72)
-  const style = {
-    '--journey-focus-scale': focus.scale,
-    '--journey-focus-x': `${focusX}%`,
-    '--journey-focus-y': `${focusY}%`,
-    '--journey-pose-x': `${camera.signals.headYaw * 8}px`,
-    '--journey-pose-y': `${camera.signals.headPitch * 6}px`,
-    '--journey-pose-roll': `${camera.signals.headRoll * 1.8}deg`,
-    '--journey-tracking-glow': `${4 + camera.signals.browLift * 7}px`,
-  } as CSSProperties
-
-  useEffect(() => {
-    const canvas = canvasRef.current
-    const video = camera.videoRef.current
-    if (!canvas || !video || mode === 'none') return
-
-    const draw = () =>
-      drawLandmarks(canvas, video, camera.landmarks, camera.signals, mode, trackingRgb)
-    draw()
-    window.addEventListener('resize', draw)
-    return () => window.removeEventListener('resize', draw)
-  }, [camera.landmarks, camera.signals, camera.videoRef, mode, trackingRgb])
+  const style = poseProperties(camera.landmarks, camera.signals, focusMode) as CSSProperties
 
   // Keep the latest well-tracked frame in the visitor-face store — 'face'
   // mode covers scan-face/scan-focus, so by the time Station I completes
   // this holds a recent, in-focus still. Same-session, in-memory only
   // (visitorFaceCapture.ts), never persisted.
   const lastCaptureAt = useRef(0)
+
+  // Detect ticks land in camera.sampleRef without a re-render, so the
+  // canvas, the stage's custom properties and the trait readout are all
+  // driven from here instead of from props changing.
   useEffect(() => {
-    if (mode !== 'face') return
-    if (camera.landmarks.length < FACE_CAPTURE_MIN_LANDMARKS) return
-    const now = performance.now()
-    if (now - lastCaptureAt.current < FACE_CAPTURE_INTERVAL_MS) return
-    const video = camera.videoRef.current
-    if (!video) return
-    lastCaptureAt.current = now
-    const frame = captureVisitorFaceFrame(video)
-    if (frame) setVisitorFaceCapture(frame)
-  }, [camera.landmarks, camera.videoRef, mode])
+    // Handles that predate sampleRef (station test mocks) only carry a
+    // single static snapshot.
+    const snapshot: MirrorCameraSample = {
+      landmarks: cameraRef.current.landmarks,
+      signals: cameraRef.current.signals,
+      appearance: cameraRef.current.appearance,
+    }
+    let painted: MirrorCameraSample | null = null
+    let raf = 0
+
+    const paint = (force = false) => {
+      const handle = cameraRef.current
+      const sample = handle.sampleRef?.current ?? snapshot
+      // One repaint per detect tick, not per animation frame.
+      if (!force && sample === painted) return
+      painted = sample
+
+      const stage = stageRef.current
+      if (stage) {
+        Object.entries(poseProperties(sample.landmarks, sample.signals, focusMode)).forEach(
+          ([property, value]) => stage.style.setProperty(property, String(value)),
+        )
+      }
+
+      appearanceStore.write(sample.appearance)
+
+      // Overlay mode 'none' keeps the camera live but draws nothing and
+      // leaves whatever was last on the canvas alone.
+      if (mode === 'none') return
+
+      const canvas = canvasRef.current
+      const video = handle.videoRef.current
+      if (canvas && video) {
+        drawLandmarks(canvas, video, sample.landmarks, sample.signals, mode, trackingRgb)
+      }
+
+      if (mode === 'face' && video && sample.landmarks.length >= FACE_CAPTURE_MIN_LANDMARKS) {
+        const now = performance.now()
+        if (now - lastCaptureAt.current >= FACE_CAPTURE_INTERVAL_MS) {
+          lastCaptureAt.current = now
+          const frame = captureVisitorFaceFrame(video)
+          if (frame) setVisitorFaceCapture(frame)
+        }
+      }
+    }
+
+    // Paint on mount rather than waiting a frame, so the overlay is never
+    // one animation frame behind the video.
+    paint(true)
+    if (mode === 'none') return
+
+    const tick = () => {
+      paint()
+      raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    const repaint = () => paint(true)
+    window.addEventListener('resize', repaint)
+    return () => {
+      cancelAnimationFrame(raf)
+      window.removeEventListener('resize', repaint)
+    }
+  }, [appearanceStore, focusMode, mode, trackingRgb])
 
   return (
     <>
       <div
+        ref={stageRef}
         className={`journey-camera-stage journey-camera-${mode}${mode === 'dissolve' ? ' is-dissolving' : ''}`}
         style={style}
         aria-hidden="true"
@@ -112,7 +162,7 @@ export function MirrorCameraLayer({ mode }: { mode: MirrorOverlayMode }) {
           with it. */}
       <MirrorScanOverlay mode={mode} />
       {mode !== 'none' ? (
-        <AppearanceReadout appearance={camera.appearance} dissolving={mode === 'dissolve'} />
+        <AppearanceReadout store={appearanceStore} dissolving={mode === 'dissolve'} />
       ) : null}
       {/* Also excluded in Vitest (MODE === 'test'): leva's stitches-based
           styling can't run in jsdom, and MirrorCameraLayer.runtime.test.tsx/
@@ -124,6 +174,55 @@ export function MirrorCameraLayer({ mode }: { mode: MirrorOverlayMode }) {
       ) : null}
     </>
   )
+}
+
+/** The stage's zoom / pose custom properties. Written on the element by
+ * the paint loop and as the initial `style` prop, so both agree. */
+function poseProperties(
+  landmarks: NormalizedLandmark[],
+  signals: MirrorFaceSignals,
+  focusMode: CameraFocusMode,
+): Record<string, string | number> {
+  const focus = computeCameraFocus(landmarks, focusMode)
+  const focusX = clamp(focus.originX + signals.headYaw * 2.8, 22, 78)
+  const focusY = clamp(focus.originY + signals.headPitch * 2.2, 22, 72)
+  return {
+    '--journey-focus-scale': focus.scale,
+    '--journey-focus-x': `${focusX}%`,
+    '--journey-focus-y': `${focusY}%`,
+    '--journey-pose-x': `${signals.headYaw * 8}px`,
+    '--journey-pose-y': `${signals.headPitch * 6}px`,
+    '--journey-pose-roll': `${signals.headRoll * 1.8}deg`,
+    '--journey-tracking-glow': `${4 + signals.browLift * 7}px`,
+  }
+}
+
+type AppearanceStore = {
+  subscribe: (listener: () => void) => () => void
+  read: () => FaceAppearance | null
+  write: (next: FaceAppearance | null) => void
+}
+
+/** The trait readout is the one piece of the camera tree that has to
+ * re-render when a sample changes, so it gets a store of its own instead
+ * of putting the whole sample back into React state. */
+function createAppearanceStore(): AppearanceStore {
+  let appearance: FaceAppearance | null = null
+  const listeners = new Set<() => void>()
+  return {
+    subscribe: (listener) => {
+      listeners.add(listener)
+      return () => {
+        listeners.delete(listener)
+      }
+    },
+    read: () => appearance,
+    write: (next) => {
+      if (next === appearance) return
+      appearance = next
+      listeners.forEach((listener) => listener())
+    },
+  }
 }
 
 function drawLandmarks(
@@ -293,12 +392,13 @@ function drawTrackingBox(
 }
 
 function AppearanceReadout({
-  appearance,
+  store,
   dissolving,
 }: {
-  appearance: FaceAppearance | null
+  store: AppearanceStore
   dissolving: boolean
 }) {
+  const appearance = useSyncExternalStore(store.subscribe, store.read, store.read)
   if (!appearance) return null
 
   return (

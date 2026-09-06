@@ -7,8 +7,7 @@ const screenZ = -ROOM.depth / 2 + STATS_SCREEN.zOffset
  * Shared GPU uniforms — Orb writes each frame; environment shaders read the same objects.
  * Avoids React state for per-frame lighting / shockwave.
  *
- * Includes Paula scan-band uniforms plus leftover dissolve uniforms so unused
- * Room/RoomDissolve modules still typecheck until fully removed.
+ * Includes Paula scan-band uniforms plus leftover dissolve uniforms.
  */
 export const scanUniforms = {
   uTime: { value: 0 },

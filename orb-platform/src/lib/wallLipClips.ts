@@ -5,7 +5,9 @@
  * canvas drawImage source-rects and stepped through like a flipbook.
  * Empty SPRITE src means the layer simply doesn't mount.
  */
-export const LIP_SPRITE_SRC = '/assets/wall-avatar/lips/mouth-sprite.jpg'
+import { base } from '../config'
+
+export const LIP_SPRITE_SRC = base('/assets/wall-avatar/lips/mouth-sprite.jpg')
 export const LIP_SPRITE_COLS = 4
 export const LIP_SPRITE_ROWS = 6
 export const LIP_SPRITE_FRAME_COUNT = LIP_SPRITE_COLS * LIP_SPRITE_ROWS
