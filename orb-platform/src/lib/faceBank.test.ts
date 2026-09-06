@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { base } from '../config'
+import faceBankSource from './faceBank.ts?raw'
 import { FACE_BANK_DIR, pickFaceBankFiles } from './faceBank'
 
 describe('faceBank', () => {
@@ -22,7 +23,9 @@ describe('faceBank', () => {
   })
 
   it('prefixes the face-bank directory with the Vite base URL', () => {
+    expect(faceBankSource).toContain("FACE_BANK_DIR = base('/assets/wall-avatar/face-bank/')")
     expect(FACE_BANK_DIR).toBe(base('/assets/wall-avatar/face-bank/'))
+    expect(FACE_BANK_DIR).toBe('/orb/assets/wall-avatar/face-bank/')
     expect(FACE_BANK_DIR.endsWith('/')).toBe(true)
   })
 })

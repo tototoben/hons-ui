@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { base } from '../config'
+import wallLipClipsSource from './wallLipClips.ts?raw'
 import {
   LIP_REST_FRAME,
   LIP_SPRITE_COLS,
@@ -54,6 +55,8 @@ describe('wallLipClips', () => {
   })
 
   it('prefixes the lip sprite with the Vite base URL', () => {
+    expect(wallLipClipsSource).toContain("LIP_SPRITE_SRC = base('/assets/wall-avatar/lips/mouth-sprite.jpg')")
     expect(LIP_SPRITE_SRC).toBe(base('/assets/wall-avatar/lips/mouth-sprite.jpg'))
+    expect(LIP_SPRITE_SRC).toBe('/orb/assets/wall-avatar/lips/mouth-sprite.jpg')
   })
 })
