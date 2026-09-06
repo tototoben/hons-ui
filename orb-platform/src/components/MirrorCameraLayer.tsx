@@ -100,6 +100,9 @@ export function MirrorCameraLayer({ mode }: { mode: MirrorOverlayMode }) {
           ([property, value]) => stage.style.setProperty(property, String(value)),
         )
       }
+
+      appearanceStore.write(sample.appearance)
+
       // Overlay mode 'none' keeps the camera live but draws nothing and
       // leaves whatever was last on the canvas alone.
       if (mode === 'none') return
@@ -109,8 +112,6 @@ export function MirrorCameraLayer({ mode }: { mode: MirrorOverlayMode }) {
       if (canvas && video) {
         drawLandmarks(canvas, video, sample.landmarks, sample.signals, mode, trackingRgb)
       }
-
-      appearanceStore.write(sample.appearance)
 
       if (mode === 'face' && video && sample.landmarks.length >= FACE_CAPTURE_MIN_LANDMARKS) {
         const now = performance.now()
