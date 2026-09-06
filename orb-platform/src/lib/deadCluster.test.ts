@@ -8,6 +8,8 @@ const pkg = JSON.parse(readFileSync(join(root, '..', 'package.json'), 'utf8')) a
   dependencies: Record<string, string>
 }
 
+const deadPackages = ['animejs', 'face-api.js', 'motion', 'ogl'] as const
+
 describe('dead cluster removal', () => {
   it('removes unused GridScan and orphaned npm packages', () => {
     expect(existsSync(join(root, 'components', 'GridScan.tsx'))).toBe(false)
@@ -17,5 +19,14 @@ describe('dead cluster removal', () => {
     expect(pkg.dependencies.animejs).toBeUndefined()
     expect(pkg.dependencies.ogl).toBeUndefined()
     expect(pkg.dependencies.motion).toBeUndefined()
+  })
+
+  it('does not keep a stale pnpm lockfile for removed packages', () => {
+    const pnpmLockPath = join(root, '..', 'pnpm-lock.yaml')
+    if (!existsSync(pnpmLockPath)) return
+    const lock = readFileSync(pnpmLockPath, 'utf8')
+    for (const name of deadPackages) {
+      expect(lock).not.toMatch(new RegExp(`(?:^|\\s)${name.replace('.', '\\.')}:`))
+    }
   })
 })

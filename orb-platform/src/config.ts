@@ -121,8 +121,8 @@ export const SCAN = {
 } as const
 
 /**
- * Legacy orb-station room dissolve knobs — kept for unused Room/RoomDissolve
- * modules. The live orb scene uses solid SpaceRoom + ScanSweep instead.
+ * Legacy orb-station room dissolve knobs — retained for tuning reference.
+ * The live orb scene uses SpaceRoom + ScanSweep instead.
  */
 export const ROOM_DISSOLVE = {
   soft: 0.55,
