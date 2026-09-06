@@ -181,10 +181,8 @@ export const PARALLAX = {
   lostDamp: 2.0,
   detectIntervalMs: 66,
   reducedMotionScale: 0.3,
-  wasmBase:
-    'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/wasm',
-  modelUrl:
-    'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task',
+  wasmBase: base('/mediapipe/wasm'),
+  modelUrl: base('/mediapipe/face_landmarker.task'),
 } as const
 
 /** Back-wall faux TV / stats log display */
