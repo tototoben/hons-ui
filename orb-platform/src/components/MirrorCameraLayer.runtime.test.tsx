@@ -49,6 +49,7 @@ import { applyStationVibe } from '../lib/stationVibe'
 
 describe('MirrorCameraLayer', () => {
   let container: HTMLDivElement
+  let animationFrames: FrameRequestCallback[]
   const fillText = vi.fn()
   const lineTo = vi.fn()
   const strokeOperations: Array<{
@@ -84,6 +85,12 @@ describe('MirrorCameraLayer', () => {
       .IS_REACT_ACT_ENVIRONMENT = true
     container = document.createElement('div')
     document.body.append(container)
+    animationFrames = []
+    vi.stubGlobal('requestAnimationFrame', vi.fn((callback: FrameRequestCallback) => {
+      animationFrames.push(callback)
+      return animationFrames.length
+    }))
+    vi.stubGlobal('cancelAnimationFrame', vi.fn())
     strokeOperations.length = 0
     camera.landmarks = FULL_FACE
     camera.appearance = null
@@ -169,6 +176,58 @@ describe('MirrorCameraLayer', () => {
     expect(stage.style.getPropertyValue('--journey-pose-y')).toBe('1.5px')
     expect(stage.style.getPropertyValue('--journey-pose-roll')).toBe('-0.9deg')
     expect(container.querySelector('.journey-appearance')?.textContent).toContain('auburn')
+
+    act(() => root.unmount())
+  })
+
+  it('repaints pose and appearance when sampleRef identity changes on a later frame', () => {
+    camera.landmarks = []
+    camera.appearance = null
+    const initialSample = {
+      landmarks: FULL_FACE,
+      signals: { ...camera.signals, headYaw: 0, headPitch: 0, headRoll: 0 },
+      appearance: {
+        hair: { label: 'blonde', hex: '#d6bc76' },
+        eyes: { label: 'green', hex: '#2e663a' },
+        morphometrics: [] as Array<{ term: string; finding: string }>,
+      },
+    }
+    camera.sampleRef = { current: initialSample }
+    const root = createRoot(container)
+    act(() => root.render(<MirrorCameraLayer mode="face" />))
+
+    const stage = container.querySelector<HTMLElement>('.journey-camera-stage')!
+    expect(stage.style.getPropertyValue('--journey-pose-x')).toBe('0px')
+    expect(container.querySelector('.journey-appearance')?.textContent).toContain('blonde')
+
+    const strokeCountAfterMount = context.stroke.mock.calls.length
+
+    camera.sampleRef.current = {
+      landmarks: FULL_FACE,
+      signals: { ...camera.signals, headYaw: 0.5, headPitch: 0.25, headRoll: -0.5 },
+      appearance: {
+        hair: { label: 'auburn', hex: '#7a3b1f' },
+        eyes: { label: 'hazel', hex: '#7d6135' },
+        morphometrics: [],
+      },
+    }
+
+    act(() => {
+      animationFrames.at(-1)?.(1000)
+    })
+
+    expect(stage.style.getPropertyValue('--journey-pose-x')).toBe('4px')
+    expect(stage.style.getPropertyValue('--journey-pose-y')).toBe('1.5px')
+    expect(container.querySelector('.journey-appearance')?.textContent).toContain('auburn')
+    expect(context.stroke.mock.calls.length).toBeGreaterThan(strokeCountAfterMount)
+
+    const strokeCountAfterUpdate = context.stroke.mock.calls.length
+
+    act(() => {
+      animationFrames.at(-1)?.(2000)
+    })
+
+    expect(context.stroke.mock.calls.length).toBe(strokeCountAfterUpdate)
 
     act(() => root.unmount())
   })
