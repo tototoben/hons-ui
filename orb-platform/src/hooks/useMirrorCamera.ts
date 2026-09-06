@@ -31,9 +31,30 @@ export type MirrorCameraStatus =
 
 export type MirrorCameraDeviceOption = { deviceId: string; label: string }
 
+/** One MediaPipe detect result. Lives in a ref, never in React state —
+ * at 8–15 Hz, re-rendering the camera tree per tick costs far more than
+ * the canvas / CSS-variable writes it would drive. */
+export type MirrorCameraSample = {
+  landmarks: NormalizedLandmark[]
+  signals: MirrorFaceSignals
+  appearance: FaceAppearance | null
+}
+
+const EMPTY_SAMPLE: MirrorCameraSample = {
+  landmarks: [],
+  signals: NEUTRAL_MIRROR_FACE_SIGNALS,
+  appearance: null,
+}
+
 export type MirrorCameraHandle = {
   videoRef: RefObject<HTMLVideoElement | null>
   status: MirrorCameraStatus
+  /** The live sample. Consumers that need per-tick values (canvas, pose
+   * custom properties, appearance readout) read this, not the snapshot
+   * fields below. */
+  sampleRef: RefObject<MirrorCameraSample>
+  /** Snapshots of `sampleRef.current` at the time of the render that
+   * produced this handle — stale between renders by design. */
   landmarks: NormalizedLandmark[]
   signals: MirrorFaceSignals
   appearance: FaceAppearance | null
@@ -57,11 +78,7 @@ export function useMirrorCamera({
 } = {}): MirrorCameraHandle {
   const videoRef = useRef<HTMLVideoElement>(null)
   const [status, setStatus] = useState<MirrorCameraStatus>('starting')
-  const [landmarks, setLandmarks] = useState<NormalizedLandmark[]>([])
-  const [signals, setSignals] = useState<MirrorFaceSignals>(
-    NEUTRAL_MIRROR_FACE_SIGNALS,
-  )
-  const [appearance, setAppearance] = useState<FaceAppearance | null>(null)
+  const sampleRef = useRef<MirrorCameraSample>(EMPTY_SAMPLE)
   const appearanceRef = useRef<FaceAppearance | null>(null)
   const [devices, setDevices] = useState<MirrorCameraDeviceOption[]>([])
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(
@@ -221,10 +238,8 @@ export function useMirrorCamera({
   useEffect(() => {
     if (!tracking || status !== 'active') {
       if (!tracking) {
-        setLandmarks([])
-        setSignals(NEUTRAL_MIRROR_FACE_SIGNALS)
+        sampleRef.current = EMPTY_SAMPLE
         appearanceRef.current = null
-        setAppearance(null)
       }
       return
     }
@@ -250,29 +265,33 @@ export function useMirrorCamera({
         const result = landmarker.detectForVideo(video, now)
         const detectedLandmarks =
           (result.faceLandmarks?.[0] as NormalizedLandmark[] | undefined) ?? []
-        setLandmarks(detectedLandmarks)
-        setSignals(
+        const nextSignals =
           detectedLandmarks.length > 0
             ? deriveMirrorFaceSignals(
                 result.faceBlendshapes?.[0]?.categories,
                 result.facialTransformationMatrixes?.[0]?.data,
               )
-            : NEUTRAL_MIRROR_FACE_SIGNALS,
-        )
+            : NEUTRAL_MIRROR_FACE_SIGNALS
+        let nextAppearance = sampleRef.current.appearance
         if (detectedLandmarks.length >= MIN_APPEARANCE_LANDMARKS) {
           missedFaces = 0
-          const next = appearanceFromLandmarks(video, detectedLandmarks)
-          const smoothed = next
-            ? smoothAppearance(appearanceRef.current, next)
+          const derived = appearanceFromLandmarks(video, detectedLandmarks)
+          const smoothed = derived
+            ? smoothAppearance(appearanceRef.current, derived)
             : null
           appearanceRef.current = smoothed
-          setAppearance(smoothed)
+          nextAppearance = smoothed
         } else {
           missedFaces += 1
           if (missedFaces > 8) {
             appearanceRef.current = null
-            setAppearance(null)
+            nextAppearance = null
           }
+        }
+        sampleRef.current = {
+          landmarks: detectedLandmarks,
+          signals: nextSignals,
+          appearance: nextAppearance,
         }
       }
       raf = requestAnimationFrame(detect)
@@ -328,9 +347,16 @@ export function useMirrorCamera({
   return {
     videoRef,
     status,
-    landmarks,
-    signals,
-    appearance,
+    sampleRef,
+    get landmarks() {
+      return sampleRef.current.landmarks
+    },
+    get signals() {
+      return sampleRef.current.signals
+    },
+    get appearance() {
+      return sampleRef.current.appearance
+    },
     devices,
     selectedDeviceId,
     activeDeviceId,

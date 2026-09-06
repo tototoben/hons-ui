@@ -4,6 +4,14 @@ import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+type Appearance = {
+  hair: { label: string; hex: string }
+  eyes: { label: string; hex: string }
+  morphometrics: Array<{ term: string; finding: string }>
+}
+
+const FULL_FACE = Array.from({ length: 455 }, () => ({ x: 0.5, y: 0.5, z: 0 }))
+
 const camera = vi.hoisted(() => ({
   videoRef: { current: null as HTMLVideoElement | null },
   status: 'active' as const,
@@ -19,10 +27,16 @@ const camera = vi.hoisted(() => ({
     headPitch: 0,
     headRoll: 0,
   },
-  appearance: null as null | {
-    hair: { label: string; hex: string }
-    eyes: { label: string; hex: string }
-    morphometrics: Array<{ term: string; finding: string }>
+  appearance: null as null | Appearance,
+  // Production hands the layer a ref it repaints from; a couple of the
+  // station mocks still only expose the flat handle fields, which the
+  // layer has to keep falling back to.
+  sampleRef: null as null | {
+    current: {
+      landmarks: Array<{ x: number; y: number; z: number }>
+      signals: Record<string, number>
+      appearance: Appearance | null
+    }
   },
 }))
 
@@ -71,7 +85,9 @@ describe('MirrorCameraLayer', () => {
     container = document.createElement('div')
     document.body.append(container)
     strokeOperations.length = 0
+    camera.landmarks = FULL_FACE
     camera.appearance = null
+    camera.sampleRef = null
     applyStationVibe('original')
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(
       context as unknown as WebGL2RenderingContext,
@@ -124,6 +140,54 @@ describe('MirrorCameraLayer', () => {
     expect(
       container.querySelector<HTMLElement>('[data-swatch="eyes"]')?.style.backgroundColor,
     ).toBe('rgb(46, 102, 58)')
+
+    act(() => root.unmount())
+  })
+
+  it('paints strokes, pose properties and the readout from the sample ref', () => {
+    // The handle fields are deliberately empty: detect ticks no longer
+    // re-render, so everything on screen has to come off the ref.
+    camera.landmarks = []
+    camera.appearance = null
+    camera.sampleRef = {
+      current: {
+        landmarks: FULL_FACE,
+        signals: { ...camera.signals, headYaw: 0.5, headPitch: 0.25, headRoll: -0.5 },
+        appearance: {
+          hair: { label: 'auburn', hex: '#7a3b1f' },
+          eyes: { label: 'hazel', hex: '#7d6135' },
+          morphometrics: [],
+        },
+      },
+    }
+    const root = createRoot(container)
+    act(() => root.render(<MirrorCameraLayer mode="face" />))
+
+    expect(context.stroke).toHaveBeenCalled()
+    const stage = container.querySelector<HTMLElement>('.journey-camera-stage')!
+    expect(stage.style.getPropertyValue('--journey-pose-x')).toBe('4px')
+    expect(stage.style.getPropertyValue('--journey-pose-y')).toBe('1.5px')
+    expect(stage.style.getPropertyValue('--journey-pose-roll')).toBe('-0.9deg')
+    expect(container.querySelector('.journey-appearance')?.textContent).toContain('auburn')
+
+    act(() => root.unmount())
+  })
+
+  it('still writes stage pose properties with the overlay off, without repainting', () => {
+    camera.sampleRef = {
+      current: {
+        landmarks: [],
+        signals: { ...camera.signals, headYaw: 0.5 },
+        appearance: null,
+      },
+    }
+    const root = createRoot(container)
+    act(() => root.render(<MirrorCameraLayer mode="none" />))
+
+    const stage = container.querySelector<HTMLElement>('.journey-camera-stage')!
+    expect(stage.style.getPropertyValue('--journey-pose-x')).toBe('4px')
+    expect(context.stroke).not.toHaveBeenCalled()
+    expect(container.querySelector('.journey-appearance')).toBeNull()
 
     act(() => root.unmount())
   })
