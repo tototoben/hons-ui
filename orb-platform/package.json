@@ -10,6 +10,7 @@
   "scripts": {
     "predev": "node scripts/vendor-mediapipe.mjs",
     "prebuild": "node scripts/vendor-mediapipe.mjs",
+    "prebuild:reveal": "node scripts/vendor-mediapipe.mjs",
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "build:reveal": "tsc --noEmit && vite build --outDir ../components/reveal/ui/orb",

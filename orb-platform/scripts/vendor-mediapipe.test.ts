@@ -12,5 +12,6 @@ describe('vendor-mediapipe npm wiring', () => {
   it('runs the vendor script before dev and build', () => {
     expect(pkg.scripts.predev).toBe('node scripts/vendor-mediapipe.mjs')
     expect(pkg.scripts.prebuild).toBe('node scripts/vendor-mediapipe.mjs')
+    expect(pkg.scripts['prebuild:reveal']).toBe('node scripts/vendor-mediapipe.mjs')
   })
 })
