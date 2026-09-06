@@ -2,8 +2,8 @@
 
 **Date:** 2026-09-06  
 **Repo:** https://github.com/martinorav-png/house-of-negotiated-selves  
-**Branch:** `feat/kiosk-high-pass` (merge to `main` when this pass is done)  
-**Pull first:** `git pull`
+**Branch:** `main`  
+**Pull first:** `git pull origin main`
 
 This file is the short “open this on the other computer” note. Full project context stays in [`CONTEXT.md`](CONTEXT.md).
 

@@ -23,5 +23,6 @@ describe('handoff docs', () => {
     expect(readme).not.toMatch(/npm run samples:debra/)
     expect(handoff).toMatch(/orb-platform/)
     expect(handoff).toMatch(/MediaPipe/)
+    expect(handoff).not.toMatch(/feat\/[a-z0-9-]+/)
   })
 })
