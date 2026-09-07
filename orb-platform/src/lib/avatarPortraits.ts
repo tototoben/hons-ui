@@ -8,7 +8,7 @@ export type AvatarPortrait = {
 
 /**
  * Station 3 portraits — served from `orb-platform/public/assets/personas`.
- * Keep captions short; MorphSlider shows them over the morph stage.
+ * Keep captions short; AvatarStation shows them over the morph stage.
  */
 export const avatarPortraits: AvatarPortrait[] = [
   {

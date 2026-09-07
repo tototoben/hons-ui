@@ -6,6 +6,7 @@ samples/
 !orb-platform/public/audio/debra/*.mp3
 orb-platform/dist/
 orb-platform/node_modules/
+orb-platform/public/mediapipe/wasm/
 orb-ui/dist/
 orb-ui/node_modules/
 

@@ -46,6 +46,11 @@ export default defineConfig({
   base: isVercel ? '/' : '/orb/',
   test: {
     css: true,
+    // Vitest 4 no longer mirrors vite `base` into import.meta.env.BASE_URL (always "/").
+    // Match the non-Vercel embed base so base()-prefixed asset paths are exercised.
+    env: {
+      BASE_URL: '/orb/',
+    },
   },
   server: {
     port: Number(process.env.PORT) || 5176,

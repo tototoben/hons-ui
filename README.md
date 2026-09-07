@@ -2,7 +2,7 @@
 
 Ars Electronica 2026 installation: **House of Negotiated Selves**.
 
-**Start here on the other machine:** **[HANDOFF.md](HANDOFF.md)** (orb + face parallax next). Full context: **[CONTEXT.md](CONTEXT.md)**.
+**Start here on the other machine:** **[HANDOFF.md](HANDOFF.md)** (stations I–III + photobash in `orb-platform`). Full context: **[CONTEXT.md](CONTEXT.md)**.
 
 ## Project layout
 
@@ -12,7 +12,7 @@ Ars Electronica 2026 installation: **House of Negotiated Selves**.
 | `orb-ui/` | Earlier orb experiments (superseded by `orb-platform/` for new work) |
 | `mirror/` | Flutter room simulation (local copy; may drift from team repo) |
 | `work/eka-ars26-house/` | **Team monorepo** — `central/`, `mirror/`, `voice/` ([tototoben/eka-ars26-house](https://github.com/tototoben/eka-ars26-house)) |
-| `scripts/` | Debra voice sample generation (ElevenLabs) |
+| `scripts/` | Debra monologue text and sample-generation helpers (speech is not wired in `orb-platform`) |
 | `PRODUCT.md` | Product / Impeccable context |
 | `CONTEXT.md` | Machine handoff: journey, stack, next steps |
 
@@ -22,7 +22,7 @@ Ars Electronica 2026 installation: **House of Negotiated Selves**.
 cd orb-platform && npm install && npm run dev
 ```
 
-Open **http://localhost:5176**. Next: webcam face parallax — see **[HANDOFF.md](HANDOFF.md)**.
+Open **http://localhost:5176**. Next: festival kiosk bring-up (WAN-off check) — see **[HANDOFF.md](HANDOFF.md)**.
 
 ## Room simulation (Flutter)
 
@@ -34,13 +34,6 @@ cd work/eka-ars26-house/mirror   # preferred
 cd mirror
 flutter pub get
 flutter run -d chrome   # or -d macos / -d windows
-```
-
-## Other scripts
-
-```bash
-cp .env.example .env   # add ELEVENLABS_API_KEY if needed
-npm run samples:debra  # generate Debra voice samples
 ```
 
 ## Repo

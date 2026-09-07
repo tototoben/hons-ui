@@ -9,16 +9,18 @@ This file is the handoff so another machine (or agent) can continue without chat
 
 ---
 
-## Where we left off (Aug 2026)
+## Where we left off (Sep 2026)
 
-### Active focus: `orb-platform` + face parallax (next)
+### Active focus: `orb-platform` festival kiosk bring-up
 
 Short continue note: **[`HANDOFF.md`](HANDOFF.md)**.
 
 | Item | Status |
 |------|--------|
-| `orb-platform/` | Working R3F point-cloud room + orb, heartbeat ripple, mic motion, CRT + spatial question |
-| Face parallax | **Spec + plan approved; not implemented** — see `docs/superpowers/specs/2026-08-03-webcam-face-parallax-design.md` and `docs/superpowers/plans/2026-08-03-webcam-face-parallax.md` |
+| `orb-platform/` | Active app — stations I–III + photobash (React + R3F) |
+| MediaPipe Face Landmarker | In `orb-platform/package.json`; loads from vendored `public/mediapipe/` (kiosk-offline spec) |
+| Debra speech | **Not wired** in this app (visual guide only). Do not add `DebraVoice`. |
+| Webcam | Stays on whenever `MirrorCameraLayer` mounts, including overlay `none` |
 | `assets/moodboard-inspo/` | Reference stills for the LiDAR / scan aesthetic |
 
 ```bash
@@ -27,7 +29,7 @@ cd orb-platform && npm install && npm run dev   # http://localhost:5176
 
 **Next useful steps**
 
-1. **Preferred:** implement face parallax from the plan in `docs/superpowers/plans/` (see `HANDOFF.md`)  
+1. **Preferred:** festival kiosk bring-up (`npm run dev` in `orb-platform`, then WAN-off check). Not the Aug 3 face-parallax plan.  
 2. Physical journey scripts: `userjourney2.pdf` is local-only (gitignored, >100MB)
 
 ---
@@ -103,16 +105,11 @@ ARS-electronica/
 
 ---
 
-## Voice / Debra samples
+## Voice / Debra
 
-```bash
-cp .env.example .env
-# set ELEVENLABS_API_KEY=
-npm run samples:debra
-```
-
-- Debra: **pre-recorded**, model `eleven_v3`  
-- Canonical intro: `scripts/debra-intro.txt`  
+- Debra speech is **not wired** in `orb-platform` (visual guide only). Do not add `DebraVoice`.
+- Canonical spoken entrance monologue: `scripts/debra-intro.txt` (on-screen Entry copy is separate).
+- Root `package.json` has no `samples:debra` script.  
 
 ---
 
@@ -138,7 +135,7 @@ Root `mirror/` is a sibling copy for convenience; **`work/eka-ars26-house/mirror
 - Voice nodes: ESP-VoCat (`work/eka-ars26-house/voice/`)  
 - Avatar pipeline: 2D A-pose → Meshy/Tripo → Unity  
 - Lighting: Hue/LIFX + PIR  
-- No live face biometrics stored / sent — webcam face pose for camera parallax (when implemented) is ephemeral, on-device only; EU AI Act disclosure still applies on QR receipt  
+- No live face biometrics stored / sent — MediaPipe face pose in `orb-platform` is ephemeral, on-device only (vendored `public/mediapipe/`); EU AI Act disclosure still applies on QR receipt  
 
 ---
 
@@ -169,10 +166,11 @@ Paula, Tõnis (Bender), Carina, Johannes Martin, Hendra, Sara, Anett, Martin (di
 
 ## Quick checklist on MacBook
 
-1. `git clone` / `git pull` **main**  
-2. Read **`HANDOFF.md`** (current next step: face parallax)  
+1. `git clone` / `git pull`  
+2. Read **`HANDOFF.md`** (current next step: festival kiosk bring-up)  
 3. `cd orb-platform && npm install && npm run dev` → http://localhost:5176  
-4. Clone team repo: `git clone https://github.com/tototoben/eka-ars26-house.git work/eka-ars26-house`  
-5. Optional: `work/eka-ars26-house/mirror` for Flutter sim (team source of truth)  
+4. Confirm MediaPipe loads from `orb-platform/public/mediapipe/` (WAN-off check); webcam stays on with `MirrorCameraLayer`  
+5. Clone team repo: `git clone https://github.com/tototoben/eka-ars26-house.git work/eka-ars26-house`  
+6. Optional: `work/eka-ars26-house/mirror` for Flutter sim (team source of truth)  
 
-**Bottom line:** Continue **`orb-platform`** from the plan under `docs/superpowers/`. Datebooth (`datebooth-ui/`, `DESIGN.md`) and `mock-ui/` are removed.
+**Bottom line:** Continue **`orb-platform`** stations + photobash for festival kiosk bring-up. Datebooth (`datebooth-ui/`, `DESIGN.md`) and `mock-ui/` are removed.

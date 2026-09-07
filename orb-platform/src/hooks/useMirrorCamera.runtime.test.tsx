@@ -22,28 +22,25 @@ vi.mock('@mediapipe/tasks-vision', () => ({
   FaceLandmarker: { createFromOptions: vision.create },
 }))
 
-import { useMirrorCamera } from './useMirrorCamera'
+import { useMirrorCamera, type MirrorCameraHandle } from './useMirrorCamera'
 
 function Harness({
   onStatus,
   tracking = true,
+  handleRef,
 }: {
   onStatus: (status: string) => void
   tracking?: boolean
+  // Detect ticks deliberately do not re-render, so per-frame signals can
+  // only be read off the handle's sampleRef — not from rendered markup.
+  handleRef?: { current: MirrorCameraHandle | null }
 }) {
   const camera = useMirrorCamera({ tracking })
+  if (handleRef) handleRef.current = camera
   useEffect(() => {
     onStatus(camera.status)
   }, [camera.status, onStatus])
-  return (
-    <video
-      ref={camera.videoRef}
-      data-status={camera.status}
-      data-blink={camera.signals.blink}
-      data-mouth-open={camera.signals.mouthOpen}
-      data-head-yaw={camera.signals.headYaw}
-    />
-  )
+  return <video ref={camera.videoRef} data-status={camera.status} />
 }
 
 describe('useMirrorCamera', () => {
@@ -138,8 +135,10 @@ describe('useMirrorCamera', () => {
       ] }],
     })
 
+    const handleRef: { current: MirrorCameraHandle | null } = { current: null }
+
     await act(async () => {
-      root.render(<Harness onStatus={() => undefined} />)
+      root.render(<Harness handleRef={handleRef} onStatus={() => undefined} />)
       await Promise.resolve()
       await Promise.resolve()
       await Promise.resolve()
@@ -156,9 +155,52 @@ describe('useMirrorCamera', () => {
       animationFrames.at(-1)?.(1000)
     })
 
-    expect(video.dataset.blink).toBe('0.6000000000000001')
-    expect(video.dataset.mouthOpen).toBe('0.75')
-    expect(Number(video.dataset.headYaw)).toBeCloseTo(0.5)
+    const sample = handleRef.current!.sampleRef.current
+    expect(sample.signals.blink).toBe(0.6000000000000001)
+    expect(sample.signals.mouthOpen).toBe(0.75)
+    expect(sample.signals.headYaw).toBeCloseTo(0.5)
+  })
+
+  it('does not re-render on each MediaPipe detect tick', async () => {
+    const stream = { getTracks: () => [{ stop: vi.fn() }] } as unknown as MediaStream
+    Object.defineProperty(navigator, 'mediaDevices', {
+      configurable: true,
+      value: { getUserMedia: vi.fn().mockResolvedValue(stream) },
+    })
+    vision.detectForVideo.mockReturnValue({
+      faceLandmarks: [[{ x: 0.5, y: 0.5, z: 0 }]],
+    })
+    let renders = 0
+    function CountHarness() {
+      renders += 1
+      const camera = useMirrorCamera({ tracking: true })
+      return <video ref={camera.videoRef} />
+    }
+
+    await act(async () => {
+      root.render(<CountHarness />)
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    const video = container.querySelector('video')!
+    Object.defineProperty(video, 'readyState', {
+      configurable: true,
+      value: HTMLMediaElement.HAVE_CURRENT_DATA,
+    })
+    const afterActive = renders
+
+    await act(async () => {
+      animationFrames.at(-1)?.(1000)
+    })
+    await act(async () => {
+      animationFrames.at(-1)?.(2000)
+    })
+
+    expect(vision.detectForVideo).toHaveBeenCalled()
+    expect(renders).toBe(afterActive)
   })
 
   it('keeps the journey usable when camera permission is denied', async () => {
@@ -192,7 +234,7 @@ describe('useMirrorCamera', () => {
       root.render(<Harness onStatus={(status) => statuses.push(status)} />)
     })
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(5_000)
+      await vi.advanceTimersByTimeAsync(15_000)
     })
 
     expect(statuses.at(-1)).toBe('unavailable')

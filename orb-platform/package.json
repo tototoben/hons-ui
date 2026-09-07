@@ -8,6 +8,9 @@
     "#utils": "./src/components"
   },
   "scripts": {
+    "predev": "node scripts/vendor-mediapipe.mjs",
+    "prebuild": "node scripts/vendor-mediapipe.mjs",
+    "prebuild:reveal": "node scripts/vendor-mediapipe.mjs",
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "build:reveal": "tsc --noEmit && vite build --outDir ../components/reveal/ui/orb",
@@ -19,12 +22,8 @@
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.7.0",
     "@react-three/postprocessing": "^3.0.4",
-    "animejs": "^4.5.0",
-    "face-api.js": "^0.22.2",
     "gsap": "^3.15.0",
     "leva": "^0.10.1",
-    "motion": "^13.0.0",
-    "ogl": "^1.0.11",
     "postprocessing": "^6.39.4",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
