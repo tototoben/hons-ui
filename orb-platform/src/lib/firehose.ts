@@ -3,15 +3,22 @@ import { lightingCueFor, postLightingCue } from './lightingCues'
 /**
  * Firehose — transport-agnostic event emitter for orb-platform.
  *
- * Every station state change and key interaction is published to the parent
- * window via `postMessage`. Consumers (the visualizer iframe host, the cog
- * kiosk, or any other embedder) listen for these messages and relay them to
- * whatever transport they use (MQTT, HTTP, WebSocket, …).
+ * Every station state change and key interaction is published to the station
+ * Python bridge (which relays it to MQTT for the central orchestrator). Two
+ * transports, decided at runtime:
+ *
+ *  - **Embedded (visualizer host):** when running inside an iframe, messages
+ *    are posted to `window.parent` via `postMessage`. The visualizer host
+ *    relays them to MQTT itself.
+ *  - **Top-level (cog kiosk):** when running as the top document — as it does
+ *    on an RPi station screen — messages are POSTed straight to the station
+ *    Python bridge's local endpoint (`POST /api/firehose`, default
+ *    `http://localhost:8189`, overridable with the `relay=` query param).
  *
  * The message format is stable and self-describing so that any consumer can
  * filter on station, phase, or event type without knowing the reducer internals.
  *
- * Message shape (posted to `window.parent`):
+ * Message shape:
  *   { source: 'orb-firehose', station: 'station-1', event: string, data?: unknown, ts: number }
  *
  * When running standalone (not in an iframe), messages are also logged to the
@@ -28,6 +35,10 @@ export interface FirehoseMessage {
 
 const SOURCE = 'orb-firehose'
 
+// Default station bridge the cog kiosk forwards events to. The bridge serves
+// `/api/firehose` on the station's local HTTP port (STATION_HEALTH_PORT).
+const RELAY_DEFAULT = 'http://localhost:8189'
+
 function isEmbedded(): boolean {
   try {
     return window.self !== window.top
@@ -36,9 +47,49 @@ function isEmbedded(): boolean {
   }
 }
 
+// Lazily-resolved relay endpoint: undefined = not decided yet.
+let relayTarget: string | null | undefined
+
 /**
- * Publish a firehose event to the parent window.
- * Safe to call at module scope — checks for `window.parent` existence.
+ * Where top-level firings go. `?relay=` (or `relay=0` to disable) wins; else
+ * default to the local station bridge when served from a loopback hostname —
+ * the kiosk page is always `http://localhost:<port>` for the webcam's secure
+ * context. Embedded (visualizer) runs skip the direct relay.
+ */
+function getRelayTarget(): string | null {
+  if (relayTarget !== undefined) return relayTarget
+  const params = new URLSearchParams(window.location.search)
+  const explicit = params.get('relay')
+  if (explicit === '0' || explicit === 'false') {
+    relayTarget = null
+  } else if (explicit) {
+    relayTarget = explicit
+  } else if (
+    !isEmbedded() &&
+    /^(localhost|127\.0\.0\.1|\[::1\])/i.test(window.location.hostname)
+  ) {
+    relayTarget = RELAY_DEFAULT
+  } else {
+    relayTarget = null
+  }
+  return relayTarget
+}
+
+function postToStation(msg: FirehoseMessage): void {
+  const target = getRelayTarget()
+  if (!target) return
+  // Same-shape JSON the station bridge expects. Fire-and-forget: the bridge
+  // may be down in dev; nothing to do about it here.
+  fetch(`${target}/api/firehose`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(msg),
+  }).catch(() => {})
+}
+
+/**
+ * Publish a firehose event. Safe to call at module scope — checks for
+ * `window.parent` existence and only fetches when a relay target is set.
  */
 export function publish(station: string, event: string, data?: unknown): void {
   const msg: FirehoseMessage = {
@@ -67,6 +118,7 @@ function postFirehose(msg: FirehoseMessage) {
   if (isEmbedded() && window.parent) {
     window.parent.postMessage(msg, '*')
   }
+  postToStation(msg)
 
   // Always log in dev so standalone `pnpm dev` shows the event stream.
   if (import.meta.env.DEV) {

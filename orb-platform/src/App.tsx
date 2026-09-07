@@ -7,6 +7,7 @@ import { applyDeviceQuality, getDeviceQuality } from './lib/deviceQuality'
 import { perfSetView } from './lib/perfMonitor'
 import { resetVisitorProfile } from './lib/visitorProfile'
 import { resetVisitorFaceCapture } from './lib/visitorFaceCapture'
+import { perfSetView } from './lib/perfMonitor'
 import {
   STORAGE_KEY,
   clearDeviceLock,

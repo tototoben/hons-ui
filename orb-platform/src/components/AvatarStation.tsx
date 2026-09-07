@@ -6,6 +6,7 @@ import { CAMERA, PLATFORM, ROOM } from '../config'
 import { avatarPortraits, type AvatarPortrait } from '../lib/avatarPortraits'
 import { PerfMonitorBridge } from './PerfMonitorBridge'
 import { getDeviceQuality, webGlMaxDpr } from '../lib/deviceQuality'
+import { PerfMonitorBridge } from './PerfMonitorBridge'
 import './AvatarStation.css'
 
 const PORTRAIT_HEIGHT = 1.22
