@@ -33,7 +33,7 @@ export const settings = {
     grain: 0.03,
   },
   text: {
-    fontPx: 104,
+    fontPx: 128,
     crispAlpha: 0.59,
     color: '#ffffff',
     smudgeAlpha: 1,

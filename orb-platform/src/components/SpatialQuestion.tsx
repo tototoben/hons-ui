@@ -116,7 +116,7 @@ export function SpatialQuestion({ answerText, submitSerial }: SpatialQuestionPro
       // Keep the cursor out of drawGrainyText so glyph-layer cache stays warm
       // across blinks (rebuilding blur+grain every blink is the expensive path).
       drawGrainyText(answerPlane.ctx, answerPlane.canvas, display, {
-        fontPx: 56,
+        fontPx: 68,
         weight: 400,
         maxWidthPx: answerPlane.canvas.width * 0.9,
         crispAlpha,

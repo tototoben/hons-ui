@@ -1,18 +1,41 @@
+import { readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
+import { parseFaceBankManifest } from './faceBank'
 import {
+  collageCombinationStats,
   collageRects,
   collageRevealAt,
   drawWallCollage,
   mouthRectIndex,
   pickStrangerAssignments,
+  pickTaggedStrangerAssignments,
   visitorRevealOrder,
 } from './wallCollagePhotobash'
+
+const manifestPath = join(
+  dirname(fileURLToPath(import.meta.url)),
+  '../../public/assets/wall-avatar/face-bank/manifest.json',
+)
 
 describe('wallCollagePhotobash', () => {
   it('merges the three mouth-adjacent shards into one rect', () => {
     // 11 tuned zones, 3 merged into 1 mouth rect => 8 + 1 = 9.
     const rects = collageRects(1)
     expect(rects.length).toBe(9)
+  })
+
+  it('keeps collage pieces close to the shard boxes so features stay lined up', () => {
+    const jittered = collageRects(1)
+    const tight = collageRects(1, 0)
+    expect(jittered).toHaveLength(tight.length)
+    jittered.forEach((rect, index) => {
+      expect(Math.abs(rect.x - tight[index].x)).toBeLessThan(0.02)
+      expect(Math.abs(rect.y - tight[index].y)).toBeLessThan(0.02)
+      expect(Math.abs(rect.w - tight[index].w)).toBeLessThan(0.02)
+      expect(Math.abs(rect.h - tight[index].h)).toBeLessThan(0.02)
+    })
   })
 
   it('produces the same rects for the same seed', () => {
@@ -57,6 +80,44 @@ describe('wallCollagePhotobash', () => {
 
   it('falls back to -1 assignments when the bank is empty', () => {
     expect(pickStrangerAssignments(3, 4, 0)).toEqual([-1, -1, -1, -1])
+  })
+
+  it('picks matching bank faces for identity, age, and mouth smile', () => {
+    const faces = parseFaceBankManifest({
+      faces: [
+        { file: 'w-young-smile.jpg', presentation: 'woman', ageBand: 'young', smile: true },
+        { file: 'w-young.jpg', presentation: 'woman', ageBand: 'young', smile: false },
+        { file: 'm-mid.jpg', presentation: 'man', ageBand: 'mid', smile: false },
+      ],
+    })
+    const rects = collageRects(1)
+    const mouth = mouthRectIndex(rects)
+    const assignments = pickTaggedStrangerAssignments(
+      9,
+      faces,
+      { presentation: 'woman', ageBand: 'young', smile: true },
+      rects.length,
+    )
+    expect(assignments).toHaveLength(rects.length)
+    assignments.forEach((index, slot) => {
+      expect(index).toBeGreaterThanOrEqual(0)
+      expect(index).toBeLessThan(faces.length)
+      expect(faces[index].presentation).toBe('woman')
+      if (slot === mouth) expect(faces[index].smile).toBe(true)
+    })
+    expect(pickTaggedStrangerAssignments(9, faces, { presentation: 'woman', ageBand: 'young', smile: true }, rects.length)).toEqual(
+      assignments,
+    )
+  })
+
+  it('counts how many 9-piece collages each answer type can seed from the live bank', () => {
+    const faces = parseFaceBankManifest(JSON.parse(readFileSync(manifestPath, 'utf8')))
+    const stats = collageCombinationStats(faces)
+    expect(stats.faces).toBe(23)
+    expect(stats.rectCount).toBe(9)
+    expect(stats.typeCount).toBeGreaterThanOrEqual(8)
+    expect(stats.maxCollages).toBeGreaterThan(stats.minCollages)
+    expect(stats.maxCollages).toBeGreaterThan(1_000_000)
   })
 
   it('visits every rect exactly once in the reveal order', () => {

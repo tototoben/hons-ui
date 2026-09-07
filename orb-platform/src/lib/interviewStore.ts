@@ -152,6 +152,14 @@ export function loadStationTwoState(
   return state
 }
 
+/** Finished interviews are skipped by loadStationTwoState so a new visitor
+ * does not resume on "complete"; the collage wall still needs those answers. */
+export function peekStationTwoState(
+  storage: InterviewStorage | undefined = defaultStorage(),
+): StationTwoState | null {
+  return parseStationTwoState(readJson(STATION_TWO_STORAGE_KEY, storage))
+}
+
 export function saveStationTwoState(
   state: StationTwoState,
   storage: InterviewStorage | undefined = defaultStorage(),

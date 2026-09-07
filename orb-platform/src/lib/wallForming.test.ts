@@ -17,6 +17,7 @@ import {
   formingElapsedMs,
   formingTilePose,
   pickWallLoadingSurface,
+  SHOW_FORMING_PRELUDE,
   shouldShowForming,
   shouldShowFormingCaption,
 } from './wallForming'
@@ -192,9 +193,10 @@ describe('wallForming', () => {
     expect(landed.opacity).toBeGreaterThan(0)
   })
 
-  it('shows forming only while the fill clock is running', () => {
-    expect(shouldShowForming(0)).toBe(true)
-    expect(shouldShowForming(0.99)).toBe(true)
+  it('skips the forming prelude while SHOW_FORMING_PRELUDE is off', () => {
+    expect(SHOW_FORMING_PRELUDE).toBe(false)
+    expect(shouldShowForming(0)).toBe(false)
+    expect(shouldShowForming(0.99)).toBe(false)
     expect(shouldShowForming(1)).toBe(false)
   })
 
@@ -204,13 +206,13 @@ describe('wallForming', () => {
     expect(shouldShowFormingCaption('copy')).toBe(false)
   })
 
-  it('picks forming, collage, or the old face blanket from collage+progress', () => {
+  it('picks collage immediately when the forming prelude is off', () => {
     expect(pickWallLoadingSurface(false, 0)).toBe('face')
     expect(pickWallLoadingSurface(false, 1)).toBe('face')
-    expect(pickWallLoadingSurface(true, 0)).toBe('forming')
-    expect(pickWallLoadingSurface(true, 0.5)).toBe('forming')
+    expect(pickWallLoadingSurface(true, 0)).toBe('collage')
+    expect(pickWallLoadingSurface(true, 0.5)).toBe('collage')
     expect(pickWallLoadingSurface(true, 1)).toBe('collage')
-    expect(pickWallLoadingSurface(true, 1, false)).toBe('forming')
+    expect(pickWallLoadingSurface(true, 0, false)).toBe('collage')
     expect(pickWallLoadingSurface(true, 1, true)).toBe('collage')
   })
 })

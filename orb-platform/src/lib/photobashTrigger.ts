@@ -1,4 +1,5 @@
 import { publish } from './firehose'
+import { collageCueFromLocalAnswers, parseCollageCue, type CollageCue } from './collageCue'
 import { mintPhotobashSeed } from './photobashLoop'
 
 export const WALL_PHASE_CHANNEL = 'hons-station3-wall-phase'
@@ -8,6 +9,7 @@ export type RevealReadyMessage = {
   type: 'reveal-ready'
   photobashSeed: number
   ts: number
+  collageCue: CollageCue
 }
 
 export function isRevealReadyMessage(value: unknown): value is RevealReadyMessage {
@@ -21,6 +23,14 @@ export function isRevealReadyMessage(value: unknown): value is RevealReadyMessag
   )
 }
 
+function withCollageCue(message: RevealReadyMessage, raw: unknown): RevealReadyMessage {
+  const cueSource =
+    raw && typeof raw === 'object' && !Array.isArray(raw)
+      ? (raw as Record<string, unknown>).collageCue
+      : undefined
+  return { ...message, collageCue: parseCollageCue(cueSource) }
+}
+
 function defaultStorage(): Pick<Storage, 'getItem' | 'setItem'> | undefined {
   return typeof window === 'undefined' ? undefined : window.localStorage
 }
@@ -32,7 +42,8 @@ export function readLastRevealReady(
     const raw = storage?.getItem(REVEAL_STORAGE_KEY)
     if (!raw) return null
     const parsed = JSON.parse(raw) as unknown
-    return isRevealReadyMessage(parsed) ? parsed : null
+    if (!isRevealReadyMessage(parsed)) return null
+    return withCollageCue(parsed, parsed)
   } catch {
     return null
   }
@@ -41,11 +52,13 @@ export function readLastRevealReady(
 export function notifyRevealReady(
   seed: number = mintPhotobashSeed(),
   storage: Pick<Storage, 'setItem'> | undefined = defaultStorage(),
+  cue: CollageCue = collageCueFromLocalAnswers(),
 ): number {
   const message: RevealReadyMessage = {
     type: 'reveal-ready',
     photobashSeed: seed,
     ts: Date.now(),
+    collageCue: cue,
   }
   try {
     storage?.setItem(REVEAL_STORAGE_KEY, JSON.stringify(message))
@@ -57,6 +70,6 @@ export function notifyRevealReady(
     channel.postMessage(message)
     channel.close()
   }
-  publish('station-3', 'reveal_ready', { photobashSeed: seed })
+  publish('station-3', 'reveal_ready', { photobashSeed: seed, collageCue: cue })
   return seed
 }

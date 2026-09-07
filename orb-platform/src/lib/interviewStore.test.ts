@@ -4,6 +4,7 @@ import {
   loadStationTwoState,
   parseStationOneState,
   parseStationTwoState,
+  peekStationTwoState,
   resetInterview,
   saveStationOneState,
   saveStationTwoState,
@@ -72,6 +73,7 @@ describe('interviewStore', () => {
     const storage = memoryStorage()
     saveStationTwoState(createStationTwoState({ phase: 'complete' }), storage)
     expect(loadStationTwoState(storage)).toBeNull()
+    expect(peekStationTwoState(storage)?.phase).toBe('complete')
   })
 
   it('rejects corrupt Station I payloads', () => {

@@ -39,5 +39,6 @@ describe('notifyRevealReady', () => {
       message: expect.objectContaining({ type: 'reveal-ready', photobashSeed: 42 }),
     })
     expect(readLastRevealReady()?.photobashSeed).toBe(42)
+    expect(readLastRevealReady()?.collageCue).toEqual({})
   })
 })

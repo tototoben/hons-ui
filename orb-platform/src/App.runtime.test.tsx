@@ -10,11 +10,11 @@ vi.mock('./components/StationTwo', () => ({ StationTwo: () => <div data-testid="
 vi.mock('./components/ThirdStation', () => ({ ThirdStation: () => <div data-testid="third-station" /> }))
 vi.mock('./components/PhotobashScreen', () => ({ PhotobashScreen: () => <div data-testid="photobash" /> }))
 vi.mock('./components/SecondStation', () => ({ SecondStation: () => null }))
-vi.mock('./components/AvatarStation', () => ({ AvatarStation: () => null }))
 vi.mock('./components/WallFaceAlignTool', () => ({ WallFaceAlignTool: () => null }))
 vi.mock('./components/WallCalibrate', () => ({ WallCalibrate: () => null }))
 vi.mock('./components/WallSim', () => ({ WallSim: () => <div data-testid="wall-sim" /> }))
 vi.mock('./components/ThirdStationWall', () => ({ ThirdStationWall: () => null }))
+vi.mock('./lib/ipadSimLink', () => ({ connectIpadSimLink: () => () => {} }))
 vi.mock('./dev/DevPanel', () => ({ DevPanel: () => null }))
 vi.mock('./dev/LevaRoot', () => ({ LevaRoot: () => null }))
 

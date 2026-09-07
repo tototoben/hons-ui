@@ -37,7 +37,7 @@ export function MirrorDevPanel() {
   const text = useControls('Mirror — Text', {
     color: mirrorSettings.text.color,
     smudgeColor: mirrorSettings.text.smudgeColor,
-    fontPx: { value: mirrorSettings.text.fontPx, min: 24, max: 120, step: 1 },
+    fontPx: { value: mirrorSettings.text.fontPx, min: 24, max: 160, step: 1 },
     crispAlpha: { value: mirrorSettings.text.crispAlpha, min: 0, max: 1, step: 0.01 },
     smudgeAlpha: { value: mirrorSettings.text.smudgeAlpha, min: 0, max: 1, step: 0.01 },
     smudgeBlurPx: { value: mirrorSettings.text.smudgeBlurPx, min: 0, max: 30, step: 0.1 },

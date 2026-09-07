@@ -29,6 +29,7 @@ describe('station composition', () => {
     expect(appSource).not.toContain("getStationHref('orb')")
     expect(appSource).not.toContain("getStationHref('cards')")
     expect(appSource).not.toContain("getStationHref('avatars')")
+    expect(appSource).not.toContain('AvatarStation')
     expect(appSource).toContain('ThirdStationWall')
     expect(appSource).toContain('DevicePicker')
     expect(appSource).toContain('DeviceUnlockLayer')

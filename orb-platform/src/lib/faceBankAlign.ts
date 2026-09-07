@@ -1,6 +1,12 @@
 import { FaceLandmarker, FilesetResolver } from '@mediapipe/tasks-vision'
 import { PARALLAX } from '../config'
-import { DEFAULT_VISITOR_ALIGN, normalizeVisitorAlign, type VisitorAlign } from './wallMatchPhotobash'
+import {
+  DEFAULT_VISITOR_ALIGN,
+  MATCH_LEFT_EYE,
+  MATCH_RIGHT_EYE,
+  normalizeVisitorAlign,
+  type VisitorAlign,
+} from './wallMatchPhotobash'
 
 /**
  * Auto-aligns an arbitrary face photo so the same downstream cover-crop math
@@ -10,14 +16,19 @@ import { DEFAULT_VISITOR_ALIGN, normalizeVisitorAlign, type VisitorAlign } from 
  * framed bank photos fills it. One-time per image; results should be cached
  * by the caller (computing this is not free).
  */
-const LEFT_EYE_LANDMARK = 33
-const RIGHT_EYE_LANDMARK = 263
+const LEFT_EYE_OUTER = 33
+const LEFT_EYE_INNER = 133
+const RIGHT_EYE_OUTER = 263
+const RIGHT_EYE_INNER = 362
+const LEFT_IRIS = 468
+const RIGHT_IRIS = 473
 const FOCUS_Y = 0.38
 
-// Matches the right-eye/left-eye shard centers in wallMatchPhotobash's
-// SHARD_POOL, so alignment and shard shape agree on where "the eyes" are.
-const TARGET_LEFT_EYE = { x: 0.36, y: 0.385 }
-const TARGET_RIGHT_EYE = { x: 0.64, y: 0.385 }
+export const TARGET_LEFT_EYE = MATCH_LEFT_EYE
+export const TARGET_RIGHT_EYE = MATCH_RIGHT_EYE
+
+type Point = { x: number; y: number }
+type CropPoint = { u: number; v: number }
 
 let landmarkerPromise: Promise<FaceLandmarker> | null = null
 const alignCache = new WeakMap<HTMLImageElement, Map<number, Promise<VisitorAlign>>>()
@@ -38,7 +49,7 @@ function getImageLandmarker() {
 /** Same crop-rect math as wallMatchPhotobash's coverDrawImage, but returning
  * the rect (in source pixels) instead of drawing — needed to map a raw
  * landmark position into "where it lands after the cover crop." */
-function coverCropRect(
+export function coverCropRect(
   sourceWidth: number,
   sourceHeight: number,
   targetRatio: number,
@@ -59,6 +70,46 @@ function coverCropRect(
     sy = Math.max(0, Math.min(sourceHeight - sh, sourceHeight * focusY - sh / 2))
   }
   return { sx, sy, sw, sh }
+}
+
+function midpoint(a: Point | undefined, b: Point | undefined): Point | null {
+  if (!a || !b) return null
+  return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }
+}
+
+/** Prefer iris centers when the 478-point mesh is present; otherwise the
+ * midpoint of each eye's inner/outer corners — never the outer corners
+ * alone, which made faces too small for the eye shards. */
+export function readEyeCenters(landmarks: Array<Point | undefined>): [Point, Point] | null {
+  const leftIris = landmarks[LEFT_IRIS]
+  const rightIris = landmarks[RIGHT_IRIS]
+  if (leftIris && rightIris) return [leftIris, rightIris]
+  const left = midpoint(landmarks[LEFT_EYE_INNER], landmarks[LEFT_EYE_OUTER])
+  const right = midpoint(landmarks[RIGHT_EYE_INNER], landmarks[RIGHT_EYE_OUTER])
+  if (!left || !right) return null
+  return [left, right]
+}
+
+/**
+ * Similarity (scale + pan) that puts crop-space eye centers onto the match
+ * plate's eye-shard centroids. Pure so tests can check the lineup without
+ * MediaPipe.
+ */
+export function alignFromCropEyes(left: CropPoint, right: CropPoint): VisitorAlign {
+  const cropEyeDist = Math.hypot(right.u - left.u, right.v - left.v)
+  const targetEyeDist = Math.hypot(
+    TARGET_RIGHT_EYE.x - TARGET_LEFT_EYE.x,
+    TARGET_RIGHT_EYE.y - TARGET_LEFT_EYE.y,
+  )
+  if (cropEyeDist < 1e-6) return { ...DEFAULT_VISITOR_ALIGN }
+  const scale = targetEyeDist / cropEyeDist
+  const cx = TARGET_LEFT_EYE.x - left.u * scale
+  const vMid = (left.v + right.v) / 2
+  const targetYMid = (TARGET_LEFT_EYE.y + TARGET_RIGHT_EYE.y) / 2
+  const cy = targetYMid - vMid * scale
+  const offsetX = cx - (1 - scale) / 2
+  const offsetY = cy - (1 - scale) / 2
+  return normalizeVisitorAlign({ scale, offsetX, offsetY })
 }
 
 /**
@@ -93,9 +144,8 @@ async function computeFaceAlignUncached(
     const landmarker = await getImageLandmarker()
     const result = landmarker.detect(image)
     const landmarks = result.faceLandmarks?.[0]
-    const a = landmarks?.[LEFT_EYE_LANDMARK]
-    const b = landmarks?.[RIGHT_EYE_LANDMARK]
-    if (!a || !b) return { ...DEFAULT_VISITOR_ALIGN }
+    const eyes = landmarks ? readEyeCenters(landmarks) : null
+    if (!eyes) return { ...DEFAULT_VISITOR_ALIGN }
 
     const sourceWidth = image.naturalWidth || image.width
     const sourceHeight = image.naturalHeight || image.height
@@ -108,31 +158,10 @@ async function computeFaceAlignUncached(
     // screen-space — so sort by actual x instead of trusting which index
     // is "left": whichever lands further left on screen goes to
     // TARGET_LEFT_EYE, matching how the shard shapes are actually laid out.
-    const pointA = { u: (a.x * sourceWidth - sx) / sw, v: (a.y * sourceHeight - sy) / sh }
-    const pointB = { u: (b.x * sourceWidth - sx) / sw, v: (b.y * sourceHeight - sy) / sh }
+    const pointA = { u: (eyes[0].x * sourceWidth - sx) / sw, v: (eyes[0].y * sourceHeight - sy) / sh }
+    const pointB = { u: (eyes[1].x * sourceWidth - sx) / sw, v: (eyes[1].y * sourceHeight - sy) / sh }
     const [screenLeft, screenRight] = pointA.u <= pointB.u ? [pointA, pointB] : [pointB, pointA]
-    const uLeft = screenLeft.u
-    const vLeft = screenLeft.v
-    const uRight = screenRight.u
-    const vRight = screenRight.v
-
-    const cropEyeDist = Math.hypot(uRight - uLeft, vRight - vLeft)
-    const targetEyeDist = Math.hypot(
-      TARGET_RIGHT_EYE.x - TARGET_LEFT_EYE.x,
-      TARGET_RIGHT_EYE.y - TARGET_LEFT_EYE.y,
-    )
-    if (cropEyeDist < 1e-6) return { ...DEFAULT_VISITOR_ALIGN }
-    const scale = targetEyeDist / cropEyeDist
-
-    const cx = TARGET_LEFT_EYE.x - uLeft * scale
-    const vMid = (vLeft + vRight) / 2
-    const targetYMid = (TARGET_LEFT_EYE.y + TARGET_RIGHT_EYE.y) / 2
-    const cy = targetYMid - vMid * scale
-
-    const offsetX = cx - (1 - scale) / 2
-    const offsetY = cy - (1 - scale) / 2
-
-    return normalizeVisitorAlign({ scale, offsetX, offsetY })
+    return alignFromCropEyes(screenLeft, screenRight)
   } catch {
     return { ...DEFAULT_VISITOR_ALIGN }
   }

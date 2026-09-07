@@ -6,7 +6,11 @@ import './WallSim.css'
 
 function panelSrc(role: WallRole, collage: boolean) {
   const url = new URL(window.location.href)
+  const quality =
+    new URLSearchParams(window.location.search).get('quality') ??
+    document.documentElement.dataset.stationQuality
   url.search = collage ? `?wallRole=${role}&collage=1&bare=1` : `?wallRole=${role}&collage=0&bare=1`
+  if (quality === 'full' || quality === 'kiosk') url.searchParams.set('quality', quality)
   url.hash = '#/photobash'
   return url.toString()
 }

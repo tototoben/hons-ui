@@ -5,12 +5,13 @@ import { DEFAULT_VISITOR_ALIGN, MATCH_FACE_SIZE, type VisitorAlign } from '../li
 import { ensureCollageBank, peekCollageBank } from '../lib/wallCollageBank'
 import { computeFaceAlign } from '../lib/faceBankAlign'
 import { getVisitorFaceCapture } from '../lib/visitorFaceCapture'
+import { collageCueKey, type CollageCue } from '../lib/collageCue'
 import {
   collageRects,
   collageRevealAt,
   drawWallCollage,
   mouthRectIndex,
-  pickStrangerAssignments,
+  pickTaggedStrangerAssignments,
   visitorRevealOrder,
 } from '../lib/wallCollagePhotobash'
 import { lipFrameRect, lipStateAt, LIP_SPRITE_SRC } from '../lib/wallLipClips'
@@ -39,11 +40,14 @@ function loadImage(src: string) {
 export function WallCollageBlanket({
   role,
   photobashSeed = 1,
+  collageCue = {},
 }: {
   role: WallRole
   photobashSeed?: number
+  collageCue?: CollageCue
 }) {
   const seed = photobashSeed || 1
+  const cueKey = collageCueKey(collageCue)
   const panel = measuredPanelForRole(role)
   const [viewport, setViewport] = useState(() => ({
     width: window.innerWidth,
@@ -51,17 +55,18 @@ export function WallCollageBlanket({
   }))
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const lipCanvasRef = useRef<HTMLCanvasElement>(null)
-  const peeked = peekCollageBank(seed)
+  const peeked = peekCollageBank(seed, collageCue)
   const [bankImages, setBankImages] = useState<HTMLImageElement[]>(() => peeked?.images ?? [])
   const [bankAligns, setBankAligns] = useState<VisitorAlign[]>(() => peeked?.aligns ?? [])
+  const [bankFaces, setBankFaces] = useState(() => peeked?.faces ?? [])
   const [visitorImage, setVisitorImage] = useState<HTMLImageElement | null>(null)
   const [visitorAlign, setVisitorAlign] = useState<VisitorAlign>(DEFAULT_VISITOR_ALIGN)
   const [lipSprite, setLipSprite] = useState<HTMLImageElement | null>(null)
 
   const rects = useMemo(() => collageRects(seed), [seed])
   const strangerAssignments = useMemo(
-    () => pickStrangerAssignments(seed, rects.length, Math.max(1, bankImages.length)),
-    [seed, rects.length, bankImages.length],
+    () => pickTaggedStrangerAssignments(seed, bankFaces, collageCue, rects.length),
+    [seed, rects.length, bankFaces, cueKey],
   )
   const revealOrder = useMemo(() => visitorRevealOrder(seed + 1, rects.length), [seed, rects.length])
 
@@ -73,15 +78,16 @@ export function WallCollageBlanket({
 
   useEffect(() => {
     let cancelled = false
-    void ensureCollageBank(seed).then((bank) => {
+    void ensureCollageBank(seed, collageCue).then((bank) => {
       if (cancelled) return
       setBankImages(bank.images)
       setBankAligns(bank.aligns)
+      setBankFaces(bank.faces)
     })
     return () => {
       cancelled = true
     }
-  }, [seed])
+  }, [seed, cueKey])
 
   useEffect(() => {
     let cancelled = false

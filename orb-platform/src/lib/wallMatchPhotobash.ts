@@ -122,6 +122,18 @@ const SHARD_POOL: FaceShard[] = [
   ],
 ]
 
+function shardCentroid(shard: FaceShard) {
+  const n = Math.max(1, shard.length)
+  return {
+    x: shard.reduce((sum, [x]) => sum + x, 0) / n,
+    y: shard.reduce((sum, [, y]) => sum + y, 0) / n,
+  }
+}
+
+/** Screen-left / screen-right eye shard centers — face-bank align targets. */
+export const MATCH_LEFT_EYE = shardCentroid(SHARD_POOL[1])
+export const MATCH_RIGHT_EYE = shardCentroid(SHARD_POOL[0])
+
 /** How many shards to draw per reveal (from the larger pool). */
 export const SHARDS_PER_REVEAL: { min: number; max: number } = { min: 4, max: 6 }
 

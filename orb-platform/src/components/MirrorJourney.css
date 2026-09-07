@@ -250,7 +250,7 @@
 .journey-question h1,
 .journey-complete h1 {
   margin: 0;
-  font-size: clamp(30px, 5.2vh, 56px);
+  font-size: clamp(40px, 6.8vh, 74px);
   font-weight: 300;
   line-height: 0.98;
   letter-spacing: -0.04em;
@@ -424,7 +424,7 @@
 .journey-debra-copy h1,
 .journey-height-control h1 {
   margin: 0;
-  font-size: clamp(30px, 5.2vh, 56px);
+  font-size: clamp(40px, 6.8vh, 74px);
   font-weight: 300;
   line-height: 0.98;
   letter-spacing: -0.04em;

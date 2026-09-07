@@ -65,7 +65,11 @@ export function formingPulseOpacity(elapsedMs: number, rectCount: number) {
   return FORMING_SKELETON_MIN + (FORMING_SKELETON_MAX - FORMING_SKELETON_MIN) * wave
 }
 
+/** Flip back on to restore the skeleton-tile prelude before the collage. */
+export const SHOW_FORMING_PRELUDE = false
+
 export function shouldShowForming(loadingProgress: number) {
+  if (!SHOW_FORMING_PRELUDE) return false
   return formingElapsedMs(loadingProgress) < FORMING_DURATION_MS
 }
 
@@ -79,6 +83,7 @@ export function pickWallLoadingSurface(
   collageReady = true,
 ): 'forming' | 'collage' | 'face' {
   if (!collage) return 'face'
+  if (!SHOW_FORMING_PRELUDE) return 'collage'
   if (shouldShowForming(loadingProgress) || !collageReady) return 'forming'
   return 'collage'
 }

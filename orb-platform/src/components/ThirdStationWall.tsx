@@ -269,9 +269,13 @@ export function ThirdStationWall({ role: roleProp }: { role?: WallRole }) {
   const calibrate = parseWallCalibrate()
   const collage = parseWallCollage()
   const isConductor = role === 'debra' && !calibrate
-  const { phase, countdown, recordSecondsLeft, loadingProgress, photobashSeed } =
+  const { phase, countdown, recordSecondsLeft, loadingProgress, photobashSeed, collageCue } =
     useWallSyncedPhase(isConductor)
-  const collageReady = useCollageBankReady(photobashSeed || 1, !shouldShowForming(loadingProgress))
+  const collageReady = useCollageBankReady(
+    photobashSeed || 1,
+    !shouldShowForming(loadingProgress),
+    collageCue,
+  )
   const rootRef = useRef<HTMLElement>(null)
 
   useEffect(() => {
@@ -308,7 +312,7 @@ export function ThirdStationWall({ role: roleProp }: { role?: WallRole }) {
             loadingProgress={loadingProgress}
           />
         ) : loadingSurface === 'collage' ? (
-          <WallCollageBlanket role={role} photobashSeed={photobashSeed} />
+          <WallCollageBlanket role={role} photobashSeed={photobashSeed} collageCue={collageCue} />
         ) : (
           <WallFaceBlanket role={role} photobashSeed={photobashSeed} />
         )

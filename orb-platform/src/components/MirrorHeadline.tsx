@@ -7,7 +7,7 @@ import { mirrorSettings } from '../dev/mirrorSettingsStore'
 const REDRAW_INTERVAL_MS = 1000 / 8
 const FADE_IN_MS = 900
 const CANVAS_WIDTH = 1000
-const CANVAS_HEIGHT = 280
+const CANVAS_HEIGHT = 340
 
 /**
  * DOM-canvas headline text using the same drawGrainyText treatment as the

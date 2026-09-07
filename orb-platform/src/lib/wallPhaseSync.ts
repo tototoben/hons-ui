@@ -5,6 +5,7 @@ import {
   mintPhotobashSeed,
   photobashProgress,
 } from './photobashLoop'
+import { collageCueFromLocalAnswers, parseCollageCue, type CollageCue } from './collageCue'
 import {
   isRevealReadyMessage,
   readLastRevealReady,
@@ -33,6 +34,7 @@ type PhaseMessage = {
   loadingProgress: number
   /** Shared RNG seed so every panel draws the same random shards. */
   photobashSeed: number
+  collageCue?: CollageCue
 }
 
 /**
@@ -45,8 +47,10 @@ export function useWallSyncedPhase(isConductor: boolean) {
   const [recordSecondsLeft, setRecordSecondsLeft] = useState<number>(WALL_TIMING.recordingSeconds)
   const [loadingProgress, setLoadingProgress] = useState(0)
   const [photobashSeed, setPhotobashSeed] = useState(0)
+  const [collageCue, setCollageCue] = useState<CollageCue>({})
   const channelRef = useRef<BroadcastChannel | null>(null)
   const loadingSeedRef = useRef<number | null>(null)
+  const loadingCueRef = useRef<CollageCue | null>(null)
 
   useEffect(() => {
     const channel = new BroadcastChannel(CHANNEL)
@@ -60,6 +64,9 @@ export function useWallSyncedPhase(isConductor: boolean) {
       if (typeof event.data.photobashSeed === 'number') {
         setPhotobashSeed(event.data.photobashSeed)
       }
+      if (event.data.collageCue) {
+        setCollageCue(parseCollageCue(event.data.collageCue))
+      }
     }
     return () => {
       channel.close()
@@ -69,8 +76,12 @@ export function useWallSyncedPhase(isConductor: boolean) {
 
   useEffect(() => {
     if (!isConductor) return
-    const publish = (next: Omit<PhaseMessage, 'type'>) => {
-      channelRef.current?.postMessage({ type: 'phase', ...next } satisfies PhaseMessage)
+    const publish = (next: Omit<PhaseMessage, 'type' | 'collageCue'> & { collageCue?: CollageCue }) => {
+      channelRef.current?.postMessage({
+        type: 'phase',
+        collageCue: cueFor(),
+        ...next,
+      } satisfies PhaseMessage)
     }
 
     const timers: number[] = []
@@ -78,14 +89,20 @@ export function useWallSyncedPhase(isConductor: boolean) {
     const seedFor = (nextPhase: WallPhase) => {
       if (nextPhase !== 'loading') {
         loadingSeedRef.current = null
+        loadingCueRef.current = null
         return photobashSeed
       }
       if (loadingSeedRef.current === null) {
         loadingSeedRef.current = (Math.random() * 1_000_000_000) | 0
         setPhotobashSeed(loadingSeedRef.current)
       }
+      if (loadingCueRef.current === null) {
+        loadingCueRef.current = collageCueFromLocalAnswers()
+        setCollageCue(loadingCueRef.current)
+      }
       return loadingSeedRef.current
     }
+    const cueFor = () => loadingCueRef.current ?? collageCue
 
     // Keep conductor state aligned with the zero progress published outside loading.
     if (phase !== 'loading') setLoadingProgress(0)
@@ -193,6 +210,7 @@ export function useWallSyncedPhase(isConductor: boolean) {
         recordSecondsLeft: left,
         loadingProgress: 0,
         photobashSeed,
+        collageCue,
       } satisfies PhaseMessage)
       if (elapsed < total) raf = requestAnimationFrame(tick)
     }
@@ -219,6 +237,7 @@ export function useWallSyncedPhase(isConductor: boolean) {
         recordSecondsLeft: 0,
         loadingProgress: progress,
         photobashSeed: seed,
+        collageCue: loadingCueRef.current ?? collageCue,
       } satisfies PhaseMessage)
       if (elapsed < holdMs) raf = requestAnimationFrame(tick)
     }
@@ -226,16 +245,21 @@ export function useWallSyncedPhase(isConductor: boolean) {
     return () => cancelAnimationFrame(raf)
   }, [isConductor, phase, photobashSeed])
 
-  return { phase, countdown, recordSecondsLeft, loadingProgress, photobashSeed }
+  return { phase, countdown, recordSecondsLeft, loadingProgress, photobashSeed, collageCue }
 }
 
 /** Collage-only loop for the Photobash wall. No intro / prompt / recording. */
 export function usePhotobashLoop(isConductor: boolean) {
-  const [photobashSeed, setPhotobashSeed] = useState(() => readLastRevealReady()?.photobashSeed ?? 1)
+  const lastReveal = readLastRevealReady()
+  const [photobashSeed, setPhotobashSeed] = useState(() => lastReveal?.photobashSeed ?? 1)
+  const [collageCue, setCollageCue] = useState<CollageCue>(
+    () => lastReveal?.collageCue ?? collageCueFromLocalAnswers(),
+  )
   const [loadingProgress, setLoadingProgress] = useState(0)
   const [cycleKey, setCycleKey] = useState(0)
   const channelRef = useRef<BroadcastChannel | null>(null)
-  const pendingSeedRef = useRef<number | null>(readLastRevealReady()?.photobashSeed ?? null)
+  const pendingSeedRef = useRef<number | null>(lastReveal?.photobashSeed ?? null)
+  const pendingCueRef = useRef<CollageCue | null>(lastReveal?.collageCue ?? null)
 
   useEffect(() => {
     if (typeof BroadcastChannel === 'undefined') return
@@ -245,6 +269,7 @@ export function usePhotobashLoop(isConductor: boolean) {
       if (isRevealReadyMessage(event.data)) {
         if (isConductor) {
           pendingSeedRef.current = event.data.photobashSeed
+          pendingCueRef.current = parseCollageCue(event.data.collageCue)
           setCycleKey((key) => key + 1)
         }
         return
@@ -253,6 +278,9 @@ export function usePhotobashLoop(isConductor: boolean) {
       const phase = event.data as PhaseMessage
       if (typeof phase.photobashSeed === 'number') {
         setPhotobashSeed(phase.photobashSeed)
+      }
+      if (phase.collageCue) {
+        setCollageCue(parseCollageCue(phase.collageCue))
       }
       if (typeof phase.loadingProgress === 'number') {
         setLoadingProgress(phase.loadingProgress)
@@ -269,9 +297,12 @@ export function usePhotobashLoop(isConductor: boolean) {
     let cancelled = false
     let raf = 0
     const seed = pendingSeedRef.current ?? mintPhotobashSeed()
+    const cue = pendingCueRef.current ?? collageCueFromLocalAnswers()
     pendingSeedRef.current = null
+    pendingCueRef.current = null
     const start = performance.now()
     setPhotobashSeed(seed)
+    setCollageCue(cue)
     setLoadingProgress(0)
     const publishProgress = (progress: number) => {
       channelRef.current?.postMessage({
@@ -281,6 +312,7 @@ export function usePhotobashLoop(isConductor: boolean) {
         recordSecondsLeft: 0,
         loadingProgress: progress,
         photobashSeed: seed,
+        collageCue: cue,
       } satisfies PhaseMessage)
     }
     publishProgress(0)
@@ -303,5 +335,5 @@ export function usePhotobashLoop(isConductor: boolean) {
     }
   }, [isConductor, cycleKey])
 
-  return { photobashSeed, loadingProgress, cycleKey }
+  return { photobashSeed, collageCue, loadingProgress, cycleKey }
 }

@@ -15,8 +15,8 @@ describe('getStationFromHash', () => {
     expect(getStationFromHash('#/cards')).toBe('cards')
   })
 
-  it('resolves the avatar station hash', () => {
-    expect(getStationFromHash('#/avatars')).toBe('avatars')
+  it('treats the old avatar station hash as unknown', () => {
+    expect(getStationFromHash('#/avatars')).toBe('orb')
   })
 
   it('resolves the mirror station hash', () => {
@@ -65,7 +65,6 @@ describe('getStationFromHash', () => {
   it('blocks developer and wall hashes on kiosk quality', () => {
     expect(isKioskBlockedStation('orb')).toBe(true)
     expect(isKioskBlockedStation('cards')).toBe(true)
-    expect(isKioskBlockedStation('avatars')).toBe(true)
     expect(isKioskBlockedStation('photobash')).toBe(true)
     expect(isKioskBlockedStation('station-1')).toBe(false)
     expect(isKioskBlockedStation('station-2')).toBe(false)
@@ -77,7 +76,6 @@ describe('getStationHref', () => {
   it('builds hash links for stations', () => {
     expect(getStationHref('orb')).toBe('#/orb')
     expect(getStationHref('cards')).toBe('#/cards')
-    expect(getStationHref('avatars')).toBe('#/avatars')
     expect(getStationHref('mirror')).toBe('#/mirror')
     expect(getStationHref('station-1')).toBe('#/station-1')
     expect(getStationHref('station-2')).toBe('#/station-2')

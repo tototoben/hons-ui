@@ -13,9 +13,13 @@ export function PhotobashScreen() {
   const role = parseWallRole()
   const collage = parseWallCollage()
   const isConductor = role === 'debra' || role === null
-  const { photobashSeed, loadingProgress } = usePhotobashLoop(isConductor)
+  const { photobashSeed, collageCue, loadingProgress } = usePhotobashLoop(isConductor)
   const crop = role ?? 'copy'
-  const collageReady = useCollageBankReady(photobashSeed || 1, !shouldShowForming(loadingProgress))
+  const collageReady = useCollageBankReady(
+    photobashSeed || 1,
+    !shouldShowForming(loadingProgress),
+    collageCue,
+  )
   const surface = pickWallLoadingSurface(collage, loadingProgress, collageReady)
   const forming = surface === 'forming'
   const lastCueRef = useRef<string | null>(null)
@@ -46,7 +50,7 @@ export function PhotobashScreen() {
           loadingProgress={loadingProgress}
         />
       ) : surface === 'collage' ? (
-        <WallCollageBlanket role={crop} photobashSeed={photobashSeed} />
+        <WallCollageBlanket role={crop} photobashSeed={photobashSeed} collageCue={collageCue} />
       ) : (
         <WallFaceBlanket role={crop} photobashSeed={photobashSeed} />
       )}

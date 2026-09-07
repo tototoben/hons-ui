@@ -1,3 +1,5 @@
+import { facesMatching, type FaceBankFace, type FaceTagQuery } from './faceBank'
+import type { CollageCue } from './collageCue'
 import {
   DEFAULT_VISITOR_ALIGN,
   drawVisitorAligned,
@@ -7,6 +9,11 @@ import {
   type FaceShard,
   type VisitorAlign,
 } from './wallMatchPhotobash'
+
+/** collageRects() order after the mouth merge: eyes, nose, brow, cheeks,
+ * chin, temple, then mouth last. Hair-adjacent pieces can follow a hair
+ * colour cue; the mouth can follow smile. */
+const HAIR_SLOT_INDICES = new Set([3, 7])
 
 export type CollageRect = { x: number; y: number; w: number; h: number }
 
@@ -55,10 +62,10 @@ function boundsUnion(rects: CollageRect[]): CollageRect {
  * plus one merged, size-corrected mouth rect — combined with per-image
  * face alignment, a piece reliably shows the right anatomy no matter which
  * of the differently-framed bank photos fills it, while still reading as
- * cut rectangular pieces rather than a seamless mosaic. A little seeded
- * jitter keeps them from looking like a perfect spreadsheet. The mouth
- * rect is always last — see mouthRectIndex(). */
-export function collageRects(seed = 1, jitter = 0.08): CollageRect[] {
+ * cut rectangular pieces rather than a seamless mosaic. Tiny seeded jitter
+ * keeps them from looking like a spreadsheet without sliding features off
+ * their shards. The mouth rect is always last — see mouthRectIndex(). */
+export function collageRects(seed = 1, jitter = 0.02): CollageRect[] {
   const rand = mulberry32(seed)
   const bounds = getWallMatchShards().map(shardBounds)
   const nonMouth = bounds.filter((_, index) => !MOUTH_MERGE_INDICES.includes(index))
@@ -94,6 +101,119 @@ export function pickStrangerAssignments(seed: number, rectCount: number, bankSiz
   if (bankSize <= 0) return new Array(rectCount).fill(-1)
   const rand = mulberry32(seed)
   return Array.from({ length: rectCount }, () => Math.floor(rand() * bankSize))
+}
+
+function omitKey<T extends FaceTagQuery>(query: T, key: keyof FaceTagQuery): FaceTagQuery {
+  const next = { ...query }
+  delete next[key]
+  return next
+}
+
+function queryForSlot(cue: CollageCue, slotIndex: number, mouthIndex: number): FaceTagQuery {
+  const query: FaceTagQuery = {}
+  if (cue.presentation) query.presentation = cue.presentation
+  if (cue.ageBand) query.ageBand = cue.ageBand
+  if (cue.hairColor && HAIR_SLOT_INDICES.has(slotIndex)) query.hairColor = cue.hairColor
+  if (cue.smile !== undefined && slotIndex === mouthIndex) query.smile = cue.smile
+  return query
+}
+
+function relaxedQueries(query: FaceTagQuery): FaceTagQuery[] {
+  const steps: FaceTagQuery[] = [query]
+  if (query.smile !== undefined) steps.push(omitKey(query, 'smile'))
+  if (query.hairColor) steps.push(omitKey(steps[steps.length - 1], 'hairColor'))
+  if (query.ageBand) steps.push(omitKey(steps[steps.length - 1], 'ageBand'))
+  if (query.presentation) steps.push({})
+  return steps
+}
+
+/** Bank indices that may fill this collage slot for the visitor's cue. */
+export function strangerPoolIndices(
+  faces: FaceBankFace[],
+  cue: CollageCue,
+  slotIndex: number,
+  mouthIndex: number,
+): number[] {
+  if (faces.length === 0) return []
+  for (const query of relaxedQueries(queryForSlot(cue, slotIndex, mouthIndex))) {
+    const hits = faces.flatMap((face, index) => (facesMatching([face], query).length ? [index] : []))
+    if (hits.length > 0) return hits
+  }
+  return faces.map((_, index) => index)
+}
+
+/** Same seed + cue always yields the same collage; missing cue stays uniform RNG. */
+export function pickTaggedStrangerAssignments(
+  seed: number,
+  faces: FaceBankFace[],
+  cue: CollageCue,
+  rectCount: number,
+  mouthIndex = rectCount - 1,
+): number[] {
+  if (faces.length === 0) return new Array(rectCount).fill(-1)
+  const rand = mulberry32(seed)
+  return Array.from({ length: rectCount }, (_, slot) => {
+    const pool = strangerPoolIndices(faces, cue, slot, mouthIndex)
+    if (pool.length === 0) return -1
+    return pool[Math.floor(rand() * pool.length)]
+  })
+}
+
+export type CollageTypeStats = {
+  cue: CollageCue
+  identityPool: number
+  slotPools: number[]
+  collages: number
+}
+
+export type CollageCombinationStats = {
+  rectCount: number
+  faces: number
+  types: CollageTypeStats[]
+  typeCount: number
+  minCollages: number
+  maxCollages: number
+}
+
+function product(values: number[]): number {
+  return values.reduce((total, value) => total * Math.max(0, value), 1)
+}
+
+/** How many distinct 9-piece collages each identity × age × smile type can seed. */
+export function collageCombinationStats(
+  faces: FaceBankFace[],
+  rectCount = 9,
+): CollageCombinationStats {
+  const presentations: CollageCue['presentation'][] = ['woman', 'man', 'androgynous']
+  const types: CollageTypeStats[] = []
+  for (const presentation of presentations) {
+    for (const ageBand of ['young', 'mid'] as const) {
+      for (const smile of [true, false]) {
+        const cue: CollageCue = { presentation, ageBand, smile }
+        const identityPool = facesMatching(faces, { presentation, ageBand }).length
+        if (identityPool === 0) continue
+        const mouthIndex = rectCount - 1
+        const slotPools = Array.from({ length: rectCount }, (_, slot) =>
+          strangerPoolIndices(faces, cue, slot, mouthIndex).length,
+        )
+        types.push({
+          cue,
+          identityPool,
+          slotPools,
+          collages: product(slotPools),
+        })
+      }
+    }
+  }
+  const collageCounts = types.map((type) => type.collages)
+  return {
+    rectCount,
+    faces: faces.length,
+    types,
+    typeCount: types.length,
+    minCollages: collageCounts.length ? Math.min(...collageCounts) : 0,
+    maxCollages: collageCounts.length ? Math.max(...collageCounts) : 0,
+  }
 }
 
 /** Seeded shuffle of rect indices — the order pieces flip to the visitor. */

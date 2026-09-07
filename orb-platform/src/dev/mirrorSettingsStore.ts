@@ -29,7 +29,7 @@ export const mirrorSettings = {
   text: {
     color: '#fff4e8',
     smudgeColor: '#f0d4b8',
-    fontPx: 64,
+    fontPx: 88,
     crispAlpha: 0.78,
     smudgeAlpha: 0.75,
     smudgeBlurPx: 9,

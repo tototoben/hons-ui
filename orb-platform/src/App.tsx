@@ -47,9 +47,6 @@ const ThirdStationWall = lazy(() =>
 const SecondStation = lazy(() =>
   import('./components/SecondStation').then((m) => ({ default: m.SecondStation })),
 )
-const AvatarStation = lazy(() =>
-  import('./components/AvatarStation').then((m) => ({ default: m.AvatarStation })),
-)
 const WallFaceAlignTool = lazy(() =>
   import('./components/WallFaceAlignTool').then((m) => ({ default: m.WallFaceAlignTool })),
 )
@@ -260,7 +257,7 @@ export default function App() {
         ) : station === 'debra-capture' ? (
           <DebraCapture />
         ) : (
-          <AvatarStation />
+          <OrbStation />
         )}
       </Suspense>
     </main>
