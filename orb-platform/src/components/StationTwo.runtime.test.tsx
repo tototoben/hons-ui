@@ -27,6 +27,7 @@ import { resetVisitorProfile, setVisitorProfile } from '../lib/visitorProfile'
 import { clearDeviceLock, writeDeviceLock } from '../lib/deviceLock'
 import { saveStationTwoState } from '../lib/interviewStore'
 import { createStationTwoState } from '../lib/mirrorJourney'
+import { applyRemoteKey, resetRemoteSliderSeq } from '../lib/ipadSimLink'
 
 function emptyProfile() {
   return {
@@ -68,6 +69,7 @@ describe('StationTwo', () => {
     container.remove()
     resetVisitorProfile()
     clearDeviceLock()
+    resetRemoteSliderSeq()
   })
 
   it('moves from the category readout through the question set, height, and lightning round', async () => {
@@ -75,8 +77,9 @@ describe('StationTwo', () => {
 
     expect(container.textContent).toContain('category Rho106')
     expect(container.querySelector('.journey-message .journey-headline-canvas')).not.toBeNull()
-    expect(container.textContent).toContain('Listening')
-    expect(container.querySelectorAll('.journey-status > span')).toHaveLength(1)
+    expect(container.querySelector('.journey-status')).toBeNull()
+    expect(container.textContent).not.toContain('Listening')
+    expect(container.textContent).not.toContain('RECORDING IN PROGRESS')
     expect(container.querySelector('[aria-label="Debra, companion guide"]')).toBeNull()
 
     await act(async () => {
@@ -111,6 +114,9 @@ describe('StationTwo', () => {
 
     const smartSlider = container.querySelector<HTMLInputElement>('input[type="range"]')!
     expect(smartSlider).not.toBeNull()
+    expect(Number(smartSlider.value)).toBeCloseTo(0.5)
+    act(() => applyRemoteKey({ slider: 0.73, seq: 1 }))
+    expect(Number(smartSlider.value)).toBeCloseTo(0.73)
     act(() => container.querySelector<HTMLButtonElement>('.journey-height-confirm')!.click())
     expect(container.textContent).toContain('Do you want a traditional relationship?')
 
@@ -150,7 +156,7 @@ describe('StationTwo', () => {
     })
     expect(container.textContent).toContain('Beauty or')
 
-    for (const pair of ['Inside', 'Process', 'Calm', 'Sex', 'Rebellion', 'Nature']) {
+    for (const pair of ['Inside', 'Process', 'Calm', 'Nature', 'Rebellion', 'Love']) {
       const leftButton = container.querySelectorAll<HTMLButtonElement>('.journey-choice button')[0]
       act(() => leftButton.click())
       expect(container.textContent).toContain(pair)

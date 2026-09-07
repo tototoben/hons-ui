@@ -20,6 +20,7 @@ import { isPickerDismissKey, isProductionHotkey } from './lib/productionHotkey'
 import { isWallMode } from './lib/wallMode'
 import { isWallRoleMode, parseWallRole } from './lib/wallRole'
 import { showTuningPanel } from './lib/tune'
+import { connectIpadSimLink } from './lib/ipadSimLink'
 import {
   getStationFromHash,
   getStationHref,
@@ -116,6 +117,8 @@ export default function App() {
   useEffect(() => {
     applyDeviceQuality()
   }, [])
+
+  useEffect(() => connectIpadSimLink(), [])
 
   useEffect(() => {
     perfSetView(station)

@@ -22,11 +22,16 @@ import { MirrorChoice } from './MirrorChoice'
 import { MirrorStationShell } from './MirrorStationShell'
 import { useStationVibe } from '../hooks/useStationVibe'
 import { readDeviceLock } from '../lib/deviceLock'
+import { keyboardFocusForQuestion, publishKeyboardFocus } from '../lib/keyboardFocus'
+import { REMOTE_SLIDER_EVENT } from '../lib/ipadSimLink'
 import { showTuningPanel } from '../lib/tune'
 
 const JourneyDevPanel = lazy(() =>
   import('../dev/JourneyDevPanel').then((m) => ({ default: m.JourneyDevPanel })),
 )
+
+const HOW_SMART_SCALE = { left: 'Not very', right: 'Extremely' }
+const HEIGHT_SCALE = { left: 'Shorter', right: 'Taller' }
 
 const LIVE_POLL_MS = 150
 
@@ -177,6 +182,48 @@ export function StationTwo({ phaseDurationMs }: { phaseDurationMs?: number }) {
   const questionLines = (warm ? QUESTION_LINES_WARM : QUESTION_LINES_ORIGINAL)[state.questionIndex]
   const lightningPair = STATION_TWO_LIGHTNING[state.lightningIndex]
 
+  useEffect(() => {
+    if (state.phase === 'question' && question?.type === 'scale') {
+      publishKeyboardFocus(STATION_ID, 'scale', {
+        ...HOW_SMART_SCALE,
+        value: Number(state.answers[question.id] ?? 0.5),
+      })
+      return
+    }
+    if (state.phase === 'question') {
+      publishKeyboardFocus(STATION_ID, keyboardFocusForQuestion(question))
+      return
+    }
+    if (state.phase === 'height') {
+      publishKeyboardFocus(STATION_ID, 'scale', { ...HEIGHT_SCALE, value: state.height })
+      return
+    }
+    if (state.phase === 'lightning' && lightningPair) {
+      publishKeyboardFocus(STATION_ID, 'choice', {
+        left: lightningPair.left,
+        right: lightningPair.right,
+      })
+      return
+    }
+    publishKeyboardFocus(STATION_ID, 'hidden')
+  }, [state.phase, state.questionIndex, state.lightningIndex, question, lightningPair])
+
+  useEffect(() => {
+    const onSlider = (event: Event) => {
+      const value = Number((event as CustomEvent<{ value?: number }>).detail?.value)
+      if (!Number.isFinite(value)) return
+      if (state.phase === 'height') {
+        dispatch({ type: 'SET_HEIGHT', value })
+        return
+      }
+      if (state.phase === 'question' && question?.type === 'scale') {
+        dispatch({ type: 'SET_SCALE', value })
+      }
+    }
+    window.addEventListener(REMOTE_SLIDER_EVENT, onSlider)
+    return () => window.removeEventListener(REMOTE_SLIDER_EVENT, onSlider)
+  }, [state.phase, question])
+
   return (
     <>
     {/* Also excluded in Vitest (MODE === 'test'): leva's stitches-based
@@ -193,11 +240,6 @@ export function StationTwo({ phaseDurationMs }: { phaseDurationMs?: number }) {
     <MirrorStationShell
       station="II"
       cameraMode="none"
-      statusLeft={
-        <span className="journey-recording">
-          <i /> {warm ? 'Listening' : 'RECORDING IN PROGRESS'}
-        </span>
-      }
     >
       {state.phase !== 'percentile' && state.phase !== 'complete' ? <DebraGuide /> : null}
 
@@ -262,7 +304,7 @@ export function StationTwo({ phaseDurationMs }: { phaseDurationMs?: number }) {
         <div className="journey-scale">
           <JourneyHeadline lines={questionLines}>{question.prompt}</JourneyHeadline>
           <label>
-            <span>Not very</span>
+            <span>{HOW_SMART_SCALE.left}</span>
             <input
               type="range"
               min="0"
@@ -274,7 +316,7 @@ export function StationTwo({ phaseDurationMs }: { phaseDurationMs?: number }) {
               }
               aria-label={question.prompt}
             />
-            <span>Extremely</span>
+            <span>{HOW_SMART_SCALE.right}</span>
           </label>
           <JourneyButton
             className="journey-height-confirm"
@@ -296,7 +338,7 @@ export function StationTwo({ phaseDurationMs }: { phaseDurationMs?: number }) {
               How tall is your ideal partner?
             </JourneyHeadline>
             <label>
-              <span>Shorter</span>
+              <span>{HEIGHT_SCALE.left}</span>
               <input
                 type="range"
                 min="0"
@@ -308,7 +350,7 @@ export function StationTwo({ phaseDurationMs }: { phaseDurationMs?: number }) {
                 }
                 aria-label="Ideal partner height"
               />
-              <span>Taller</span>
+              <span>{HEIGHT_SCALE.right}</span>
             </label>
             <JourneyButton
               className="journey-height-confirm"

@@ -14,6 +14,7 @@ import { showTuningPanel } from '../lib/tune'
 import { useStationVibe } from '../hooks/useStationVibe'
 import type { WallPhase } from '../lib/wallPhaseSync'
 import { publish } from '../lib/firehose'
+import { publishKeyboardFocus } from '../lib/keyboardFocus'
 import { notifyRevealReady } from '../lib/photobashTrigger'
 import { MirrorGuideOrb } from './MirrorGuideOrb'
 import { MirrorHeadline } from './MirrorHeadline'
@@ -369,6 +370,7 @@ export function ThirdStation() {
 
   useEffect(() => {
     publish('station-3', 'station_mounted', { phase: 'intro' })
+    publishKeyboardFocus('station-3', 'hidden')
   }, [])
 
   useEffect(() => {

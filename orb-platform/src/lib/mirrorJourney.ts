@@ -173,9 +173,9 @@ export const STATION_TWO_LIGHTNING: ThisOrThatPair[] = [
   { id: 'insideOutside', left: 'Inside', right: 'Outside' },
   { id: 'processResult', left: 'Process', right: 'Result' },
   { id: 'calmExcitement', left: 'Calm', right: 'Excitement' },
-  { id: 'sexLove', left: 'Sex', right: 'Love' },
-  { id: 'rebellionSimplicity', left: 'Rebellion', right: 'Simplicity' },
   { id: 'natureComfort', left: 'Nature', right: 'Comfort' },
+  { id: 'rebellionSimplicity', left: 'Rebellion', right: 'Simplicity' },
+  { id: 'sexLove', left: 'Love', right: 'Sex' },
 ]
 
 export type StationTwoPhase =

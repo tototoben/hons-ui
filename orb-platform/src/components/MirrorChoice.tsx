@@ -43,7 +43,7 @@ export function MirrorChoice({
       <JourneyButton type="button" onClick={() => onAnswer('no')}>
         {noLabel}
       </JourneyButton>
-      <p>{vibe === 'warm' ? 'or press Y / N' : 'Press Y or N'}</p>
+      <p>{vibe === 'warm' ? 'or press YES / NO' : 'Press YES or NO'}</p>
     </div>
   )
 }

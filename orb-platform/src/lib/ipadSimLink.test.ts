@@ -1,0 +1,79 @@
+// @vitest-environment jsdom
+
+import { afterEach, describe, expect, it } from 'vitest'
+import { applyRemoteKey, resetRemoteSliderSeq } from './ipadSimLink'
+
+describe('applyRemoteKey', () => {
+  afterEach(() => {
+    document.body.replaceChildren()
+    resetRemoteSliderSeq()
+  })
+
+  it('types into a focused intake field the way React controlled inputs expect', () => {
+    const input = document.createElement('input')
+    input.className = 'journey-intake-field'
+    const form = document.createElement('form')
+    form.className = 'journey-intake'
+    form.append(input)
+    document.body.append(form)
+    input.focus()
+
+    applyRemoteKey({ key: '3' })
+    applyRemoteKey({ key: '4' })
+    expect(input.value).toBe('34')
+
+    applyRemoteKey({ special: 'backspace' })
+    expect(input.value).toBe('3')
+  })
+
+  it('submits the surrounding form on return', () => {
+    const form = document.createElement('form')
+    form.className = 'journey-intake'
+    const input = document.createElement('input')
+    form.append(input)
+    document.body.append(form)
+    input.focus()
+
+    let submitted = false
+    form.addEventListener('submit', (event) => {
+      event.preventDefault()
+      submitted = true
+    })
+
+    applyRemoteKey({ special: 'return' })
+    expect(submitted).toBe(true)
+  })
+
+  it('drives a range input and clicks the scale confirm button', () => {
+    const range = document.createElement('input')
+    range.type = 'range'
+    range.min = '0'
+    range.max = '1'
+    range.step = '0.01'
+    range.value = '0.5'
+    range.className = 'journey-scale-range'
+    const wrap = document.createElement('div')
+    wrap.className = 'journey-scale'
+    wrap.append(range)
+
+    const confirm = document.createElement('button')
+    confirm.type = 'button'
+    confirm.className = 'journey-height-confirm'
+    wrap.append(confirm)
+    document.body.append(wrap)
+
+    let confirmed = false
+    confirm.addEventListener('click', () => {
+      confirmed = true
+    })
+
+    applyRemoteKey({ slider: 0.73, seq: 1 })
+    expect(Number(range.value)).toBeCloseTo(0.73)
+
+    applyRemoteKey({ slider: 0.2, seq: 0 })
+    expect(Number(range.value)).toBeCloseTo(0.73)
+
+    applyRemoteKey({ special: 'confirm' })
+    expect(confirmed).toBe(true)
+  })
+})

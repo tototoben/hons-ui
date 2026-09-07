@@ -119,11 +119,21 @@ function postFirehose(msg: FirehoseMessage) {
     window.parent.postMessage(msg, '*')
   }
   postToStation(msg)
+  postToIpadSimLink(msg)
 
   // Always log in dev so standalone `pnpm dev` shows the event stream.
   if (import.meta.env.DEV) {
     console.log('[firehose]', msg.station, msg.event, msg.data ?? '')
   }
+}
+
+function postToIpadSimLink(msg: FirehoseMessage) {
+  if (!import.meta.env.DEV || typeof window === 'undefined') return
+  fetch('/__hons/firehose', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(msg),
+  }).catch(() => {})
 }
 
 /**

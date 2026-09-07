@@ -31,6 +31,7 @@ describe('MirrorChoice', () => {
     expect(group?.getAttribute('aria-label')).toBe('Answer yes or no')
     expect(buttons[0].textContent).toBe('Yes')
     expect(buttons[1].textContent).toBe('No')
+    expect(container.querySelector('p')?.textContent).toMatch(/press yes or no/i)
     expect(buttons[0].querySelector('.journey-action-haze canvas')).not.toBeNull()
     expect(buttons[1].querySelector('.journey-action-haze canvas')).not.toBeNull()
 

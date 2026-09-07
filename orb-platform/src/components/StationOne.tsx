@@ -15,6 +15,7 @@ import { JourneyButton } from './JourneyButton'
 import { JourneyHeadline } from './JourneyHeadline'
 import { MirrorChoice } from './MirrorChoice'
 import { MirrorStationShell } from './MirrorStationShell'
+import { keyboardFocusForQuestion, publishKeyboardFocus } from '../lib/keyboardFocus'
 
 const STATION_ID = 'station-1'
 
@@ -94,6 +95,14 @@ export function StationOne({ phaseDurationMs = 2200 }: { phaseDurationMs?: numbe
   useEffect(() => {
     publish(STATION_ID, 'station_mounted', { phase: 'name' })
   }, [])
+
+  useEffect(() => {
+    if (state.phase !== 'intake') {
+      publishKeyboardFocus(STATION_ID, 'hidden')
+      return
+    }
+    publishKeyboardFocus(STATION_ID, keyboardFocusForQuestion(question))
+  }, [state.phase, state.questionIndex, question])
 
   const submit = (event: FormEvent) => {
     event.preventDefault()

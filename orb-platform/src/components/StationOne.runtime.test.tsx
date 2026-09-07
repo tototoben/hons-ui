@@ -91,7 +91,7 @@ describe('StationOne', () => {
     act(() => root.render(<StationOne phaseDurationMs={20} />))
 
     // No station-marker text — the header only shows up when a station
-    // passes its own statusLeft content (Station II's recording readout).
+    // passes its own statusLeft content.
     expect(container.querySelector('.journey-status')).toBeNull()
     expect(container.querySelector('label .journey-headline-canvas')).not.toBeNull()
 

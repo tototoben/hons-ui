@@ -1,5 +1,6 @@
 import { defineConfig, type ViteDevServer } from 'vite'
 import react from '@vitejs/plugin-react'
+import { ipadSimLinkPlugin } from './src/lib/ipadSimLinkPlugin.ts'
 import { writeFileSync, mkdirSync, existsSync } from 'fs'
 import { resolve, dirname } from 'path'
 
@@ -41,7 +42,7 @@ function perfFileLogger() {
 const isVercel = Boolean(process.env.VERCEL)
 
 export default defineConfig({
-  plugins: [react(), perfFileLogger()],
+  plugins: [react(), perfFileLogger(), ipadSimLinkPlugin()],
   // Visualizer embeds this app at /orb/. The Vercel preview is the app itself at /.
   base: isVercel ? '/' : '/orb/',
   test: {
