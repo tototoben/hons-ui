@@ -144,6 +144,8 @@ describe('station composition', () => {
 
   it('hands Photobash a reveal-ready seed without recording speech', () => {
     expect(thirdStationSource).toContain('notifyRevealReady')
+    expect(thirdStationSource).toContain('useMirrorCamera')
+    expect(thirdStationSource).toContain('mirror-record-video')
     expect(thirdStationSource).not.toContain('useVisitorVoiceRecorder')
     expect(thirdStationSource).not.toContain('transcript')
     expect(thirdStationStyles).not.toContain('mirror-record-transcript')

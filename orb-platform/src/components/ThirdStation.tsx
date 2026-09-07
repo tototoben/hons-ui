@@ -11,11 +11,13 @@ import { mirrorSettings } from '../dev/mirrorSettingsStore'
 import { getDeviceQuality } from '../lib/deviceQuality'
 import { readDeviceLock } from '../lib/deviceLock'
 import { showTuningPanel } from '../lib/tune'
+import { useMirrorCamera, type MirrorCameraHandle } from '../hooks/useMirrorCamera'
 import { useStationVibe } from '../hooks/useStationVibe'
 import type { WallPhase } from '../lib/wallPhaseSync'
 import { publish } from '../lib/firehose'
 import { publishKeyboardFocus } from '../lib/keyboardFocus'
 import { notifyRevealReady } from '../lib/photobashTrigger'
+import { captureVisitorFaceFrame, setVisitorFaceCapture } from '../lib/visitorFaceCapture'
 import { MirrorGuideOrb } from './MirrorGuideOrb'
 import { MirrorHeadline } from './MirrorHeadline'
 import { CodePanel, MiniBar } from './HudDebris'
@@ -23,6 +25,9 @@ import './ThirdStation.css'
 
 const MirrorDevPanel = lazy(() =>
   import('../dev/MirrorDevPanel').then((m) => ({ default: m.MirrorDevPanel })),
+)
+const CameraDevPanel = lazy(() =>
+  import('../dev/CameraDevPanel').then((m) => ({ default: m.CameraDevPanel })),
 )
 
 type Phase = WallPhase
@@ -320,37 +325,60 @@ function GuideOrb({ variant, progress }: { variant: 'idle' | 'loading'; progress
   )
 }
 
-function RecordingFrame({
+function RecordingStage({
+  live,
+  camera,
   secondsLeft,
   totalSeconds,
 }: {
+  live: boolean
+  camera: MirrorCameraHandle
   secondsLeft: number
   totalSeconds: number
 }) {
   const progress = 1 - secondsLeft / totalSeconds
+  const cameraFailed = camera.status === 'denied' || camera.status === 'unavailable'
 
   return (
-    <div className="mirror-record-frame">
-      <span className="mirror-hud-corner mirror-hud-corner-tl" />
-      <span className="mirror-hud-corner mirror-hud-corner-tr" />
-      <span className="mirror-hud-corner mirror-hud-corner-bl" />
-      <span className="mirror-hud-corner mirror-hud-corner-br" />
-      <div className="mirror-rec-indicator">
-        <span className="mirror-rec-dot" />
-        REC
-      </div>
-      <div className="mirror-record-timer">
-        <svg viewBox="0 0 64 64" className="mirror-record-timer-ring">
-          <circle cx="32" cy="32" r="28" className="mirror-record-timer-track" />
-          <circle
-            cx="32"
-            cy="32"
-            r="28"
-            className="mirror-record-timer-progress"
-            style={{ strokeDashoffset: `${(1 - progress) * 2 * Math.PI * 28}px` }}
+    <div
+      className={`mirror-screen mirror-screen-recording${live ? ' is-live' : ''}`}
+      aria-hidden={!live}
+    >
+      <div className="mirror-record-frame">
+        <div className="mirror-record-camera">
+          <video
+            ref={camera.videoRef}
+            className="mirror-record-video"
+            muted
+            playsInline
+            autoPlay
           />
-        </svg>
-        <span className="mirror-record-timer-value">{Math.ceil(secondsLeft)}</span>
+          <div className="mirror-record-veil" />
+          {live && cameraFailed ? (
+            <div className="mirror-record-camera-fallback">Camera unavailable</div>
+          ) : null}
+        </div>
+        <span className="mirror-hud-corner mirror-hud-corner-tl" />
+        <span className="mirror-hud-corner mirror-hud-corner-tr" />
+        <span className="mirror-hud-corner mirror-hud-corner-bl" />
+        <span className="mirror-hud-corner mirror-hud-corner-br" />
+        <div className="mirror-rec-indicator">
+          <span className="mirror-rec-dot" />
+          REC
+        </div>
+        <div className="mirror-record-timer">
+          <svg viewBox="0 0 64 64" className="mirror-record-timer-ring">
+            <circle cx="32" cy="32" r="28" className="mirror-record-timer-track" />
+            <circle
+              cx="32"
+              cy="32"
+              r="28"
+              className="mirror-record-timer-progress"
+              style={{ strokeDashoffset: `${(1 - progress) * 2 * Math.PI * 28}px` }}
+            />
+          </svg>
+          <span className="mirror-record-timer-value">{Math.ceil(secondsLeft)}</span>
+        </div>
       </div>
     </div>
   )
@@ -361,12 +389,16 @@ export function ThirdStation() {
   const warm = vibe === 'warm'
   const rootRef = useRef<HTMLElement>(null)
   useLiveMirrorTheme(rootRef)
+  const camera = useMirrorCamera({ tracking: false })
+  const cameraRef = useRef(camera)
+  cameraRef.current = camera
 
   const [phase, setPhase] = useState<Phase>('intro')
   const [countdown, setCountdown] = useState<number | null>(null)
   const [recordSecondsLeft, setRecordSecondsLeft] = useState(mirrorSettings.timing.recordingSeconds)
   const [loadingProgress, setLoadingProgress] = useState(0)
   const prevPhaseRef = useRef<Phase | null>(null)
+  const recording = phase === 'recording'
 
   useEffect(() => {
     publish('station-3', 'station_mounted', { phase: 'intro' })
@@ -457,6 +489,19 @@ export function ThirdStation() {
     return () => cancelAnimationFrame(raf)
   }, [phase])
 
+  useEffect(() => {
+    if (phase !== 'recording' || camera.status !== 'active') return
+    const grab = () => {
+      const video = cameraRef.current.videoRef.current
+      if (!video) return
+      const frame = captureVisitorFaceFrame(video)
+      if (frame) setVisitorFaceCapture(frame)
+    }
+    grab()
+    const id = window.setInterval(grab, 500)
+    return () => window.clearInterval(id)
+  }, [phase, camera.status])
+
   return (
     <section className="third-station" aria-label="Mirror station" ref={rootRef}>
       <div className="mirror-frame">
@@ -484,14 +529,12 @@ export function ThirdStation() {
           </div>
         ) : null}
 
-        {phase === 'recording' ? (
-          <div className="mirror-screen mirror-screen-recording">
-            <RecordingFrame
-              secondsLeft={recordSecondsLeft}
-              totalSeconds={mirrorSettings.timing.recordingSeconds}
-            />
-          </div>
-        ) : null}
+        <RecordingStage
+          live={recording}
+          camera={camera}
+          secondsLeft={recordSecondsLeft}
+          totalSeconds={mirrorSettings.timing.recordingSeconds}
+        />
 
         {phase === 'loading' ? (
           <div className="mirror-screen mirror-screen-loading">
@@ -512,6 +555,7 @@ export function ThirdStation() {
       {showTuningPanel() && !readDeviceLock() ? (
         <Suspense fallback={null}>
           <MirrorDevPanel />
+          {import.meta.env.MODE !== 'test' ? <CameraDevPanel camera={camera} /> : null}
         </Suspense>
       ) : null}
     </section>
