@@ -28,6 +28,7 @@ import { clearDeviceLock, writeDeviceLock } from '../lib/deviceLock'
 import { saveStationTwoState } from '../lib/interviewStore'
 import { createStationTwoState } from '../lib/mirrorJourney'
 import { applyRemoteKey, resetRemoteSliderSeq } from '../lib/ipadSimLink'
+import * as firehose from '../lib/firehose'
 
 function emptyProfile() {
   return {
@@ -278,5 +279,36 @@ describe('StationTwo', () => {
 
     expect(container.textContent).toContain('Is attractiveness important to you?')
     expect(container.textContent).not.toContain('category Rho106')
+  })
+
+  it('publishes keyboard_focus with the current question prompt', async () => {
+    const publish = vi.spyOn(firehose, 'publish')
+    act(() => root.render(<StationTwo phaseDurationMs={20} />))
+    for (let step = 0; step < 3; step += 1) {
+      await act(async () => {
+        vi.advanceTimersByTime(20)
+        await Promise.resolve()
+      })
+    }
+    expect(publish).toHaveBeenCalledWith(
+      'station-2',
+      'keyboard_focus',
+      expect.objectContaining({
+        mode: 'yesno',
+        prompt: 'Is attractiveness important to you?',
+      }),
+    )
+
+    act(() => container.querySelector<HTMLButtonElement>('.journey-choice button')!.click())
+    act(() => container.querySelector<HTMLButtonElement>('.journey-choice button')!.click())
+    act(() => container.querySelector<HTMLButtonElement>('.journey-choice button')!.click())
+    expect(publish).toHaveBeenCalledWith(
+      'station-2',
+      'keyboard_focus',
+      expect.objectContaining({
+        mode: 'scale',
+        prompt: 'How smart?',
+      }),
+    )
   })
 })

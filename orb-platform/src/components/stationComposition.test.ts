@@ -158,6 +158,8 @@ describe('station composition', () => {
     expect(stationOneSource).toContain('saveStationOneState')
     expect(stationTwoSource).toContain('firehoseReducer')
     expect(stationTwoSource).toContain('saveStationTwoState')
+    expect(stationOneSource).toContain('prompt: question?.prompt')
+    expect(stationTwoSource).toContain('prompt: question.prompt')
   })
 
   it('keeps grainy headlines and the icy camera grade on kiosk quality', () => {

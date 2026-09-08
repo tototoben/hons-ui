@@ -187,26 +187,42 @@ export function StationTwo({ phaseDurationMs }: { phaseDurationMs?: number }) {
       publishKeyboardFocus(STATION_ID, 'scale', {
         ...HOW_SMART_SCALE,
         value: Number(state.answers[question.id] ?? 0.5),
+        prompt: question.prompt,
       })
       return
     }
     if (state.phase === 'question') {
-      publishKeyboardFocus(STATION_ID, keyboardFocusForQuestion(question))
+      publishKeyboardFocus(STATION_ID, keyboardFocusForQuestion(question), {
+        prompt: question?.prompt,
+      })
       return
     }
     if (state.phase === 'height') {
-      publishKeyboardFocus(STATION_ID, 'scale', { ...HEIGHT_SCALE, value: state.height })
+      publishKeyboardFocus(STATION_ID, 'scale', {
+        ...HEIGHT_SCALE,
+        value: state.height,
+        prompt: 'How tall is your ideal partner?',
+      })
       return
     }
     if (state.phase === 'lightning' && lightningPair) {
       publishKeyboardFocus(STATION_ID, 'choice', {
         left: lightningPair.left,
         right: lightningPair.right,
+        prompt: `${lightningPair.left} or ${lightningPair.right}?`,
       })
       return
     }
     publishKeyboardFocus(STATION_ID, 'hidden')
-  }, [state.phase, state.questionIndex, state.lightningIndex, question, lightningPair])
+  }, [
+    lightningPair,
+    question,
+    state.answers,
+    state.height,
+    state.lightningIndex,
+    state.phase,
+    state.questionIndex,
+  ])
 
   useEffect(() => {
     const onSlider = (event: Event) => {

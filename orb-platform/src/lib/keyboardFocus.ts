@@ -4,9 +4,10 @@ import { publish } from './firehose'
 export type KeyboardFocusMode = 'text' | 'numeric' | 'yesno' | 'choice' | 'scale' | 'hidden'
 
 export type KeyboardFocusLabels = {
-  left: string
-  right: string
+  left?: string
+  right?: string
   value?: number
+  prompt?: string
 }
 
 export function keyboardFocusForQuestion(
@@ -25,13 +26,21 @@ export function publishKeyboardFocus(
   mode: KeyboardFocusMode,
   labels?: KeyboardFocusLabels,
 ) {
-  const data: { mode: KeyboardFocusMode; left?: string; right?: string; value?: number } = { mode }
+  const data: {
+    mode: KeyboardFocusMode
+    left?: string
+    right?: string
+    value?: number
+    prompt?: string
+  } = { mode }
+  const prompt = labels?.prompt?.trim()
+  if (prompt) data.prompt = prompt
   if (mode === 'yesno') {
     data.left = labels?.left ?? 'YES'
     data.right = labels?.right ?? 'NO'
   } else if ((mode === 'choice' || mode === 'scale') && labels) {
-    data.left = labels.left
-    data.right = labels.right
+    if (labels.left) data.left = labels.left
+    if (labels.right) data.right = labels.right
   }
   if (mode === 'scale' && typeof labels?.value === 'number' && Number.isFinite(labels.value)) {
     data.value = Math.min(1, Math.max(0, labels.value))

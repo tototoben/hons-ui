@@ -101,7 +101,9 @@ export function StationOne({ phaseDurationMs = 2200 }: { phaseDurationMs?: numbe
       publishKeyboardFocus(STATION_ID, 'hidden')
       return
     }
-    publishKeyboardFocus(STATION_ID, keyboardFocusForQuestion(question))
+    publishKeyboardFocus(STATION_ID, keyboardFocusForQuestion(question), {
+      prompt: question?.prompt,
+    })
   }, [state.phase, state.questionIndex, question])
 
   const submit = (event: FormEvent) => {

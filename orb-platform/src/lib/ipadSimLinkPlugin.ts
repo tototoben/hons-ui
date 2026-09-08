@@ -1,7 +1,18 @@
 import type { IncomingMessage, ServerResponse } from 'http'
 import type { ViteDevServer } from 'vite'
 
-type FocusState = { mode: string; left?: string; right?: string; value?: number }
+type FocusState = {
+  mode: string
+  left?: string
+  right?: string
+  value?: number
+  prompt?: string
+}
+
+function pluginPath(url: string) {
+  const path = url.split('?')[0] ?? ''
+  return path.replace(/^\/orb(?=\/|$)/, '') || '/'
+}
 
 function json(res: ServerResponse, status: number, payload: unknown) {
   res.statusCode = status
@@ -34,7 +45,7 @@ export function ipadSimLinkPlugin() {
     configureServer(server: ViteDevServer) {
       server.middlewares.use((req, res, next) => {
         const url = req.url ?? ''
-        const path = url.split('?')[0]
+        const path = pluginPath(url)
 
         if (req.method === 'POST' && path === '/__hons/firehose') {
           readBody(req, (raw) => {

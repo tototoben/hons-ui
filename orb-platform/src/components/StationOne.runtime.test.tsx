@@ -22,6 +22,7 @@ import { createStationOneState, STATION_ONE_INTAKE } from '../lib/mirrorJourney'
 import { applyStationVibe } from '../lib/stationVibe'
 import { getVisitorProfile, resetVisitorProfile } from '../lib/visitorProfile'
 import { saveStationOneState } from '../lib/interviewStore'
+import * as firehose from '../lib/firehose'
 
 function setInput(input: HTMLInputElement, value: string) {
   const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set
@@ -255,5 +256,32 @@ describe('StationOne', () => {
 
     expect(container.querySelector('.journey-status')).toBeNull()
     expect(container.textContent).not.toContain('HOUSE OF NEGOTIATED SELVES')
+  })
+
+  it('publishes keyboard_focus with the current intake prompt', () => {
+    const publish = vi.spyOn(firehose, 'publish')
+    act(() => root.render(<StationOne phaseDurationMs={20} />))
+    expect(publish).toHaveBeenCalledWith(
+      'station-1',
+      'keyboard_focus',
+      expect.objectContaining({
+        mode: 'text',
+        prompt: 'What do you want us to call you?',
+      }),
+    )
+
+    const callNameInput = container.querySelector<HTMLInputElement>('input[name="callName"]')!
+    act(() => {
+      setInput(callNameInput, INTAKE_ANSWERS.callName)
+      submit(callNameInput.form!)
+    })
+    expect(publish).toHaveBeenCalledWith(
+      'station-1',
+      'keyboard_focus',
+      expect.objectContaining({
+        mode: 'numeric',
+        prompt: 'What is your age?',
+      }),
+    )
   })
 })
