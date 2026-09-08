@@ -57,7 +57,15 @@ async function enterRecording() {
     await Promise.resolve()
   })
   await act(async () => {
-    vi.advanceTimersByTime(1000 + 3 * 200)
+    vi.advanceTimersByTime(1000)
+    await Promise.resolve()
+  })
+  await act(async () => {
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'y', bubbles: true }))
+    await Promise.resolve()
+  })
+  await act(async () => {
+    vi.advanceTimersByTime(3 * 200)
     await Promise.resolve()
   })
 }
@@ -112,7 +120,15 @@ describe('ThirdStation', () => {
     expect(container.textContent).not.toContain('LISTENING')
 
     await act(async () => {
-      vi.advanceTimersByTime(1000 + 3 * 200)
+      vi.advanceTimersByTime(1000)
+      await Promise.resolve()
+    })
+    await act(async () => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'y', bubbles: true }))
+      await Promise.resolve()
+    })
+    await act(async () => {
+      vi.advanceTimersByTime(3 * 200)
       await Promise.resolve()
     })
 

@@ -257,7 +257,8 @@ describe('useMirrorCamera', () => {
       await Promise.resolve()
     })
 
-    expect(container.querySelector('video')?.srcObject).toBe(stream)
+    expect(container.querySelector('video')?.srcObject).toBeUndefined()
+    expect(container.querySelector('video')?.dataset.status).toBe('starting')
     expect(vision.create).not.toHaveBeenCalled()
   })
 })
