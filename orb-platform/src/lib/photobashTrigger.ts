@@ -1,6 +1,14 @@
 import { publish } from './firehose'
 import { collageCueFromLocalAnswers, collageCueFromVisitCentral, parseCollageCue, type CollageCue } from './collageCue'
 import { mintPhotobashSeed } from './photobashLoop'
+import {
+  activateNextPhotowallJob,
+  completePhotowallJob,
+  enqueuePhotowallReveal,
+  readPhotowallQueue,
+  type PhotowallJob,
+} from './photowallQueue'
+import { pickVisitAtStation, pickVisitForReveal, refreshVisitCache } from './visitCentral'
 
 export const WALL_PHASE_CHANNEL = 'hons-station3-wall-phase'
 export const REVEAL_STORAGE_KEY = 'hons-photobash-reveal'
@@ -10,6 +18,10 @@ export type RevealReadyMessage = {
   photobashSeed: number
   ts: number
   collageCue: CollageCue
+  visitId?: string | null
+  transcript?: string
+  transcriptSource?: 'spoken' | 'synthetic'
+  jobId?: string
 }
 
 export function isRevealReadyMessage(value: unknown): value is RevealReadyMessage {
@@ -49,18 +61,7 @@ export function readLastRevealReady(
   }
 }
 
-export function notifyRevealReady(
-  seed: number = mintPhotobashSeed(),
-  storage: Pick<Storage, 'setItem'> | undefined = defaultStorage(),
-  cue: CollageCue = collageCueFromLocalAnswers(),
-  readyAnswer?: 'yes' | 'skip',
-): number {
-  const message: RevealReadyMessage = {
-    type: 'reveal-ready',
-    photobashSeed: seed,
-    ts: Date.now(),
-    collageCue: cue,
-  }
+function broadcastRevealReady(message: RevealReadyMessage, storage?: Pick<Storage, 'setItem'>) {
   try {
     storage?.setItem(REVEAL_STORAGE_KEY, JSON.stringify(message))
   } catch {
@@ -71,25 +72,113 @@ export function notifyRevealReady(
     channel.postMessage(message)
     channel.close()
   }
-  // readyAnswer ("yes" | "skip") rides along in the ui/event data so it
-  // lands in central's persisted visit.aggregated_data via the station-3
-  // "reveal_ready" done-event -- same mechanism stations 1/2 use to save
-  // their intake answers, just carried on this event instead of a
-  // dedicated one, since reveal_ready is station 3's done-event.
-  publish('station-3', 'reveal_ready', {
-    photobashSeed: seed,
-    collageCue: cue,
-    ...(readyAnswer ? { readyAnswer } : {}),
-  })
-  return seed
 }
 
-/** Refresh central visit data, then fire reveal_ready once with the shared cue. */
-export async function notifyRevealReadyFromVisit(
-  seed: number = mintPhotobashSeed(),
-  storage: Pick<Storage, 'setItem'> | undefined = defaultStorage(),
+function publishRevealReadyEvent(
+  job: PhotowallJob,
   readyAnswer?: 'yes' | 'skip',
-): Promise<number> {
+) {
+  publish('station-3', 'reveal_ready', {
+    photobashSeed: job.photobashSeed,
+    collageCue: job.collageCue,
+    transcript: job.transcript,
+    transcriptSource: job.transcriptSource,
+    visitId: job.visitId,
+    queueJobId: job.id,
+    ...(readyAnswer ? { readyAnswer } : {}),
+  })
+}
+
+export function dispatchPhotowallJob(
+  job: PhotowallJob,
+  readyAnswer?: 'yes' | 'skip',
+  storage: Pick<Storage, 'setItem'> | undefined = defaultStorage(),
+): number {
+  const message: RevealReadyMessage = {
+    type: 'reveal-ready',
+    photobashSeed: job.photobashSeed,
+    ts: Date.now(),
+    collageCue: job.collageCue,
+    visitId: job.visitId,
+    transcript: job.transcript,
+    transcriptSource: job.transcriptSource,
+    jobId: job.id,
+  }
+  broadcastRevealReady(message, storage)
+  publishRevealReadyEvent(job, readyAnswer)
+  return job.photobashSeed
+}
+
+export function tryActivatePhotowallQueue(
+  readyAnswer?: 'yes' | 'skip',
+  storage: Pick<Storage, 'getItem' | 'setItem'> | undefined = defaultStorage(),
+): number | null {
+  const job = activateNextPhotowallJob(storage)
+  if (!job) return null
+  return dispatchPhotowallJob(job, readyAnswer, storage)
+}
+
+export function completeActivePhotowallJob(
+  jobId: string,
+  storage: Pick<Storage, 'getItem' | 'setItem'> | undefined = defaultStorage(),
+) {
+  completePhotowallJob(jobId, storage)
+  tryActivatePhotowallQueue(undefined, storage)
+}
+
+export type NotifyRevealReadyInput = {
+  seed?: number
+  storage?: Pick<Storage, 'getItem' | 'setItem'>
+  cue?: CollageCue
+  readyAnswer?: 'yes' | 'skip'
+  visitId?: string | null
+  transcript?: string
+  transcriptSource?: 'spoken' | 'synthetic'
+}
+
+export function notifyRevealReady(
+  seedOrInput: number | NotifyRevealReadyInput = {},
+): number {
+  const input = typeof seedOrInput === 'number' ? { seed: seedOrInput } : seedOrInput
+  const storage = input.storage ?? defaultStorage()
+  const seed = input.seed ?? mintPhotobashSeed()
+  const cue = input.cue ?? collageCueFromLocalAnswers()
+  enqueuePhotowallReveal(
+    {
+      visitId: input.visitId ?? null,
+      photobashSeed: seed,
+      collageCue: cue,
+      transcript: input.transcript ?? '',
+      transcriptSource: input.transcriptSource ?? 'synthetic',
+    },
+    storage,
+  )
+  const activated = tryActivatePhotowallQueue(input.readyAnswer, storage)
+  if (activated !== null) return activated
+  const snapshot = readPhotowallQueue(storage)
+  const pending = snapshot.jobs.find((job) => job.status === 'pending')
+  return pending?.photobashSeed ?? seed
+}
+
+/** Refresh central visit data, then enqueue reveal for the photowall queue. */
+export async function notifyRevealReadyFromVisit(options: {
+  seed?: number
+  storage?: Pick<Storage, 'getItem' | 'setItem'>
+  readyAnswer?: 'yes' | 'skip'
+  transcript?: string
+  transcriptSource?: 'spoken' | 'synthetic'
+} = {}): Promise<number> {
+  await refreshVisitCache(true)
   const cue = await collageCueFromVisitCentral()
-  return notifyRevealReady(seed, storage, cue, readyAnswer)
+  const visit =
+    pickVisitAtStation(3) ?? pickVisitForReveal()
+  return notifyRevealReady({
+    seed: options.seed,
+    storage: options.storage,
+    cue,
+    readyAnswer: options.readyAnswer,
+    visitId: visit?.visit_id ?? null,
+    transcript: options.transcript,
+    transcriptSource: options.transcriptSource ?? 'synthetic',
+  })
 }

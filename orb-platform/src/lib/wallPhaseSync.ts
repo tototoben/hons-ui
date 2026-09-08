@@ -13,6 +13,7 @@ import {
 } from './collageCue'
 import { refreshVisitCache } from './visitCentral'
 import {
+  completeActivePhotowallJob,
   isRevealReadyMessage,
   readLastRevealReady,
   WALL_PHASE_CHANNEL,
@@ -266,6 +267,7 @@ export function usePhotobashLoop(isConductor: boolean) {
   const channelRef = useRef<BroadcastChannel | null>(null)
   const pendingSeedRef = useRef<number | null>(lastReveal?.photobashSeed ?? null)
   const pendingCueRef = useRef<CollageCue | null>(lastReveal?.collageCue ?? null)
+  const activeJobIdRef = useRef<string | null>(lastReveal?.jobId ?? null)
 
   useEffect(() => {
     if (typeof BroadcastChannel === 'undefined') return
@@ -276,6 +278,7 @@ export function usePhotobashLoop(isConductor: boolean) {
         if (isConductor) {
           pendingSeedRef.current = event.data.photobashSeed
           pendingCueRef.current = parseCollageCue(event.data.collageCue)
+          activeJobIdRef.current = event.data.jobId ?? null
           setCycleKey((key) => key + 1)
         }
         return
@@ -338,7 +341,14 @@ export function usePhotobashLoop(isConductor: boolean) {
       }
       raf = requestAnimationFrame(tick)
       timeout = window.setTimeout(() => {
-        if (!cancelled) setCycleKey((key) => key + 1)
+        if (!cancelled) {
+          const jobId = activeJobIdRef.current
+          if (jobId) {
+            completeActivePhotowallJob(jobId)
+            activeJobIdRef.current = null
+          }
+          setCycleKey((key) => key + 1)
+        }
       }, PHOTOBASH_CYCLE_MS)
     }
 

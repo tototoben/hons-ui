@@ -18,6 +18,7 @@ import { useWhisperDictation } from '../hooks/useWhisperDictation'
 import { useStationVibe } from '../hooks/useStationVibe'
 import { useVisitCentralPoll } from '../hooks/useVisitCentral'
 import { isStationTurnActive, visitSessionKeyForStation } from '../lib/visitCentral'
+import { deriveStationStatus } from '../lib/stationStatus'
 import { submitKioskInterview } from '../lib/arsIngest'
 import { captionLines } from '../lib/captionLines'
 import { isTranscriptHotkey } from '../lib/productionHotkey'
@@ -470,7 +471,8 @@ function RecordingStage({
 export function ThirdStation() {
   const visits = useVisitCentralPoll()
   if (!isStationTurnActive(3, visits)) {
-    return <StationTurnWait station="III" stationId="station-3" />
+    const status = deriveStationStatus(3, visits)
+    return <StationTurnWait station="III" stationId="station-3" detail={status.detail} />
   }
   return <ThirdStationSession key={visitSessionKeyForStation(3, visits)} />
 }
@@ -529,9 +531,14 @@ function ThirdStationSession() {
     }
     if (phase === 'loading' && !completionRef.current) {
       completionRef.current = true
-      void notifyRevealReadyFromVisit(undefined, undefined, readyAnswerRef.current ?? undefined).then(() => {
-        void flushIntro().then((final) => {
-          submitKioskInterview(final.trim() || spokenRef.current)
+      void flushIntro().then((final) => {
+        const spoken = final.trim() || spokenRef.current
+        void submitKioskInterview(spoken).then((built) => {
+          void notifyRevealReadyFromVisit({
+            readyAnswer: readyAnswerRef.current ?? undefined,
+            transcript: built.intro,
+            transcriptSource: built.transcriptSource,
+          })
         })
       })
     }

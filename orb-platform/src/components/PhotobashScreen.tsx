@@ -1,9 +1,11 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { publish } from '../lib/firehose'
 import { parseWallCollage, parseWallRole } from '../lib/wallRole'
 import { usePhotobashLoop } from '../lib/wallPhaseSync'
 import { useCollageBankReady } from '../lib/wallCollageBank'
 import { pickWallLoadingSurface, shouldShowForming } from '../lib/wallForming'
+import { photowallRuntimeStatus } from '../lib/stationStatus'
+import { subscribePhotowallQueue } from '../lib/photowallQueue'
 import { WallCollageBlanket } from './WallCollageBlanket'
 import { WallFaceBlanket } from './WallFaceBlanket'
 import { WallFormingBlanket } from './WallFormingBlanket'
@@ -23,6 +25,13 @@ export function PhotobashScreen() {
   const surface = pickWallLoadingSurface(collage, loadingProgress, collageReady)
   const forming = surface === 'forming'
   const lastCueRef = useRef<string | null>(null)
+  const [queueDetail, setQueueDetail] = useState(() => photowallRuntimeStatus().detail)
+
+  useEffect(() => {
+    return subscribePhotowallQueue(() => {
+      setQueueDetail(photowallRuntimeStatus().detail)
+    })
+  }, [])
 
   useEffect(() => {
     document.documentElement.dataset.wallMode = 'true'
@@ -43,6 +52,11 @@ export function PhotobashScreen() {
 
   return (
     <section className="photobash-screen" aria-label="Photobash reveal">
+      {isConductor ? (
+        <div className="photobash-queue-status" aria-live="polite">
+          {queueDetail}
+        </div>
+      ) : null}
       {surface === 'forming' ? (
         <WallFormingBlanket
           role={crop}

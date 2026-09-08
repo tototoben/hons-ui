@@ -1,6 +1,7 @@
 import { publish } from './firehose'
-import { buildKioskInterviewFromVisit, type KioskInterviewPayload } from './kioskInterview'
+import { peekStationOneForStation, peekStationTwoForStation, refreshVisitCache } from './visitCentral'
 import { setVisitorIntro } from './visitorIntro'
+import { buildKioskInterviewWithIntro } from './syntheticTranscript'
 
 const ARS_DEFAULT = 'http://127.0.0.1:8190/api/kiosk-interview'
 /** Ignore whisper noise on silence — typed Station I/II answers still win. */
@@ -27,7 +28,7 @@ function ingestUrls(): string[] {
   return urls
 }
 
-function postJson(url: string, payload: KioskInterviewPayload) {
+function postJson(url: string, payload: unknown) {
   return fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -39,13 +40,26 @@ function postJson(url: string, payload: KioskInterviewPayload) {
 export async function submitKioskInterview(intro: string) {
   const text = sanitizeSpokenIntro(intro)
   setVisitorIntro(text)
-  const payload = await buildKioskInterviewFromVisit(text)
+  await refreshVisitCache(true)
+  const centralOne = peekStationOneForStation(3)
+  const centralTwo = peekStationTwoForStation(3)
+  const built = buildKioskInterviewWithIntro(text, {
+    stationOneAnswers: centralOne?.answers,
+    stationTwo: centralTwo
+      ? {
+          answers: centralTwo.answers ?? {},
+          lightningAnswers: centralTwo.lightningAnswers ?? {},
+          height: centralTwo.height ?? 0.5,
+        }
+      : null,
+  })
   publish('station-3', 'intro_transcript', {
-    chars: text.length,
-    preview: text.slice(0, 140),
+    chars: built.intro.length,
+    preview: built.intro.slice(0, 140),
+    source: built.transcriptSource,
   })
   for (const url of ingestUrls()) {
-    void postJson(url, payload)
+    void postJson(url, built.payload)
   }
-  return payload
+  return built
 }

@@ -18,7 +18,11 @@ vi.mock('../lib/photobashTrigger', () => ({
 }))
 
 vi.mock('../lib/arsIngest', () => ({
-  submitKioskInterview: vi.fn(),
+  submitKioskInterview: vi.fn(async () => ({
+    intro: 'I keep circling back to the idea that I want to be met honestly.',
+    transcriptSource: 'synthetic',
+    payload: { users: { name: 'Ada' }, conversation: [] },
+  })),
 }))
 
 vi.mock('../hooks/useMicLevel', () => ({

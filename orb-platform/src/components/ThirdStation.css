@@ -34,6 +34,19 @@
   background: #000;
 }
 
+.station-turn-wait-copy {
+  position: absolute;
+  inset: auto 0 18vh;
+  margin: 0 auto;
+  width: min(80vw, 420px);
+  text-align: center;
+  color: rgba(255, 244, 232, 0.45);
+  font: 14px/1.4 system-ui, sans-serif;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
 .mirror-frame {
   position: relative;
   width: 100%;

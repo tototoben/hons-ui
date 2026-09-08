@@ -14,6 +14,7 @@ import { firehoseReducer, publish } from '../lib/firehose'
 import { loadStationTwoState, saveStationTwoState } from '../lib/interviewStore'
 import { useVisitCentralPoll } from '../hooks/useVisitCentral'
 import { peekStationOneForStation, isStationTurnActive, visitSessionKeyForStation } from '../lib/visitCentral'
+import { deriveStationStatus } from '../lib/stationStatus'
 import { getVisitorProfile, visitorProfileFromAnswers } from '../lib/visitorProfile'
 import { journeySettings } from '../dev/journeySettingsStore'
 import { CompanionOutline } from './CompanionOutline'
@@ -148,7 +149,8 @@ function lightningLines(pair: ThisOrThatPair, warm: boolean): string[] {
 export function StationTwo({ phaseDurationMs }: { phaseDurationMs?: number }) {
   const visits = useVisitCentralPoll()
   if (!isStationTurnActive(2, visits)) {
-    return <StationTurnWait station="II" stationId="station-2" />
+    const status = deriveStationStatus(2, visits)
+    return <StationTurnWait station="II" stationId="station-2" detail={status.detail} />
   }
   return (
     <StationTwoActive

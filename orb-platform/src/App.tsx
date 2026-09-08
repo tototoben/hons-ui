@@ -26,6 +26,7 @@ import { isWallRoleMode, parseWallRole } from './lib/wallRole'
 import { showTuningPanel } from './lib/tune'
 import { connectIpadSimLink, applyRemoteKey, applyRemoteSliderValue } from './lib/ipadSimLink'
 import { connectRoomStream } from './lib/roomStream'
+import { clearPhotowallQueueForRoomReset } from './lib/photowallQueue'
 import { publishKeyboardFocus } from './lib/keyboardFocus'
 import {
   getStationFromHash,
@@ -137,6 +138,7 @@ export default function App() {
     resetVisitorFaceCapture()
     resetVisitorIntro()
     try { localStorage.removeItem('hons-photobash-reveal') } catch { /* kiosk browser may block */ }
+    clearPhotowallQueueForRoomReset()
     setStationSession((value) => value + 1)
     console.log('[reset] room-reset received — local state cleared')
   }, [])
