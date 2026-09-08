@@ -1,3 +1,5 @@
+import { PHOTOBASH_CYCLE_MS } from '../lib/photobashLoop'
+
 /**
  * Live-tunable values for the Mirror (station III) dev panel (see
  * MirrorDevPanel). Same pattern as ../dev/settingsStore.ts and
@@ -49,6 +51,7 @@ export const mirrorSettings = {
     promptSeconds: 8,
     countdownStepSeconds: 1,
     recordingSeconds: 30,
-    loadingSeconds: 5,
+    /** Matches wall / photobash hold (PHOTOBASH_CYCLE_MS). */
+    loadingSeconds: PHOTOBASH_CYCLE_MS / 1000,
   },
 }

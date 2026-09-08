@@ -58,6 +58,10 @@ function clickScaleConfirm() {
   confirmScaleButton()?.click()
 }
 
+function intakeTypingField() {
+  return document.querySelector<HTMLInputElement>('.journey-intake input.journey-intake-field, .journey-intake input')
+}
+
 function typingField() {
   const active = document.activeElement
   if (active instanceof HTMLInputElement) {
@@ -67,7 +71,16 @@ function typingField() {
   if (active instanceof HTMLTextAreaElement) {
     return active
   }
-  return document.querySelector<HTMLInputElement>('.journey-intake input')
+  return intakeTypingField()
+}
+
+/** Keep the hidden intake field focused so KDE Connect / remote keys land in React state. */
+export function ensureIntakeTypingFocus() {
+  const field = intakeTypingField()
+  if (field && document.activeElement !== field) {
+    field.focus({ preventScroll: true })
+  }
+  return field
 }
 
 function codeForKey(ch: string): string | undefined {
@@ -78,6 +91,7 @@ function codeForKey(ch: string): string | undefined {
 }
 
 export function applyRemoteKey(payload: RemoteKeyPayload) {
+  ensureIntakeTypingFocus()
   if (typeof payload.slider === 'number' && Number.isFinite(payload.slider)) {
     applyRemoteSlider(payload.slider, payload.seq)
     return

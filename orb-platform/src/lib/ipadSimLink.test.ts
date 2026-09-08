@@ -16,11 +16,11 @@ describe('applyRemoteKey', () => {
     form.className = 'journey-intake'
     form.append(input)
     document.body.append(form)
-    input.focus()
 
     applyRemoteKey({ key: '3' })
     applyRemoteKey({ key: '4' })
     expect(input.value).toBe('34')
+    expect(document.activeElement).toBe(input)
 
     applyRemoteKey({ special: 'backspace' })
     expect(input.value).toBe('3')

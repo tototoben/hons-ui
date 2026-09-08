@@ -12,7 +12,9 @@ import {
 } from '../lib/mirrorJourney'
 import { firehoseReducer, publish } from '../lib/firehose'
 import { loadStationTwoState, saveStationTwoState } from '../lib/interviewStore'
-import { getVisitorProfile } from '../lib/visitorProfile'
+import { useVisitCentralPoll } from '../hooks/useVisitCentral'
+import { peekStationOneForStation } from '../lib/visitCentral'
+import { getVisitorProfile, visitorProfileFromAnswers } from '../lib/visitorProfile'
 import { journeySettings } from '../dev/journeySettingsStore'
 import { CompanionOutline } from './CompanionOutline'
 import { DebraGuide } from './DebraGuide'
@@ -22,7 +24,7 @@ import { MirrorChoice } from './MirrorChoice'
 import { MirrorStationShell } from './MirrorStationShell'
 import { useStationVibe } from '../hooks/useStationVibe'
 import { readDeviceLock } from '../lib/deviceLock'
-import { keyboardFocusForQuestion, publishKeyboardFocus } from '../lib/keyboardFocus'
+import { keyboardFocusForQuestion, startKeyboardFocusHeartbeat } from '../lib/keyboardFocus'
 import { REMOTE_SLIDER_EVENT } from '../lib/ipadSimLink'
 import { showTuningPanel } from '../lib/tune'
 
@@ -111,6 +113,14 @@ function phaseEvent(phase: StationTwoState['phase']): string {
 }
 
 function initialStationTwoState(): StationTwoState {
+  const centralOne = peekStationOneForStation(2)
+  if (centralOne?.answers) {
+    const profile = visitorProfileFromAnswers(centralOne.answers)
+    return createStationTwoState({
+      age: profile.age,
+      previousRelationships: profile.previousRelationships,
+    })
+  }
   const profile = getVisitorProfile()
   const saved = loadStationTwoState()
   if (saved) {
@@ -134,6 +144,7 @@ function lightningLines(pair: ThisOrThatPair, warm: boolean): string[] {
 export function StationTwo({ phaseDurationMs }: { phaseDurationMs?: number }) {
   const [vibe] = useStationVibe()
   const warm = vibe === 'warm'
+  const visits = useVisitCentralPoll()
   const [state, dispatch] = useReducer(
     firehoseReducer(STATION_ID, stationTwoReducer, actionToEvent),
     undefined,
@@ -167,6 +178,17 @@ export function StationTwo({ phaseDurationMs }: { phaseDurationMs?: number }) {
   }, [])
 
   useEffect(() => {
+    const centralOne = peekStationOneForStation(2)
+    if (!centralOne?.answers) return
+    const profile = visitorProfileFromAnswers(centralOne.answers)
+    dispatch({
+      type: 'SYNC_VISITOR_PROFILE',
+      age: profile.age,
+      previousRelationships: profile.previousRelationships,
+    })
+  }, [visits])
+
+  useEffect(() => {
     const automaticDurationMs = getAutoPhaseDurationMs(state.phase)
     if (automaticDurationMs === undefined) return
     const timer = window.setTimeout(
@@ -184,36 +206,32 @@ export function StationTwo({ phaseDurationMs }: { phaseDurationMs?: number }) {
 
   useEffect(() => {
     if (state.phase === 'question' && question?.type === 'scale') {
-      publishKeyboardFocus(STATION_ID, 'scale', {
+      return startKeyboardFocusHeartbeat(STATION_ID, 'scale', {
         ...HOW_SMART_SCALE,
         value: Number(state.answers[question.id] ?? 0.5),
         prompt: question.prompt,
       })
-      return
     }
     if (state.phase === 'question') {
-      publishKeyboardFocus(STATION_ID, keyboardFocusForQuestion(question), {
+      return startKeyboardFocusHeartbeat(STATION_ID, keyboardFocusForQuestion(question), {
         prompt: question?.prompt,
       })
-      return
     }
     if (state.phase === 'height') {
-      publishKeyboardFocus(STATION_ID, 'scale', {
+      return startKeyboardFocusHeartbeat(STATION_ID, 'scale', {
         ...HEIGHT_SCALE,
         value: state.height,
         prompt: 'How tall is your ideal partner?',
       })
-      return
     }
     if (state.phase === 'lightning' && lightningPair) {
-      publishKeyboardFocus(STATION_ID, 'choice', {
+      return startKeyboardFocusHeartbeat(STATION_ID, 'choice', {
         left: lightningPair.left,
         right: lightningPair.right,
         prompt: `${lightningPair.left} or ${lightningPair.right}?`,
       })
-      return
     }
-    publishKeyboardFocus(STATION_ID, 'hidden')
+    return startKeyboardFocusHeartbeat(STATION_ID, 'hidden')
   }, [
     lightningPair,
     question,
@@ -429,6 +447,10 @@ function StationTwoTextQuestion({
   onSubmit: (value: string) => void
 }) {
   const [draft, setDraft] = useState('')
+  const inputRef = useRef<HTMLInputElement>(null)
+  useEffect(() => {
+    inputRef.current?.focus({ preventScroll: true })
+  }, [prompt])
   const submit = (event: FormEvent) => {
     event.preventDefault()
     onSubmit(draft)
@@ -443,13 +465,20 @@ function StationTwoTextQuestion({
         </JourneyHeadline>
       </label>
       <input
+        ref={inputRef}
         id="station-two-text-question"
+        className="journey-intake-field"
         aria-label={prompt}
         autoFocus
         autoComplete="off"
         value={draft}
         onChange={(event) => setDraft(event.target.value)}
       />
+      {draft ? (
+        <p className="journey-intake-preview" aria-live="polite">{draft}</p>
+      ) : (
+        <p className="journey-ipad-hint">Type on the iPad</p>
+      )}
       <JourneyButton type="submit">Continue</JourneyButton>
     </form>
   )

@@ -4,6 +4,7 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mirrorSettings } from '../dev/mirrorSettingsStore'
+import { PHOTOBASH_FILL_MS } from '../lib/photobashLoop'
 import { applyStationVibe } from '../lib/stationVibe'
 import { resetVisitorFaceCapture } from '../lib/visitorFaceCapture'
 
@@ -13,6 +14,7 @@ vi.mock('./MirrorGuideOrb', () => ({
 
 vi.mock('../lib/photobashTrigger', () => ({
   notifyRevealReady: vi.fn(() => 1),
+  notifyRevealReadyFromVisit: vi.fn(async () => 1),
 }))
 
 vi.mock('../lib/arsIngest', () => ({
@@ -40,6 +42,7 @@ vi.mock('../hooks/useWhisperDictation', () => ({
   }),
 }))
 
+import { notifyRevealReadyFromVisit } from '../lib/photobashTrigger'
 import { ThirdStation } from './ThirdStation'
 
 function settle() {
@@ -189,5 +192,36 @@ describe('ThirdStation', () => {
 
     expect(container.querySelector('.mirror-record-caption')).toBeNull()
     expect(container.querySelector('.mirror-record-prompt')?.textContent).toBe('speak about yourself')
+  })
+
+  it('shows a wall handoff after loading instead of looping to intro', async () => {
+    act(() => root.render(<ThirdStation />))
+    await settle()
+    await enterRecording()
+
+    await act(async () => {
+      vi.advanceTimersByTime(2000)
+      await Promise.resolve()
+    })
+
+    expect(container.textContent).toContain('PROCESSING')
+    expect(notifyRevealReadyFromVisit).toHaveBeenCalledTimes(1)
+
+    await act(async () => {
+      vi.advanceTimersByTime(PHOTOBASH_FILL_MS)
+      await Promise.resolve()
+    })
+
+    expect(container.textContent).toContain('Meet your match')
+    expect(container.textContent).toContain('PROCEED TO THE REVEAL WALL')
+    expect(container.textContent).not.toContain('STANDBY')
+
+    await act(async () => {
+      vi.advanceTimersByTime(70_000)
+      await Promise.resolve()
+    })
+
+    expect(container.textContent).toContain('Meet your match')
+    expect(notifyRevealReadyFromVisit).toHaveBeenCalledTimes(1)
   })
 })

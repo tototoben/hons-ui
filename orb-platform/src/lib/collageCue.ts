@@ -7,6 +7,11 @@ import {
   type FacePresentation,
 } from './faceBank'
 import { loadStationTwoState, peekStationTwoState } from './interviewStore'
+import {
+  peekStationOneForStation,
+  peekStationTwoForStation,
+  refreshVisitCache,
+} from './visitCentral'
 import { getVisitorProfile } from './visitorProfile'
 
 /**
@@ -126,6 +131,18 @@ export function collageCueKey(cue: CollageCue | null | undefined): string {
 }
 
 export function collageCueFromLocalAnswers(): CollageCue {
+  const centralOne = peekStationOneForStation('reveal')
+  const centralTwo = peekStationTwoForStation('reveal')
+  if (centralOne?.answers || centralTwo) {
+    const ageValue = Number(centralOne?.answers?.age)
+    return collageCueFromAnswers({
+      identity: centralOne?.answers?.identity,
+      age: Number.isFinite(ageValue) && ageValue > 0 ? ageValue : null,
+      attractiveness: centralTwo?.answers?.attractiveness,
+      lightningAnswers: centralTwo?.lightningAnswers,
+    })
+  }
+
   const profile = getVisitorProfile()
   const stationTwo = peekStationTwoState() ?? loadStationTwoState()
   return collageCueFromAnswers({
@@ -134,4 +151,10 @@ export function collageCueFromLocalAnswers(): CollageCue {
     attractiveness: stationTwo?.answers.attractiveness,
     lightningAnswers: stationTwo?.lightningAnswers,
   })
+}
+
+/** Async refresh then build a collage cue from central when available. */
+export async function collageCueFromVisitCentral(): Promise<CollageCue> {
+  await refreshVisitCache(true)
+  return collageCueFromLocalAnswers()
 }

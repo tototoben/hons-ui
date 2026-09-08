@@ -50,4 +50,12 @@ describe('MirrorChoice', () => {
 
     expect(onAnswer.mock.calls).toEqual([['yes'], ['no']])
   })
+
+  it('shows pair labels instead of yes/no hint for lightning choices', () => {
+    const onAnswer = vi.fn()
+    act(() => root.render(<MirrorChoice onAnswer={onAnswer} labels={['Beauty', 'Money']} />))
+
+    expect(container.querySelector('p')?.textContent).toMatch(/beauty or money/i)
+    expect(container.querySelector('p')?.textContent).not.toMatch(/press yes or no/i)
+  })
 })

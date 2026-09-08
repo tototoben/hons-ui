@@ -56,3 +56,20 @@ export function publishKeyboardFocus(
   }
   publish(station, 'keyboard_focus', data)
 }
+
+const KEYBOARD_FOCUS_HEARTBEAT_MS = 5000
+
+/** Republish keyboard_focus on an interval so late iPad connects and MQTT reconnects
+ *  always see the current prompt without waiting for a phase change. */
+export function startKeyboardFocusHeartbeat(
+  station: string,
+  mode: KeyboardFocusMode,
+  labels?: KeyboardFocusLabels,
+  intervalMs = KEYBOARD_FOCUS_HEARTBEAT_MS,
+): () => void {
+  publishKeyboardFocus(station, mode, labels)
+  const timer = window.setInterval(() => {
+    publishKeyboardFocus(station, mode, labels)
+  }, intervalMs)
+  return () => window.clearInterval(timer)
+}

@@ -1,11 +1,17 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+// @vitest-environment jsdom
+
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('./firehose', () => ({
   publish: vi.fn(),
 }))
 
 import { publish } from './firehose'
-import { keyboardFocusForQuestion, publishKeyboardFocus } from './keyboardFocus'
+import {
+  keyboardFocusForQuestion,
+  publishKeyboardFocus,
+  startKeyboardFocusHeartbeat,
+} from './keyboardFocus'
 
 describe('keyboardFocusForQuestion', () => {
   it('uses the letter keyboard for numeric intake (age) as well as free text', () => {
@@ -57,6 +63,27 @@ describe('publishKeyboardFocus', () => {
     const first = vi.mocked(publish).mock.calls[0][2] as { seq: number }
     const second = vi.mocked(publish).mock.calls[1][2] as { seq: number }
     expect(second.seq).toBeGreaterThan(first.seq)
+  })
+})
+
+describe('startKeyboardFocusHeartbeat', () => {
+  beforeEach(() => {
+    vi.mocked(publish).mockClear()
+    vi.useFakeTimers()
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('republishes keyboard_focus on an interval until stopped', () => {
+    const stop = startKeyboardFocusHeartbeat('station-1', 'text', { prompt: 'Name?' }, 1000)
+    expect(publish).toHaveBeenCalledTimes(1)
+    vi.advanceTimersByTime(1000)
+    expect(publish).toHaveBeenCalledTimes(2)
+    stop()
+    vi.advanceTimersByTime(5000)
+    expect(publish).toHaveBeenCalledTimes(2)
   })
 })
 

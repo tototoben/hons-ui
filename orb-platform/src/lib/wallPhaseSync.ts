@@ -5,14 +5,20 @@ import {
   mintPhotobashSeed,
   photobashProgress,
 } from './photobashLoop'
-import { collageCueFromLocalAnswers, parseCollageCue, type CollageCue } from './collageCue'
+import {
+  collageCueFromLocalAnswers,
+  collageCueFromVisitCentral,
+  parseCollageCue,
+  type CollageCue,
+} from './collageCue'
+import { refreshVisitCache } from './visitCentral'
 import {
   isRevealReadyMessage,
   readLastRevealReady,
   WALL_PHASE_CHANNEL,
 } from './photobashTrigger'
 
-export type WallPhase = 'intro' | 'prompt' | 'recording' | 'loading'
+export type WallPhase = 'intro' | 'prompt' | 'recording' | 'loading' | 'handoff'
 
 const CHANNEL = WALL_PHASE_CHANNEL
 
@@ -296,38 +302,47 @@ export function usePhotobashLoop(isConductor: boolean) {
     if (!isConductor) return
     let cancelled = false
     let raf = 0
-    const seed = pendingSeedRef.current ?? mintPhotobashSeed()
-    const cue = pendingCueRef.current ?? collageCueFromLocalAnswers()
-    pendingSeedRef.current = null
-    pendingCueRef.current = null
-    const start = performance.now()
-    setPhotobashSeed(seed)
-    setCollageCue(cue)
-    setLoadingProgress(0)
-    const publishProgress = (progress: number) => {
-      channelRef.current?.postMessage({
-        type: 'phase',
-        phase: 'loading',
-        countdown: null,
-        recordSecondsLeft: 0,
-        loadingProgress: progress,
-        photobashSeed: seed,
-        collageCue: cue,
-      } satisfies PhaseMessage)
-    }
-    publishProgress(0)
-    const tick = () => {
+    let timeout = 0
+
+    const run = async () => {
+      const seed = pendingSeedRef.current ?? mintPhotobashSeed()
+      const cueOverride = pendingCueRef.current
+      pendingSeedRef.current = null
+      pendingCueRef.current = null
+      const start = performance.now()
+      setPhotobashSeed(seed)
+      setLoadingProgress(0)
+      await refreshVisitCache(true)
       if (cancelled) return
-      const elapsed = performance.now() - start
-      const progress = photobashProgress(elapsed)
-      setLoadingProgress(progress)
-      publishProgress(progress)
-      if (elapsed < PHOTOBASH_CYCLE_MS) raf = requestAnimationFrame(tick)
+      const cue = cueOverride ?? (await collageCueFromVisitCentral())
+      setCollageCue(cue)
+      const publishProgress = (progress: number) => {
+        channelRef.current?.postMessage({
+          type: 'phase',
+          phase: 'loading',
+          countdown: null,
+          recordSecondsLeft: 0,
+          loadingProgress: progress,
+          photobashSeed: seed,
+          collageCue: cue,
+        } satisfies PhaseMessage)
+      }
+      publishProgress(0)
+      const tick = () => {
+        if (cancelled) return
+        const elapsed = performance.now() - start
+        const progress = photobashProgress(elapsed)
+        setLoadingProgress(progress)
+        publishProgress(progress)
+        if (elapsed < PHOTOBASH_CYCLE_MS) raf = requestAnimationFrame(tick)
+      }
+      raf = requestAnimationFrame(tick)
+      timeout = window.setTimeout(() => {
+        if (!cancelled) setCycleKey((key) => key + 1)
+      }, PHOTOBASH_CYCLE_MS)
     }
-    raf = requestAnimationFrame(tick)
-    const timeout = window.setTimeout(() => {
-      if (!cancelled) setCycleKey((key) => key + 1)
-    }, PHOTOBASH_CYCLE_MS)
+
+    void run()
     return () => {
       cancelled = true
       cancelAnimationFrame(raf)

@@ -11,11 +11,12 @@ import {
 } from '../lib/mirrorJourney'
 import { loadStationOneState, saveStationOneState } from '../lib/interviewStore'
 import { setVisitorProfile, visitorProfileFromAnswers } from '../lib/visitorProfile'
+import { getVisitorFaceCapture } from '../lib/visitorFaceCapture'
 import { JourneyButton } from './JourneyButton'
 import { JourneyHeadline } from './JourneyHeadline'
 import { MirrorChoice } from './MirrorChoice'
 import { MirrorStationShell } from './MirrorStationShell'
-import { keyboardFocusForQuestion, publishKeyboardFocus } from '../lib/keyboardFocus'
+import { keyboardFocusForQuestion, startKeyboardFocusHeartbeat } from '../lib/keyboardFocus'
 
 const STATION_ID = 'station-1'
 
@@ -74,7 +75,10 @@ export function StationOne({ phaseDurationMs = 2200 }: { phaseDurationMs?: numbe
     // When the station reaches 'complete', publish the interview_done event
     // that central listens for to advance the visit state machine.
     if (state.phase === 'complete') {
-      publish(STATION_ID, 'interview_done', { answers: state.answers })
+      publish(STATION_ID, 'interview_done', {
+        answers: state.answers,
+        faceCapture: getVisitorFaceCapture(),
+      })
     }
   }, [state.phase, state.answers])
 
@@ -98,12 +102,23 @@ export function StationOne({ phaseDurationMs = 2200 }: { phaseDurationMs?: numbe
 
   useEffect(() => {
     if (state.phase !== 'intake') {
-      publishKeyboardFocus(STATION_ID, 'hidden')
-      return
+      return startKeyboardFocusHeartbeat(STATION_ID, 'hidden')
     }
-    publishKeyboardFocus(STATION_ID, keyboardFocusForQuestion(question), {
-      prompt: question?.prompt,
+    if (question?.type !== 'text') {
+      return startKeyboardFocusHeartbeat(STATION_ID, keyboardFocusForQuestion(question), {
+        prompt: question?.prompt,
+      })
+    }
+    return startKeyboardFocusHeartbeat(STATION_ID, 'text', {
+      prompt: question.prompt,
     })
+  }, [state.phase, state.questionIndex, question])
+
+  const intakeRef = useRef<HTMLInputElement>(null)
+  useEffect(() => {
+    if (state.phase === 'intake' && question?.type === 'text') {
+      intakeRef.current?.focus({ preventScroll: true })
+    }
   }, [state.phase, state.questionIndex, question])
 
   const submit = (event: FormEvent) => {
@@ -133,7 +148,9 @@ export function StationOne({ phaseDurationMs = 2200 }: { phaseDurationMs?: numbe
           </label>
           <input
             key={question.id}
+            ref={intakeRef}
             id={`station-one-${question.id}`}
+            className="journey-intake-field"
             aria-label={question.prompt}
             name={question.id}
             type="text"
@@ -148,6 +165,11 @@ export function StationOne({ phaseDurationMs = 2200 }: { phaseDurationMs?: numbe
               setDraft(next)
             }}
           />
+          {draft ? (
+            <p className="journey-intake-preview" aria-live="polite">{draft}</p>
+          ) : (
+            <p className="journey-ipad-hint">Type on the iPad</p>
+          )}
           <JourneyButton type="submit">Continue</JourneyButton>
         </form>
       ) : null}

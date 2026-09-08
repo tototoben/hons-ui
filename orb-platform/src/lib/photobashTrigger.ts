@@ -1,5 +1,5 @@
 import { publish } from './firehose'
-import { collageCueFromLocalAnswers, parseCollageCue, type CollageCue } from './collageCue'
+import { collageCueFromLocalAnswers, collageCueFromVisitCentral, parseCollageCue, type CollageCue } from './collageCue'
 import { mintPhotobashSeed } from './photobashLoop'
 
 export const WALL_PHASE_CHANNEL = 'hons-station3-wall-phase'
@@ -72,4 +72,13 @@ export function notifyRevealReady(
   }
   publish('station-3', 'reveal_ready', { photobashSeed: seed, collageCue: cue })
   return seed
+}
+
+/** Refresh central visit data, then fire reveal_ready once with the shared cue. */
+export async function notifyRevealReadyFromVisit(
+  seed: number = mintPhotobashSeed(),
+  storage: Pick<Storage, 'setItem'> | undefined = defaultStorage(),
+): Promise<number> {
+  const cue = await collageCueFromVisitCentral()
+  return notifyRevealReady(seed, storage, cue)
 }

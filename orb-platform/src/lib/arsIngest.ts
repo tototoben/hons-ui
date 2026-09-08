@@ -1,8 +1,18 @@
 import { publish } from './firehose'
-import { buildKioskInterviewFromStores, type KioskInterviewPayload } from './kioskInterview'
+import { buildKioskInterviewFromVisit, type KioskInterviewPayload } from './kioskInterview'
 import { setVisitorIntro } from './visitorIntro'
 
 const ARS_DEFAULT = 'http://127.0.0.1:8190/api/kiosk-interview'
+/** Ignore whisper noise on silence — typed Station I/II answers still win. */
+const MIN_SPOKEN_INTRO_CHARS = 12
+const HALLUCINATION_RE =
+  /\b(thanks?\s+for\s+watching|please\s+subscribe|subtitles?\s+by)\b/i
+
+export function sanitizeSpokenIntro(intro: string): string {
+  const text = intro.trim()
+  if (text.length < MIN_SPOKEN_INTRO_CHARS || HALLUCINATION_RE.test(text)) return ''
+  return text
+}
 
 function ingestUrls(): string[] {
   if (typeof window === 'undefined') return []
@@ -26,10 +36,10 @@ function postJson(url: string, payload: KioskInterviewPayload) {
 }
 
 /** Persist the spoken intro and hand Station I/II + III to ARS. */
-export function submitKioskInterview(intro: string) {
-  const text = intro.trim()
+export async function submitKioskInterview(intro: string) {
+  const text = sanitizeSpokenIntro(intro)
   setVisitorIntro(text)
-  const payload = buildKioskInterviewFromStores(text)
+  const payload = await buildKioskInterviewFromVisit(text)
   publish('station-3', 'intro_transcript', {
     chars: text.length,
     preview: text.slice(0, 140),

@@ -12,6 +12,7 @@ export type LightingCue =
   | 'station-3-prompt'
   | 'station-3-recording'
   | 'station-3-loading'
+  | 'station-3-handoff'
   | 'photobash-forming'
   | 'photobash-reveal'
 
@@ -48,6 +49,7 @@ const PHASE_CUES: Record<string, LightingCue> = {
   'station-3:phase:prompt': 'station-3-prompt',
   'station-3:phase:recording': 'station-3-recording',
   'station-3:phase:loading': 'station-3-loading',
+  'station-3:phase:handoff': 'station-3-handoff',
   'station-3:reveal_ready': 'photobash-reveal',
   'photobash:forming': 'photobash-forming',
   'photobash:reveal': 'photobash-reveal',

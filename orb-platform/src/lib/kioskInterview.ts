@@ -5,6 +5,7 @@ import {
   type StationTwoState,
 } from './mirrorJourney'
 import { peekStationOneState, peekStationTwoState } from './interviewStore'
+import { peekStationOneForStation, peekStationTwoForStation, refreshVisitCache } from './visitCentral'
 import { getVisitorProfile } from './visitorProfile'
 import { getVisitorIntro } from './visitorIntro'
 
@@ -97,6 +98,22 @@ export function buildKioskInterview(input: {
 }
 
 export function buildKioskInterviewFromStores(intro = getVisitorIntro()): KioskInterviewPayload {
+  const centralOne = peekStationOneForStation(3)
+  const centralTwo = peekStationTwoForStation(3)
+  if (centralOne?.answers || centralTwo) {
+    return buildKioskInterview({
+      stationOneAnswers: centralOne?.answers,
+      stationTwo: centralTwo
+        ? {
+            answers: centralTwo.answers ?? {},
+            lightningAnswers: centralTwo.lightningAnswers ?? {},
+            height: centralTwo.height ?? 0.5,
+          }
+        : null,
+      intro,
+    })
+  }
+
   const peekedOne = peekStationOneState()
   const profile = getVisitorProfile()
   const stationOneAnswers =
@@ -119,4 +136,10 @@ export function buildKioskInterviewFromStores(intro = getVisitorIntro()): KioskI
     stationTwo: peekStationTwoState(),
     intro,
   })
+}
+
+/** Refresh central, then build the kiosk payload from the shared visit. */
+export async function buildKioskInterviewFromVisit(intro = getVisitorIntro()): Promise<KioskInterviewPayload> {
+  await refreshVisitCache(true)
+  return buildKioskInterviewFromStores(intro)
 }

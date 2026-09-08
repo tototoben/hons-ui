@@ -205,6 +205,11 @@ export type StationTwoAction =
   | { type: 'SUBMIT_TEXT'; value: string }
   | { type: 'SET_SCALE'; value: number }
   | { type: 'SET_HEIGHT'; value: number }
+  | {
+      type: 'SYNC_VISITOR_PROFILE'
+      age: number | null
+      previousRelationships: BinaryAnswer | null
+    }
 
 export function createStationTwoState(
   overrides: Partial<StationTwoState> = {},
@@ -298,6 +303,17 @@ export function stationTwoReducer(
 
   if (action.type === 'SET_HEIGHT' && state.phase === 'height') {
     return { ...state, height: Math.min(1, Math.max(0, action.value)) }
+  }
+
+  if (action.type === 'SYNC_VISITOR_PROFILE') {
+    if (state.phase !== 'percentile' && state.phase !== 'companion-intro' && state.phase !== 'debra-brief') {
+      return state
+    }
+    return {
+      ...state,
+      age: action.age,
+      previousRelationships: action.previousRelationships,
+    }
   }
 
   return state

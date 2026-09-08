@@ -7,6 +7,7 @@ describe('lightingCueFor', () => {
     expect(lightingCueFor('station-2', 'phase:question')).toBe('station-2-question')
     expect(lightingCueFor('station-2', 'phase:height')).toBe('station-2-height')
     expect(lightingCueFor('station-3', 'phase:recording')).toBe('station-3-recording')
+    expect(lightingCueFor('station-3', 'phase:handoff')).toBe('station-3-handoff')
     expect(lightingCueFor('station-3', 'reveal_ready')).toBe('photobash-reveal')
     expect(lightingCueFor('photobash', 'forming')).toBe('photobash-forming')
     expect(lightingCueFor('photobash', 'reveal')).toBe('photobash-reveal')

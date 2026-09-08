@@ -145,7 +145,8 @@
 
 .mirror-screen-intro,
 .mirror-screen-prompt,
-.mirror-screen-loading {
+.mirror-screen-loading,
+.mirror-screen-handoff {
   width: 100%;
   padding-bottom: var(--question-controls-min-height, 180px);
 }
@@ -420,6 +421,17 @@
   text-transform: none;
 }
 
+.mirror-handoff-readout {
+  max-width: 22rem;
+  text-align: center;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 15px;
+  line-height: 1.5;
+  letter-spacing: 0.06em;
+  color: color-mix(in srgb, var(--mirror-accent) 55%, rgba(255, 244, 232, 0.72));
+  text-transform: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .mirror-screen,
   .mirror-idle-ring,
@@ -452,6 +464,12 @@
 :root[data-station-vibe="original"] .mirror-loading-readout {
   color: color-mix(in srgb, var(--mirror-accent) 70%, rgba(238, 241, 240, 0.8));
   text-transform: uppercase;
+}
+
+:root[data-station-vibe="original"] .mirror-handoff-readout {
+  color: color-mix(in srgb, var(--mirror-accent) 60%, rgba(238, 241, 240, 0.72));
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
 }
 
 :root[data-station-vibe="original"] .mirror-hud-debris {

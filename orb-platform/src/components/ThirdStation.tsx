@@ -21,7 +21,8 @@ import { isTranscriptHotkey } from '../lib/productionHotkey'
 import type { WallPhase } from '../lib/wallPhaseSync'
 import { publish } from '../lib/firehose'
 import { publishKeyboardFocus } from '../lib/keyboardFocus'
-import { notifyRevealReady } from '../lib/photobashTrigger'
+import { PHOTOBASH_FILL_MS } from '../lib/photobashLoop'
+import { notifyRevealReadyFromVisit } from '../lib/photobashTrigger'
 import { MirrorGuideOrb } from './MirrorGuideOrb'
 import { MirrorHeadline } from './MirrorHeadline'
 import { JourneyHeadline } from './JourneyHeadline'
@@ -41,6 +42,7 @@ const STATUS_LABEL_WARM: Record<Phase, string> = {
   prompt: 'Listening',
   recording: 'Recording',
   loading: 'Working',
+  handoff: 'Ready',
 }
 
 const STATUS_LABEL_ORIGINAL: Record<Phase, string> = {
@@ -48,6 +50,7 @@ const STATUS_LABEL_ORIGINAL: Record<Phase, string> = {
   prompt: 'LISTENING',
   recording: 'RECORDING',
   loading: 'PROCESSING',
+  handoff: 'READY',
 }
 
 /**
@@ -295,6 +298,26 @@ const DEBRIS_LAYOUTS: Record<Phase, { panels: DebrisPanel[]; bars: DebrisBar[] }
       { style: { top: '58px', left: '46%', opacity: 0.2 }, fill: 30 },
     ],
   },
+  handoff: {
+    panels: [
+      {
+        seed: 13,
+        blockCount: 2,
+        visibleRows: 8,
+        duration: 12,
+        style: { top: '80px', left: '28px', opacity: 0.2 },
+      },
+      {
+        seed: 14,
+        blockCount: 2,
+        visibleRows: 6,
+        ghost: true,
+        duration: 14,
+        style: { bottom: '18%', right: '24px', opacity: 0.14 },
+      },
+    ],
+    bars: [{ style: { top: '120px', right: '36px', opacity: 0.16 }, fill: 100 }],
+  },
 }
 
 /** Persistent scattered technical debris — small scrolling log panels, one
@@ -451,6 +474,7 @@ export function ThirdStation() {
   const [recordSecondsLeft, setRecordSecondsLeft] = useState(mirrorSettings.timing.recordingSeconds)
   const [loadingProgress, setLoadingProgress] = useState(0)
   const prevPhaseRef = useRef<Phase | null>(null)
+  const completionRef = useRef(false)
   const recording = phase === 'recording'
   const spokenIntro = useSpeechDictation(recording)
   const whisper = useWhisperDictation(recording)
@@ -482,10 +506,12 @@ export function ThirdStation() {
       }
       prevPhaseRef.current = phase
     }
-    if (phase === 'loading') {
-      notifyRevealReady()
-      void flushIntro().then((final) => {
-        submitKioskInterview(final.trim() || spokenRef.current)
+    if (phase === 'loading' && !completionRef.current) {
+      completionRef.current = true
+      void notifyRevealReadyFromVisit().then(() => {
+        void flushIntro().then((final) => {
+          submitKioskInterview(final.trim() || spokenRef.current)
+        })
       })
     }
   }, [phase, flushIntro])
@@ -527,7 +553,7 @@ export function ThirdStation() {
       timers.push(window.setTimeout(() => setPhase('loading'), t.recordingSeconds * 1000))
     } else if (phase === 'loading') {
       setLoadingProgress(0)
-      timers.push(window.setTimeout(() => setPhase('intro'), t.loadingSeconds * 1000))
+      timers.push(window.setTimeout(() => setPhase('handoff'), PHOTOBASH_FILL_MS))
     }
 
     return () => timers.forEach((id) => window.clearTimeout(id))
@@ -552,13 +578,14 @@ export function ThirdStation() {
 
   useEffect(() => {
     if (phase !== 'loading') return
+    const fillMs = PHOTOBASH_FILL_MS
+    const holdMs = mirrorSettings.timing.loadingSeconds * 1000
     const start = performance.now()
-    const total = mirrorSettings.timing.loadingSeconds * 1000
     let raf = 0
     const tick = () => {
       const elapsed = performance.now() - start
-      setLoadingProgress(Math.min(1, elapsed / total))
-      if (elapsed < total) raf = requestAnimationFrame(tick)
+      setLoadingProgress(Math.min(1, elapsed / fillMs))
+      if (elapsed < holdMs) raf = requestAnimationFrame(tick)
     }
     raf = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(raf)
@@ -613,6 +640,21 @@ export function ThirdStation() {
               {warm
                 ? `Putting it together, ${Math.round(loadingProgress * 100)}%`
                 : `COMPILING MATCH DATA — ${Math.round(loadingProgress * 100)}%`}
+            </div>
+          </div>
+        ) : null}
+
+        {phase === 'handoff' ? (
+          <div className="mirror-screen mirror-screen-handoff">
+            <JourneyHeadline
+              lines={warm ? ['Go meet', 'your match'] : ['MEET YOUR', 'MATCH']}
+              className="mirror-headline"
+            >
+              {warm ? 'Go meet your match' : 'Meet your match'}
+            </JourneyHeadline>
+            <GuideOrb variant="idle" />
+            <div className="mirror-handoff-readout">
+              {warm ? 'Turn to the wall — they are waiting for you.' : 'PROCEED TO THE REVEAL WALL'}
             </div>
           </div>
         ) : null}

@@ -6,6 +6,8 @@ import { DEFAULT_VISITOR_ALIGN, MATCH_FACE_SIZE, type VisitorAlign } from '../li
 import { ensureCollageBank, peekCollageBank } from '../lib/wallCollageBank'
 import { computeFaceAlign } from '../lib/faceBankAlign'
 import { getVisitorFaceCapture } from '../lib/visitorFaceCapture'
+import { peekVisitorFaceFromCentral, refreshVisitCache } from '../lib/visitCentral'
+import { useVisitCentralPoll } from '../hooks/useVisitCentral'
 import { collageCueKey, type CollageCue } from '../lib/collageCue'
 import {
   collageRects,
@@ -62,6 +64,7 @@ export function WallCollageBlanket({
   const [visitorImage, setVisitorImage] = useState<HTMLImageElement | null>(null)
   const [visitorAlign, setVisitorAlign] = useState<VisitorAlign>(DEFAULT_VISITOR_ALIGN)
   const [lipSprite, setLipSprite] = useState<HTMLImageElement | null>(null)
+  useVisitCentralPoll()
 
   const rects = useMemo(() => collageRects(seed), [seed])
   const physicalLayout = physicalCollageLayout(role, rects[mouthRectIndex(rects)])
@@ -93,20 +96,28 @@ export function WallCollageBlanket({
 
   useEffect(() => {
     let cancelled = false
-    const dataUrl = getVisitorFaceCapture()
-    if (!dataUrl) return
-    loadImage(dataUrl)
-      .then(async (image) => {
-        if (cancelled) return
-        setVisitorImage(image)
-        const align = await computeFaceAlign(image, PLATE_RATIO)
-        if (!cancelled) setVisitorAlign(align)
-      })
-      .catch(() => {
-        if (!cancelled) setVisitorImage(null)
-      })
+    const loadFace = async () => {
+      await refreshVisitCache(true)
+      const dataUrl = peekVisitorFaceFromCentral() ?? getVisitorFaceCapture()
+      if (!dataUrl) return
+      loadImage(dataUrl)
+        .then(async (image) => {
+          if (cancelled) return
+          setVisitorImage(image)
+          const align = await computeFaceAlign(image, PLATE_RATIO)
+          if (!cancelled) setVisitorAlign(align)
+        })
+        .catch(() => {
+          if (!cancelled) setVisitorImage(null)
+        })
+    }
+    void loadFace()
+    const timer = window.setInterval(() => {
+      void loadFace()
+    }, 2000)
     return () => {
       cancelled = true
+      window.clearInterval(timer)
     }
   }, [])
 
