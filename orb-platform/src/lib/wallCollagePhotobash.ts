@@ -260,6 +260,8 @@ function drawRectFromSource(
 }
 
 export type CollageComposeOptions = {
+  /** Continuous portrait underneath the cutouts for the physical wall. */
+  fillBackground?: boolean
   width: number
   height: number
   rects: CollageRect[]
@@ -290,6 +292,10 @@ export function drawWallCollage(ctx: CanvasRenderingContext2D, options: CollageC
   const visitorAlign = options.visitorAlign ?? DEFAULT_VISITOR_ALIGN
 
   ctx.clearRect(0, 0, width, height)
+  if (options.fillBackground && bankImages.length > 0) {
+    const index = Math.max(0, strangerAssignments[0] ?? 0) % bankImages.length
+    drawVisitorAligned(ctx, bankImages[index], width, height, bankAligns[index] ?? DEFAULT_VISITOR_ALIGN)
+  }
 
   rects.forEach((rect, index) => {
     const isRevealed = revealedCells.has(index)

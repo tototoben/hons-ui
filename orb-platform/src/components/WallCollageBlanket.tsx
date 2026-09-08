@@ -1,6 +1,7 @@
+import { physicalCollageLayout } from '../lib/wallCollageLayout'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { panelFitScale, wallModeTransform } from '../lib/wallMode'
-import { measuredPanelForRole, parseWallBare, type WallRole } from '../lib/wallRole'
+import { parseWallBare, type WallRole } from '../lib/wallRole'
 import { DEFAULT_VISITOR_ALIGN, MATCH_FACE_SIZE, type VisitorAlign } from '../lib/wallMatchPhotobash'
 import { ensureCollageBank, peekCollageBank } from '../lib/wallCollageBank'
 import { computeFaceAlign } from '../lib/faceBankAlign'
@@ -48,7 +49,6 @@ export function WallCollageBlanket({
 }) {
   const seed = photobashSeed || 1
   const cueKey = collageCueKey(collageCue)
-  const panel = measuredPanelForRole(role)
   const [viewport, setViewport] = useState(() => ({
     width: window.innerWidth,
     height: window.innerHeight,
@@ -64,6 +64,8 @@ export function WallCollageBlanket({
   const [lipSprite, setLipSprite] = useState<HTMLImageElement | null>(null)
 
   const rects = useMemo(() => collageRects(seed), [seed])
+  const physicalLayout = physicalCollageLayout(role, rects[mouthRectIndex(rects)])
+  const panel = physicalLayout.panel
   const strangerAssignments = useMemo(
     () => pickTaggedStrangerAssignments(seed, bankFaces, collageCue, rects.length),
     [seed, rects.length, bankFaces, cueKey],
@@ -143,6 +145,7 @@ export function WallCollageBlanket({
         const revealedCells = new Set(revealOrder.slice(0, revealedCount))
         const revealingCell = revealedCount < revealOrder.length ? revealOrder[revealedCount] : null
         drawWallCollage(ctx, {
+          fillBackground: true,
           width: canvas.width,
           height: canvas.height,
           rects,
@@ -223,12 +226,7 @@ export function WallCollageBlanket({
       panel.panelHeight,
     )
     const fitScale = panelFitScale(panel.panelWidth, panel.panelHeight, viewport.width, viewport.height)
-    const coverScale = Math.max(
-      panel.wallWidth / MATCH_FACE_SIZE.width,
-      panel.wallHeight / MATCH_FACE_SIZE.height,
-    )
-    const faceW = MATCH_FACE_SIZE.width * coverScale
-    const faceH = MATCH_FACE_SIZE.height * coverScale
+    const { faceW, faceH } = physicalLayout
     return {
       crop,
       fitScale,
@@ -236,8 +234,8 @@ export function WallCollageBlanket({
       panelHeight: panel.panelHeight,
       faceW,
       faceH,
-      faceX: (panel.wallWidth - faceW) / 2,
-      faceY: (panel.wallHeight - faceH) / 2,
+      faceX: physicalLayout.faceX,
+      faceY: physicalLayout.faceY,
     }
   }, [panel, viewport.height, viewport.width])
 
