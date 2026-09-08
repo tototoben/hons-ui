@@ -154,10 +154,11 @@ describe('station composition', () => {
     expect(thirdStationSource).toContain('speak about yourself')
     expect(thirdStationSource).toContain('useMicLevel')
     expect(thirdStationSource).toContain('useSpeechDictation')
+    expect(thirdStationSource).toContain('useWhisperDictation')
     expect(thirdStationSource).toContain('submitKioskInterview')
     expect(thirdStationSource).toContain('JourneyHeadline')
+    expect(thirdStationSource).toContain('mirror-record-caption')
     expect(thirdStationSource).not.toContain('useVisitorVoiceRecorder')
-    expect(thirdStationStyles).not.toContain('mirror-record-transcript')
     expect(photobashSource).not.toContain('PhotobashVoice')
   })
 

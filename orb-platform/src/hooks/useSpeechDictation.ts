@@ -31,9 +31,8 @@ function speechCtor(): SpeechRecCtor | null {
 }
 
 /**
- * Live dictation for Station III's 30s intro. Chrome's Web Speech API on the
- * Mac Studio kiosk. The on-screen UI stays the icy prompt — this only collects
- * words for the ARS interview file.
+ * Instant captions on Chrome/Chromium via the Web Speech API. cog/WPE has
+ * no SpeechRecognition — Station III also runs useWhisperDictation.
  */
 export function useSpeechDictation(active: boolean) {
   const [text, setText] = useState('')

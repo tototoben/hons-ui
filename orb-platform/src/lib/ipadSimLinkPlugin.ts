@@ -111,6 +111,31 @@ export function ipadSimLinkPlugin() {
           return
         }
 
+        if (req.method === 'POST' && path === '/__hons/transcribe') {
+          const chunks: Buffer[] = []
+          req.on('data', (chunk: Buffer) => {
+            chunks.push(chunk)
+          })
+          req.on('end', () => {
+            const body = Buffer.concat(chunks)
+            fetch('http://127.0.0.1:8190/api/transcribe', {
+              method: 'POST',
+              headers: { 'Content-Type': req.headers['content-type'] || 'audio/wav' },
+              body: new Uint8Array(body),
+            })
+              .then(async (upstream) => {
+                const raw = await upstream.text()
+                res.statusCode = upstream.ok ? 200 : 503
+                res.setHeader('Content-Type', 'application/json')
+                res.end(raw || '{"text":""}')
+              })
+              .catch(() => {
+                json(res, 503, { text: '' })
+              })
+          })
+          return
+        }
+
         if (req.method === 'POST' && path === '/__hons/ars-interview') {
           readBody(req, (raw) => {
             try {

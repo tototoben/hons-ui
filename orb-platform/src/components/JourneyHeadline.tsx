@@ -6,12 +6,14 @@ export function JourneyHeadline({
   lines,
   className,
   fontPx,
+  fade = true,
 }: {
   as?: 'h1' | 'span' | 'p'
   children: string
   lines: string[]
   className?: string
   fontPx?: number
+  fade?: boolean
 }) {
   const height = fontPx ? Math.ceil(fontPx * 1.2 * lines.length + 48) : undefined
   return (
@@ -22,6 +24,7 @@ export function JourneyHeadline({
           lines={lines}
           fontPx={fontPx}
           height={height}
+          fade={fade}
           className="journey-headline-canvas"
         />
       </span>

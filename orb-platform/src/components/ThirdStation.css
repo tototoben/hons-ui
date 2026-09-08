@@ -220,14 +220,23 @@
   padding: 64px 20px 28px;
 }
 
-.mirror-record-prompt {
+.mirror-record-prompt,
+.mirror-record-caption {
   margin: 0;
   width: 100%;
 }
 
-.mirror-record-prompt .journey-headline-canvas {
+.mirror-record-prompt .journey-headline-canvas,
+.mirror-record-caption .journey-headline-canvas {
   width: 100%;
   height: auto;
+}
+
+.mirror-record-caption {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  min-height: 0;
 }
 
 .mirror-record-levels {

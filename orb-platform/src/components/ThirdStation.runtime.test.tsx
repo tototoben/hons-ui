@@ -24,6 +24,21 @@ vi.mock('../hooks/useMicLevel', () => ({
   useMicLevel: () => Array.from({ length: 24 }, () => 0.2),
 }))
 
+const whisper = vi.hoisted(() => {
+  const state = {
+    text: '',
+    flush: async () => state.text,
+  }
+  return state
+})
+
+vi.mock('../hooks/useWhisperDictation', () => ({
+  useWhisperDictation: () => ({
+    text: whisper.text,
+    flush: whisper.flush,
+  }),
+}))
+
 import { ThirdStation } from './ThirdStation'
 
 function settle() {
@@ -58,6 +73,7 @@ describe('ThirdStation', () => {
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => null)
     applyStationVibe('original')
     resetVisitorFaceCapture()
+    whisper.text = ''
     timing = { ...mirrorSettings.timing }
     mirrorSettings.timing.introSeconds = 1
     mirrorSettings.timing.promptSeconds = 1
@@ -127,5 +143,17 @@ describe('ThirdStation', () => {
     const laterArc = container.querySelector('.mirror-record-timer-progress')?.getAttribute('d')
     expect(laterArc).not.toBe(fullArc)
     expect(laterArc ?? '').toMatch(/A 34 34 0 0 1/)
+  })
+
+  it('fills the viewfinder with the rolling spoken caption', async () => {
+    whisper.text = 'I came here to meet someone who actually listens'
+    act(() => root.render(<ThirdStation />))
+    await settle()
+    await enterRecording()
+
+    expect(container.querySelector('.mirror-record-prompt')).toBeNull()
+    expect(container.querySelector('.mirror-record-caption')?.textContent).toContain(
+      'I came here to meet someone who actually listens',
+    )
   })
 })
