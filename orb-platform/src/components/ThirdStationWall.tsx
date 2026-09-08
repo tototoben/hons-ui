@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react'
+import { useRevealDialogue, type RevealDialogueState } from '../lib/revealDialogue'
 import { useWallSyncedPhase } from '../lib/wallPhaseSync'
 import { parseWallCalibrate, parseWallCollage, parseWallRole, type WallRole } from '../lib/wallRole'
 import { RevealShellChrome } from './RevealShellChrome'
@@ -165,12 +166,21 @@ function WallAvatarPanel({ phase }: { phase: keyof typeof STATUS_LABEL }) {
   )
 }
 
-function WallWaveform({ active }: { active: boolean }) {
+function WallWaveform({ active, level }: { active: boolean; level?: number }) {
   const bars = useMemo(() => Array.from({ length: 28 }, (_, i) => i), [])
+  const isMeter = typeof level === 'number'
   return (
     <div className={`wall-waveform${active ? ' is-live' : ''}`} aria-hidden="true">
       {bars.map((i) => (
-        <span key={i} style={{ animationDelay: `${(i % 9) * 0.08}s` }} />
+        <span
+          key={i}
+          style={{
+            animationDelay: `${(i % 9) * 0.08}s`,
+            height: isMeter
+              ? `${Math.max(8, Math.min(100, level * 110 * (0.45 + ((i * 7) % 11) / 16)))}%`
+              : undefined,
+          }}
+        />
       ))}
     </div>
   )
@@ -264,6 +274,135 @@ function WallRoleContent({
   }
 }
 
+const DIALOGUE_STATUS: Record<RevealDialogueState['phase'], string> = {
+  idle: 'AWAITING APPOINTMENT',
+  intro: 'MATCH CONTACT',
+  listening: 'LISTENING',
+  thinking: 'INDEXING',
+  speaking: 'MATCH CONTACT',
+  mirroring: 'IDENTITY CONVERGENCE',
+  closing: 'CAPTURE COMPLETE',
+  ended: 'SESSION ARCHIVED',
+  error: 'VOICE LINK UNAVAILABLE',
+}
+
+function dialogueCopy(state: RevealDialogueState) {
+  if (state.phase === 'idle') return 'Your appointment is being prepared.'
+  if (state.phase === 'listening') return 'Speak. I am listening.'
+  if (state.phase === 'thinking') return state.visitor_text || 'Comparing your answer.'
+  if (state.phase === 'ended') return state.assistant_text || 'I will see you again soon.'
+  if (state.phase === 'error') return 'The voice channel is unavailable.'
+  return state.assistant_text || 'I have been waiting to meet you.'
+}
+
+function DialogueWallRoleContent({ role, state }: { role: WallRole; state: RevealDialogueState }) {
+  const active = state.phase === 'listening' || state.phase === 'thinking'
+  const mirroring =
+    state.phase === 'mirroring' || state.phase === 'closing' || state.phase === 'ended'
+  const archetypes = Object.entries(state.archetypes)
+
+  if (role === 'copy') {
+    return (
+      <div className={`wall-role wall-role-copy wall-dialogue-copy phase-${state.phase}`}>
+        <div className="wall-dialogue-kicker">{DIALOGUE_STATUS[state.phase]}</div>
+        <p>{dialogueCopy(state)}</p>
+        {state.phase === 'thinking' && state.visitor_text ? (
+          <div className="wall-dialogue-transcript">VOICEPRINT: “{state.visitor_text}”</div>
+        ) : null}
+      </div>
+    )
+  }
+
+  if (role === 'debra') {
+    return (
+      <div className={`wall-role wall-role-debra wall-dialogue-debra phase-${state.phase}`}>
+        <div
+          className="wall-debra-orb"
+          style={{ transform: `scale(${1 + state.mirror_intensity * 0.13})` }}
+        >
+          <MirrorGuideOrb className="wall-debra-canvas" />
+          <div className="wall-dialogue-orb-state">{DIALOGUE_STATUS[state.phase]}</div>
+        </div>
+      </div>
+    )
+  }
+
+  if (role === 'status') {
+    return (
+      <div className="wall-role wall-role-status wall-dialogue-status">
+        <WallParticleField count={28} active={active || mirroring} />
+        <div className="wall-status-stack">
+          <WallRadar active={active} />
+          <div className="wall-status-label">
+            <span className="mirror-status-marker" />
+            {DIALOGUE_STATUS[state.phase]}
+          </div>
+          <WallWaveform active={state.phase === 'listening'} level={state.mic_level} />
+          <div className="wall-status-tele">
+            <span>INPUT · {state.audio_input || 'VOCAT USB ARRAY'}</span>
+            <span>DETAILS ACQUIRED · {state.detail_count}</span>
+            <span>CONVERGENCE · {Math.round(state.mirror_intensity * 100)}%</span>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (role === 'code') {
+    return (
+      <div className="wall-role wall-role-code wall-dialogue-code">
+        <CodePanel
+          seed={state.turn + 1}
+          blockCount={5}
+          visibleRows={18}
+          large
+          big
+          hasAlert={mirroring}
+          duration={mirroring ? 4 : 8}
+          style={{ inset: '3% 3% 24%' }}
+        />
+        <div className="wall-dialogue-ledger">
+          <div>SUBJECT / {state.visit_id || 'PENDING'}</div>
+          {state.details.slice(-5).map((detail) => (
+            <div key={`${detail.key}-${detail.learned_turn}`}>
+              <span>{detail.key}</span>
+              {detail.value}
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  if (role === 'avatar') {
+    return (
+      <div className="wall-role wall-role-avatar wall-dialogue-avatar">
+        <WallParticleField count={44} active={mirroring} />
+        <div className="wall-avatar-wait">
+          <span className="wall-avatar-wait-mark" />
+          {mirroring ? 'DUPLICATE FORMING' : 'AWAITING SUFFICIENT SIGNAL'}
+          <strong>{Math.round(state.mirror_intensity * 100)}%</strong>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className={`wall-role wall-role-guide${active || mirroring ? ' is-active' : ''}`}>
+      <WallParticleField count={64} active={active || mirroring} />
+      <div className="wall-dialogue-archetypes">
+        <span>PERSONALITY COMPOSITE</span>
+        {archetypes.map(([category, archetype]) => (
+          <div key={category}>
+            <small>{category}</small>
+            {archetype}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export function ThirdStationWall({ role: roleProp }: { role?: WallRole }) {
   const role = roleProp ?? parseWallRole() ?? 'copy'
   const calibrate = parseWallCalibrate()
@@ -271,6 +410,7 @@ export function ThirdStationWall({ role: roleProp }: { role?: WallRole }) {
   const isConductor = role === 'debra' && !calibrate
   const { phase, countdown, recordSecondsLeft, loadingProgress, photobashSeed, collageCue } =
     useWallSyncedPhase(isConductor)
+  const dialogue = useRevealDialogue()
   const collageReady = useCollageBankReady(
     photobashSeed || 1,
     !shouldShowForming(loadingProgress),
@@ -286,6 +426,14 @@ export function ThirdStationWall({ role: roleProp }: { role?: WallRole }) {
       delete document.documentElement.dataset.wallRole
     }
   }, [role])
+
+  useEffect(() => {
+    if (dialogue.available) document.documentElement.dataset.dialoguePhase = dialogue.state.phase
+    else delete document.documentElement.dataset.dialoguePhase
+    return () => {
+      delete document.documentElement.dataset.dialoguePhase
+    }
+  }, [dialogue.available, dialogue.state.phase])
 
   useEffect(() => {
     const root = rootRef.current
@@ -304,7 +452,9 @@ export function ThirdStationWall({ role: roleProp }: { role?: WallRole }) {
       ref={rootRef}
     >
       {calibrate ? <WallCalibrate role={role} /> : null}
-      {calibrate ? null : phase === 'loading' ? (
+      {calibrate ? null : dialogue.available ? (
+        <DialogueWallRoleContent role={role} state={dialogue.state} />
+      ) : phase === 'loading' ? (
         loadingSurface === 'forming' ? (
           <WallFormingBlanket
             role={role}

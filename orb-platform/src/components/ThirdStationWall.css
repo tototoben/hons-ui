@@ -342,3 +342,113 @@
     transform: rotate(360deg);
   }
 }
+
+/* Live Vocat dialogue mode. The original timed wall remains the offline fallback. */
+.wall-dialogue-copy {
+  gap: 3vh;
+  transition: filter 1.5s ease;
+}
+
+.wall-dialogue-copy p {
+  max-width: 86%;
+  margin: 0;
+  color: #fff4e8;
+  font: 300 clamp(1.8rem, 5.2vw, 5.8rem) / 1.08 "Helvetica Neue", "Nimbus Sans", sans-serif;
+  letter-spacing: -0.025em;
+  text-align: center;
+  text-wrap: balance;
+}
+
+.wall-dialogue-kicker,
+.wall-dialogue-transcript,
+.wall-dialogue-orb-state {
+  font: 500 12px/1.35 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  letter-spacing: 0.14em;
+  color: rgba(255, 244, 232, 0.52);
+  text-transform: uppercase;
+}
+
+.wall-dialogue-transcript {
+  max-width: 78%;
+  color: rgba(255, 244, 232, 0.38);
+  text-align: center;
+}
+
+.wall-dialogue-copy.phase-mirroring,
+.wall-dialogue-copy.phase-closing {
+  filter: contrast(1.15) saturate(0.75);
+}
+
+.wall-dialogue-debra .wall-debra-orb {
+  transition:
+    transform 2.4s cubic-bezier(0.2, 0.7, 0.2, 1),
+    filter 2.4s ease;
+}
+
+.wall-dialogue-debra.phase-mirroring .wall-debra-orb,
+.wall-dialogue-debra.phase-closing .wall-debra-orb {
+  filter: contrast(1.18) saturate(0.66) hue-rotate(-12deg);
+}
+
+.wall-dialogue-orb-state {
+  position: absolute;
+  left: 50%;
+  bottom: -10%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.wall-dialogue-ledger {
+  position: absolute;
+  z-index: 2;
+  right: 5%;
+  bottom: 5%;
+  left: 5%;
+  display: grid;
+  gap: 7px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 244, 232, 0.2);
+  color: rgba(255, 244, 232, 0.65);
+  font: 500 11px/1.25 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.wall-dialogue-ledger div:not(:first-child) {
+  display: grid;
+  grid-template-columns: minmax(6rem, 28%) 1fr;
+  gap: 12px;
+}
+
+.wall-dialogue-ledger span {
+  color: rgba(255, 244, 232, 0.32);
+}
+
+.wall-dialogue-avatar strong {
+  display: block;
+  margin-top: 0.2em;
+  color: rgba(255, 244, 232, 0.92);
+  font: 300 clamp(3rem, 12vw, 8rem) / 1 "Helvetica Neue", "Nimbus Sans", sans-serif;
+  letter-spacing: -0.04em;
+}
+
+.wall-dialogue-archetypes {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  width: min(76%, 520px);
+  gap: 2.2vh;
+  color: rgba(255, 244, 232, 0.85);
+  font: 300 clamp(1.5rem, 5vw, 4.5rem) / 1 "Helvetica Neue", "Nimbus Sans", sans-serif;
+  text-align: center;
+}
+
+.wall-dialogue-archetypes > span,
+.wall-dialogue-archetypes small {
+  display: block;
+  margin-bottom: 0.6em;
+  color: rgba(255, 244, 232, 0.38);
+  font: 500 10px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
