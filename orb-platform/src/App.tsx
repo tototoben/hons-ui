@@ -25,6 +25,7 @@ import { isWallMode } from './lib/wallMode'
 import { isWallRoleMode, parseWallRole } from './lib/wallRole'
 import { showTuningPanel } from './lib/tune'
 import { connectIpadSimLink } from './lib/ipadSimLink'
+import { connectRoomStream } from './lib/roomStream'
 import { publishKeyboardFocus } from './lib/keyboardFocus'
 import {
   getStationFromHash,
@@ -130,22 +131,41 @@ export default function App() {
     setStationSession((value) => value + 1)
   }, [lock, station])
 
+  const handleRoomReset = useCallback(() => {
+    resetInterview()
+    resetVisitorProfile()
+    resetVisitorFaceCapture()
+    resetVisitorIntro()
+    try { localStorage.removeItem('hons-photobash-reveal') } catch { /* kiosk browser may block */ }
+    setStationSession((value) => value + 1)
+    console.log('[reset] room-reset received — local state cleared')
+  }, [])
+
+  // Embedded path: visualizer broadcasts room-reset via postMessage.
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
       const data = event.data
       if (!data || data.source !== 'orb-firehose' || data.event !== 'room-reset') return
-      // Full room reset: wipe all local state and remount.
-      resetInterview()
-      resetVisitorProfile()
-      resetVisitorFaceCapture()
-      resetVisitorIntro()
-      try { localStorage.removeItem('hons-photobash-reveal') } catch { /* kiosk browser may block */ }
-      setStationSession((value) => value + 1)
-      console.log('[reset] room-reset received — local state cleared')
+      handleRoomReset()
     }
     window.addEventListener('message', onMessage)
     return () => window.removeEventListener('message', onMessage)
-  }, [])
+  }, [handleRoomReset])
+
+  // Top-level path: station bridge forwards room/reset + ui/state via SSE.
+  useEffect(() => {
+    return connectRoomStream((event) => {
+      if (event.type === 'room-reset') {
+        handleRoomReset()
+        return
+      }
+      if (event.type === 'ui-state' && event.data.stage === 'reset') {
+        handleRoomReset()
+        return
+      }
+      // Future room-level events can be dispatched here.
+    }) ?? undefined
+  }, [handleRoomReset])
 
   useEffect(() => {
     applyDeviceQuality()
