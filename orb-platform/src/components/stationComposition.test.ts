@@ -181,7 +181,7 @@ describe('station composition', () => {
     expect(journeyStyles).toContain('--question-desk-bottom: 12vh')
     expect(journeyStyles).toContain('margin-bottom: var(--question-desk-bottom)')
     expect(journeyStyles).toMatch(
-      /\.journey-height-control \{[^}]*width: min\(100%, 430px\)[^}]*background: transparent/s,
+      /\.journey-height-control \{[^}]*width: min\(100%, var\(--journey-column\)\)[^}]*background: transparent/s,
     )
     expect(journeyStyles).not.toContain('rgba(0, 0, 0, 0.88)')
     expect(thirdStationStyles).toContain('min(86vw, 440px)')

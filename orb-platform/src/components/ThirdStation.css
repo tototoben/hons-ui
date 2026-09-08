@@ -53,7 +53,7 @@
   align-items: center;
   gap: 8px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 11px;
+  font-size: 16px;
   letter-spacing: 0.08em;
   color: rgba(255, 244, 232, 0.52);
   text-transform: none;
@@ -148,7 +148,7 @@
 
 .mirror-headline {
   width: 100%;
-  max-width: 480px;
+  max-width: 800px;
   height: auto;
 }
 
@@ -248,7 +248,7 @@
   place-items: center;
   padding: 24px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 11px;
+  font-size: 16px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: rgba(255, 244, 232, 0.62);
@@ -300,7 +300,7 @@
   align-items: center;
   gap: 8px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 12px;
+  font-size: 16px;
   letter-spacing: 0.14em;
   color: rgba(255, 244, 232, 0.86);
 }
@@ -399,7 +399,7 @@
 
 .mirror-loading-readout {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 11px;
+  font-size: 16px;
   letter-spacing: 0.12em;
   color: color-mix(in srgb, var(--mirror-accent) 70%, rgba(255, 244, 232, 0.8));
   text-transform: none;
