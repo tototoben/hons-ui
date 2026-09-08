@@ -2,8 +2,13 @@ import { physicalCollageLayout } from '../lib/wallCollageLayout'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { panelFitScale, wallModeTransform } from '../lib/wallMode'
 import { parseWallBare, type WallRole } from '../lib/wallRole'
-import { DEFAULT_VISITOR_ALIGN, MATCH_FACE_SIZE, type VisitorAlign } from '../lib/wallMatchPhotobash'
-import { ensureCollageBank, peekCollageBank } from '../lib/wallCollageBank'
+import {
+  DEFAULT_VISITOR_ALIGN,
+  MATCH_FACE_SIZE,
+  MATCH_FACE_URL,
+  type VisitorAlign,
+} from '../lib/wallMatchPhotobash'
+import { ensureCollageBank, peekCollageBank, prefetchCollageAssets } from '../lib/wallCollageBank'
 import { computeFaceAlign } from '../lib/faceBankAlign'
 import { getVisitorFaceCapture } from '../lib/visitorFaceCapture'
 import { collageCueKey, type CollageCue } from '../lib/collageCue'
@@ -80,8 +85,15 @@ export function WallCollageBlanket({
 
   useEffect(() => {
     let cancelled = false
+    let aligned = false
+    void prefetchCollageAssets().then((images) => {
+      if (cancelled || aligned) return
+      setBankImages(images)
+      setBankAligns(images.map(() => ({ ...DEFAULT_VISITOR_ALIGN })))
+    })
     void ensureCollageBank(seed, collageCue).then((bank) => {
       if (cancelled) return
+      aligned = true
       setBankImages(bank.images)
       setBankAligns(bank.aligns)
       setBankFaces(bank.faces)
@@ -145,7 +157,6 @@ export function WallCollageBlanket({
         const revealedCells = new Set(revealOrder.slice(0, revealedCount))
         const revealingCell = revealedCount < revealOrder.length ? revealOrder[revealedCount] : null
         drawWallCollage(ctx, {
-          fillBackground: true,
           width: canvas.width,
           height: canvas.height,
           rects,
@@ -283,12 +294,21 @@ export function WallCollageBlanket({
             transform: `translate(${layout.crop.translateX}px, ${layout.crop.translateY}px)`,
           }}
         >
+          <img
+            src={MATCH_FACE_URL}
+            alt=""
+            aria-hidden="true"
+            fetchPriority="high"
+            decoding="sync"
+            className="wall-face-image wall-collage-base"
+            style={{ ...faceStyle, zIndex: 0 }}
+          />
           <canvas
             ref={canvasRef}
             width={MATCH_FACE_SIZE.width}
             height={MATCH_FACE_SIZE.height}
             className="wall-face-image wall-collage-canvas"
-            style={faceStyle}
+            style={{ ...faceStyle, background: 'transparent', zIndex: 1 }}
           />
           {lipSprite && bankAligns.length > 0 ? (
             <canvas
@@ -296,7 +316,7 @@ export function WallCollageBlanket({
               width={mouthWidth}
               height={mouthHeight}
               className="wall-collage-lip-sprite"
-              style={mouthStyle}
+              style={{ ...mouthStyle, zIndex: 2 }}
             />
           ) : null}
         </div>

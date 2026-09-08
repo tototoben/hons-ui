@@ -59,6 +59,8 @@ describe('PhotobashScreen collage wall', () => {
     act(() => root.render(<PhotobashScreen />))
     expect(container.querySelector('.wall-forming-canvas')).toBeNull()
     expect(container.querySelector('.wall-forming-caption')).toBeNull()
+    const base = container.querySelector<HTMLImageElement>('.wall-collage-base')
+    expect(base?.src).toContain('/assets/wall-avatar/match-face.png')
     expect(container.querySelector('.wall-collage-canvas')).not.toBeNull()
   })
 })
