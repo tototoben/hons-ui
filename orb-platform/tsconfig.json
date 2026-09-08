@@ -17,7 +17,7 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
     "resolveJsonModule": true,
-    "types": ["vite/client", "node"]
+    "types": ["vite/client"]
   },
   "include": ["src"],
   "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/**/*.runtime.test.tsx"]
