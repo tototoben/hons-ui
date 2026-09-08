@@ -36,6 +36,7 @@ vi.mock('../hooks/useWhisperDictation', () => ({
   useWhisperDictation: () => ({
     text: whisper.text,
     flush: whisper.flush,
+    stream: null,
   }),
 }))
 
@@ -145,15 +146,48 @@ describe('ThirdStation', () => {
     expect(laterArc ?? '').toMatch(/A 34 34 0 0 1/)
   })
 
-  it('fills the viewfinder with the rolling spoken caption', async () => {
+  it('keeps the spoken caption off until Alt+Shift+T', async () => {
     whisper.text = 'I came here to meet someone who actually listens'
     act(() => root.render(<ThirdStation />))
     await settle()
     await enterRecording()
 
+    expect(container.querySelector('.mirror-record-caption')).toBeNull()
+    expect(container.querySelector('.mirror-record-prompt')?.textContent).toBe('speak about yourself')
+
+    await act(async () => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          code: 'KeyT',
+          key: 't',
+          shiftKey: true,
+          altKey: true,
+          bubbles: true,
+        }),
+      )
+      await Promise.resolve()
+    })
+
     expect(container.querySelector('.mirror-record-prompt')).toBeNull()
-    expect(container.querySelector('.mirror-record-caption')?.textContent).toContain(
+    expect(container.querySelector('.mirror-record-caption .journey-headline-canvas')).toBeNull()
+    expect(container.querySelector('.mirror-record-caption')?.textContent?.replace(/\s+/g, ' ')).toContain(
       'I came here to meet someone who actually listens',
     )
+
+    await act(async () => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          code: 'KeyT',
+          key: 't',
+          shiftKey: true,
+          altKey: true,
+          bubbles: true,
+        }),
+      )
+      await Promise.resolve()
+    })
+
+    expect(container.querySelector('.mirror-record-caption')).toBeNull()
+    expect(container.querySelector('.mirror-record-prompt')?.textContent).toBe('speak about yourself')
   })
 })

@@ -1,28 +1,47 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { concatFloat32, downsampleTo16k, encodeWav } from '../lib/pcmWav'
+import { concatFloat32, downsampleTo16k, encodeWav, pcmRms } from '../lib/pcmWav'
 import { transcribeWav } from '../lib/transcribeIngest'
 
-const CHUNK_MS = 2500
+const CHUNK_MS = 500
 const TARGET_RATE = 16000
+const MIN_SECONDS = 0.6
+const MIN_RMS = 0.012
+
+const MIC: MediaStreamConstraints = {
+  audio: {
+    channelCount: 1,
+    echoCancellation: true,
+    noiseSuppression: true,
+    autoGainControl: true,
+  },
+  video: false,
+}
 
 type CaptureWindow = Window & {
   webkitAudioContext?: typeof AudioContext
 }
 
 /**
- * Record the Station III intro as 16 kHz WAV and send it to Studio Whisper.
- * Works in cog/WPE (no Web Speech API). Chrome can still show faster captions
- * from useSpeechDictation; this is the kiosk path.
+ * One mic stream → 16 kHz WAV → Studio Whisper. Polls every 500ms but only
+ * starts a new clip after the previous one returns, so captions stay live
+ * without piling up requests.
  */
 export function useWhisperDictation(active: boolean) {
   const [text, setText] = useState('')
+  const [stream, setStream] = useState<MediaStream | null>(null)
   const textRef = useRef('')
   const chunksRef = useRef<Float32Array[]>([])
   const seqRef = useRef(0)
   const pendingRef = useRef<Promise<string> | null>(null)
+  const busyRef = useRef(false)
 
-  const post = useCallback(async (samples: Float32Array, seq: number) => {
-    if (samples.length < TARGET_RATE * 0.4) return textRef.current
+  const post = useCallback(async (samples: Float32Array, seq: number, force: boolean) => {
+    if (!force) {
+      if (samples.length < TARGET_RATE * MIN_SECONDS) return textRef.current
+      if (pcmRms(samples) < MIN_RMS) return textRef.current
+    } else if (samples.length < TARGET_RATE * 0.4) {
+      return textRef.current
+    }
     const wav = encodeWav(samples, TARGET_RATE)
     const next = await transcribeWav(wav)
     if (seq !== seqRef.current) return textRef.current
@@ -36,52 +55,68 @@ export function useWhisperDictation(active: boolean) {
   const flush = useCallback(async () => {
     seqRef.current += 1
     const seq = seqRef.current
-    const samples = concatFloat32(chunksRef.current)
     const inFlight = pendingRef.current
     if (inFlight) {
       try {
         await inFlight
       } catch {
-        // Keep going — we still POST the full buffer.
+        // Still POST the full buffer.
       }
     }
-    const result = await post(samples, seq)
-    return result
+    return post(concatFloat32(chunksRef.current), seq, true)
   }, [post])
 
   useEffect(() => {
-    if (!active) return
+    if (!active) {
+      setStream(null)
+      return
+    }
     if (typeof window === 'undefined' || !navigator.mediaDevices?.getUserMedia) return
 
     let stopped = false
-    let stream: MediaStream | null = null
+    let media: MediaStream | null = null
     let ctx: AudioContext | null = null
     let processor: ScriptProcessorNode | null = null
     let timer = 0
+    let queued = false
     chunksRef.current = []
     textRef.current = ''
     setText('')
     seqRef.current += 1
 
-    const tick = () => {
+    const send = async (force = false) => {
       if (stopped) return
+      if (busyRef.current) {
+        queued = true
+        return
+      }
+      const samples = concatFloat32(chunksRef.current)
+      busyRef.current = true
+      queued = false
       seqRef.current += 1
       const seq = seqRef.current
-      const samples = concatFloat32(chunksRef.current)
-      pendingRef.current = post(samples, seq)
+      const job = post(samples, seq, force)
+      pendingRef.current = job
+      try {
+        await job
+      } finally {
+        busyRef.current = false
+        if (!stopped && queued) void send(false)
+      }
     }
 
     const start = async () => {
       try {
-        stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+        media = await navigator.mediaDevices.getUserMedia(MIC)
         if (stopped) {
-          stream.getTracks().forEach((track) => track.stop())
+          media.getTracks().forEach((track) => track.stop())
           return
         }
+        setStream(media)
         const Ctor = window.AudioContext ?? (window as CaptureWindow).webkitAudioContext
         if (!Ctor) return
         ctx = new Ctor()
-        const source = ctx.createMediaStreamSource(stream)
+        const source = ctx.createMediaStreamSource(media)
         const mute = ctx.createGain()
         mute.gain.value = 0
         processor = ctx.createScriptProcessor(4096, 1, 1)
@@ -94,9 +129,11 @@ export function useWhisperDictation(active: boolean) {
         processor.connect(mute)
         mute.connect(ctx.destination)
         if (ctx.state === 'suspended') await ctx.resume()
-        timer = window.setInterval(tick, CHUNK_MS)
+        timer = window.setInterval(() => {
+          void send(false)
+        }, CHUNK_MS)
       } catch {
-        // Mic denied — Web Speech may still fill the caption on Chrome.
+        setStream(null)
       }
     }
 
@@ -106,10 +143,11 @@ export function useWhisperDictation(active: boolean) {
       stopped = true
       window.clearInterval(timer)
       processor?.disconnect()
-      stream?.getTracks().forEach((track) => track.stop())
+      media?.getTracks().forEach((track) => track.stop())
+      setStream(null)
       void ctx?.close()
     }
   }, [active, post])
 
-  return { text, flush }
+  return { text, flush, stream }
 }

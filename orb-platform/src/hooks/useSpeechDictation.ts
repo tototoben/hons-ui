@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { webSpeechEnabled } from '../lib/transcribeIngest'
 
 type SpeechRec = {
   continuous: boolean
@@ -40,6 +41,7 @@ export function useSpeechDictation(active: boolean) {
 
   useEffect(() => {
     if (!active) return
+    if (!webSpeechEnabled(window.location.search)) return
     const Ctor = speechCtor()
     if (!Ctor) return
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { concatFloat32, downsampleTo16k, encodeWav } from './pcmWav'
+import { concatFloat32, downsampleTo16k, encodeWav, pcmRms } from './pcmWav'
 
 describe('pcmWav', () => {
   it('downsamples a 48 kHz buffer to 16 kHz', () => {
@@ -22,5 +22,10 @@ describe('pcmWav', () => {
   it('concatenates float chunks in order', () => {
     const out = concatFloat32([new Float32Array([1, 2]), new Float32Array([3])])
     expect(Array.from(out)).toEqual([1, 2, 3])
+  })
+
+  it('measures RMS energy', () => {
+    expect(pcmRms(new Float32Array(8))).toBe(0)
+    expect(pcmRms(new Float32Array([1, -1, 1, -1]))).toBeCloseTo(1)
   })
 })

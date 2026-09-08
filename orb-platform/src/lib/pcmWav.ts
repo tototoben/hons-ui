@@ -56,3 +56,13 @@ export function concatFloat32(chunks: Float32Array[]): Float32Array {
   }
   return out
 }
+
+export function pcmRms(samples: Float32Array): number {
+  if (samples.length === 0) return 0
+  let sum = 0
+  for (let i = 0; i < samples.length; i++) {
+    const s = samples[i] ?? 0
+    sum += s * s
+  }
+  return Math.sqrt(sum / samples.length)
+}

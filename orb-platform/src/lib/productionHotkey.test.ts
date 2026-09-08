@@ -5,6 +5,7 @@ import {
   isPickerDismissKey,
   isProductionHotkey,
   isStationRestartHotkey,
+  isTranscriptHotkey,
   isTypingTarget,
   pickerLockFromKey,
 } from './productionHotkey'
@@ -61,6 +62,13 @@ describe('productionHotkey', () => {
       false,
     )
     expect(isStationRestartHotkey(chord())).toBe(false)
+  })
+
+  it('matches Alt+Shift+T and Cmd+Shift+T as the caption preview toggle', () => {
+    expect(isTranscriptHotkey(chord({ code: 'KeyT', key: 't' }))).toBe(true)
+    expect(isTranscriptHotkey(chord({ code: 'KeyT', key: 't', altKey: false, metaKey: true }))).toBe(true)
+    expect(isTranscriptHotkey(chord({ code: 'KeyT', key: 't', altKey: false, ctrlKey: true }))).toBe(false)
+    expect(isTranscriptHotkey(chord())).toBe(false)
   })
 
   it('ignores key repeat', () => {

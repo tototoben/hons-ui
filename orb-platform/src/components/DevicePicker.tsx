@@ -16,7 +16,7 @@ export function DevicePicker({
   return (
     <section className="device-picker" aria-label="Production lock">
       <div className="device-picker-copy">
-        <p className="device-picker-hint">1 / 2 / 3 lock a station · Alt+Shift+P picker · Alt+Shift+R restart</p>
+        <p className="device-picker-hint">1 / 2 / 3 lock a station · Alt+Shift+P picker · Alt+Shift+R restart · Alt+Shift+T captions</p>
       </div>
       <ul className="device-picker-list">
         {pickerChoices(quality).map((lock) => (

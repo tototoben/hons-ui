@@ -37,7 +37,7 @@ export function buildKioskInterview(input: {
     {
       role: 'system',
       content:
-        'House of Negotiated Selves kiosk interview. Station I and II answers come first. Station III is a spoken self-introduction to a future partner.',
+        'House of Negotiated Selves kiosk interview. Station I and II typed answers come first and are canonical. Station III is a spoken self-introduction to a future partner. If the transcript contradicts a typed answer (name, age, origin, identity, orientation, yes/no, height, lightning), keep the typed value and ignore the spoken claim. Speech may only add tone and how they present themselves.',
     },
   ]
 
@@ -89,6 +89,7 @@ export function buildKioskInterview(input: {
       lightning: two?.lightningAnswers ?? {},
       height: two?.height ?? null,
       intro,
+      typedWins: true,
     },
   }
 

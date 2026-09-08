@@ -15,10 +15,11 @@ function idleBars() {
 }
 
 /**
- * Mic-only analyser for Station III's recording viewfinder. No camera,
- * no MediaPipe — just a live bar field + the shared audioLevels.level.
+ * Mic-only analyser for Station III's recording viewfinder. Pass the Whisper
+ * capture stream so we don't open a second getUserMedia (that starved the
+ * transcriber).
  */
-export function useMicLevel(active: boolean) {
+export function useMicLevel(active: boolean, sharedStream?: MediaStream | null) {
   const [bars, setBars] = useState<number[]>(idleBars)
   const barsRef = useRef(bars)
   barsRef.current = bars
@@ -30,9 +31,10 @@ export function useMicLevel(active: boolean) {
       audioLevels.level = 0
       return
     }
+    if (sharedStream === null) return
 
     let cancelled = false
-    let stream: MediaStream | null = null
+    let owned: MediaStream | null = null
     let ctx: AudioContext | null = null
     let raf = 0
     const analyserRef: { current: AnalyserNode | null } = { current: null }
@@ -74,11 +76,12 @@ export function useMicLevel(active: boolean) {
     }
 
     const start = async () => {
-      if (!navigator.mediaDevices?.getUserMedia) return
+      if (!navigator.mediaDevices?.getUserMedia && !sharedStream) return
       try {
-        stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+        const stream = sharedStream ?? (await navigator.mediaDevices.getUserMedia({ audio: true, video: false }))
+        if (!sharedStream) owned = stream
         if (cancelled) {
-          stream.getTracks().forEach((track) => track.stop())
+          owned?.getTracks().forEach((track) => track.stop())
           return
         }
         ctx = new AudioContext()
@@ -103,12 +106,12 @@ export function useMicLevel(active: boolean) {
     return () => {
       cancelled = true
       if (raf) cancelAnimationFrame(raf)
-      stream?.getTracks().forEach((track) => track.stop())
+      owned?.getTracks().forEach((track) => track.stop())
       void ctx?.close()
       audioLevels.active = false
       audioLevels.level = 0
     }
-  }, [active])
+  }, [active, sharedStream])
 
   return bars
 }

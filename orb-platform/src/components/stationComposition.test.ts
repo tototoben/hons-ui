@@ -158,6 +158,7 @@ describe('station composition', () => {
     expect(thirdStationSource).toContain('submitKioskInterview')
     expect(thirdStationSource).toContain('JourneyHeadline')
     expect(thirdStationSource).toContain('mirror-record-caption')
+    expect(thirdStationSource).toContain('isTranscriptHotkey')
     expect(thirdStationSource).not.toContain('useVisitorVoiceRecorder')
     expect(photobashSource).not.toContain('PhotobashVoice')
   })

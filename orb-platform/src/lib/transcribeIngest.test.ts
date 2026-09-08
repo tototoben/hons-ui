@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { transcribeUrls } from './transcribeIngest'
+import { transcribeUrls, webSpeechEnabled } from './transcribeIngest'
 
 describe('transcribeUrls', () => {
   it('posts through Vite then the Studio ingest on localhost', () => {
@@ -13,5 +13,11 @@ describe('transcribeUrls', () => {
   it('can be pointed or disabled from the query string', () => {
     expect(transcribeUrls('?stt=https://studio/stt', 'rpi400-3')).toEqual(['https://studio/stt'])
     expect(transcribeUrls('?stt=0', 'localhost')).toEqual([])
+  })
+
+  it('lets ?speech=0 turn off Chrome dictation so Whisper can be previewed', () => {
+    expect(webSpeechEnabled('')).toBe(true)
+    expect(webSpeechEnabled('?speech=0')).toBe(false)
+    expect(webSpeechEnabled('?speech=false')).toBe(false)
   })
 })

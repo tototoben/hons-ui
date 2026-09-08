@@ -1,5 +1,12 @@
 const STT_DEFAULT = 'http://127.0.0.1:8190/api/transcribe'
 
+/** Chrome Web Speech is on by default. `?speech=0` forces the kiosk Whisper path. */
+export function webSpeechEnabled(search = ''): boolean {
+  const params = new URLSearchParams(search.startsWith('?') ? search.slice(1) : search)
+  const speech = params.get('speech')
+  return speech !== '0' && speech !== 'false'
+}
+
 export function transcribeUrls(search = '', hostname = ''): string[] {
   const params = new URLSearchParams(search.startsWith('?') ? search.slice(1) : search)
   const explicit = params.get('stt')
