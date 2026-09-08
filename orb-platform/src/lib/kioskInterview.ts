@@ -19,6 +19,9 @@ export type KioskInterviewPayload = {
   conversation: ArsChatMessage[]
 }
 
+export const KIOSK_INTERVIEW_SYSTEM_PROMPT =
+  'House of Negotiated Selves kiosk interview. Station I and II typed answers come first and are canonical. Station III is a spoken self-introduction to a future partner. If the transcript contradicts a typed answer (name, age, origin, identity, orientation, yes/no, height, lightning), keep the typed value and ignore the spoken claim. Speech may only add tone and how they present themselves.'
+
 function pushQa(conversation: ArsChatMessage[], prompt: string, answer: string) {
   const text = answer.trim()
   if (!text) return
@@ -30,6 +33,7 @@ export function buildKioskInterview(input: {
   stationOneAnswers?: Record<string, string>
   stationTwo?: Pick<StationTwoState, 'answers' | 'lightningAnswers' | 'height'> | null
   intro?: string
+  systemPrompt?: string
 }): KioskInterviewPayload {
   const one = input.stationOneAnswers ?? {}
   const two = input.stationTwo
@@ -37,8 +41,7 @@ export function buildKioskInterview(input: {
   const conversation: ArsChatMessage[] = [
     {
       role: 'system',
-      content:
-        'House of Negotiated Selves kiosk interview. Station I and II typed answers come first and are canonical. Station III is a spoken self-introduction to a future partner. If the transcript contradicts a typed answer (name, age, origin, identity, orientation, yes/no, height, lightning), keep the typed value and ignore the spoken claim. Speech may only add tone and how they present themselves.',
+      content: input.systemPrompt?.trim() || KIOSK_INTERVIEW_SYSTEM_PROMPT,
     },
   ]
 

@@ -1,5 +1,10 @@
 import { publish } from './firehose'
-import { peekStationOneForStation, peekStationTwoForStation, refreshVisitCache } from './visitCentral'
+import {
+  fetchPersonaForCurrentVisit,
+  peekStationOneForStation,
+  peekStationTwoForStation,
+  refreshVisitCache,
+} from './visitCentral'
 import { setVisitorIntro } from './visitorIntro'
 import { buildKioskInterviewWithIntro } from './syntheticTranscript'
 
@@ -41,6 +46,7 @@ export async function submitKioskInterview(intro: string) {
   const text = sanitizeSpokenIntro(intro)
   setVisitorIntro(text)
   await refreshVisitCache(true)
+  const persona = await fetchPersonaForCurrentVisit()
   const centralOne = peekStationOneForStation(3)
   const centralTwo = peekStationTwoForStation(3)
   const built = buildKioskInterviewWithIntro(text, {
@@ -52,11 +58,14 @@ export async function submitKioskInterview(intro: string) {
           height: centralTwo.height ?? 0.5,
         }
       : null,
+    systemPrompt: persona?.system_prompt,
   })
   publish('station-3', 'intro_transcript', {
     chars: built.intro.length,
     preview: built.intro.slice(0, 140),
     source: built.transcriptSource,
+    personaVisitId: persona?.visit_id ?? null,
+    personaPrompt: Boolean(persona?.system_prompt),
   })
   for (const url of ingestUrls()) {
     void postJson(url, built.payload)

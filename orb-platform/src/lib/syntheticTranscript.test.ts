@@ -35,6 +35,14 @@ describe('syntheticTranscript', () => {
     expect(built.intro).toContain('meet someone real')
   })
 
+  it('uses central persona prompt when provided', () => {
+    const built = buildKioskInterviewWithIntro('', {
+      stationOneAnswers: { callName: 'Ada' },
+      systemPrompt: 'Satellite 5 persona brief',
+    })
+    expect(built.payload.conversation[0]?.content).toBe('Satellite 5 persona brief')
+  })
+
   it('summarizes how answers influence the avatar payload', () => {
     const payload = buildKioskInterview({
       stationOneAnswers: { callName: 'Ada', age: '30', identity: 'woman' },

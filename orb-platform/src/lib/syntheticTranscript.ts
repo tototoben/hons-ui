@@ -88,6 +88,7 @@ export function buildKioskInterviewWithIntro(
     stationOneAnswers?: Record<string, string>
     stationTwo?: Pick<StationTwoState, 'answers' | 'lightningAnswers' | 'height'> | null
     seed?: number
+    systemPrompt?: string
   },
 ): { payload: KioskInterviewPayload; intro: string; transcriptSource: 'spoken' | 'synthetic' } {
   const spoken = intro.trim()

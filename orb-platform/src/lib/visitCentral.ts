@@ -31,6 +31,11 @@ export type StationTwoVisitPayload = {
   height?: number
 }
 
+export type VisitPersona = {
+  visit_id: string
+  system_prompt: string
+}
+
 let cachedVisits: ActiveVisit[] = []
 let lastFetchAt = 0
 let inflight: Promise<ActiveVisit[]> | null = null
@@ -64,6 +69,11 @@ export function pickVisitForReveal(visits: ActiveVisit[] = cachedVisits): Active
     return reveal.sort((a, b) => (b.last_activity_at ?? 0) - (a.last_activity_at ?? 0))[0] ?? null
   }
   return pickVisitAtStation(3, visits) ?? pickVisitAtStation(2, visits)
+}
+
+/** Active visit for Station III ingest / reveal (station 3 first, else reveal). */
+export function pickVisitForStationThree(visits: ActiveVisit[] = cachedVisits): ActiveVisit | null {
+  return pickVisitAtStation(3, visits) ?? pickVisitForReveal(visits)
 }
 
 export function stationOnePayload(visit: ActiveVisit | null): StationOneVisitPayload | null {
@@ -122,6 +132,32 @@ export function peekStationTwoForStation(station: 3 | 'reveal'): StationTwoVisit
 export function peekVisitorFaceFromCentral(): string | null {
   const payload = peekStationOneForStation('reveal')
   return payload?.faceCapture ?? null
+}
+
+/** Read-only persona prompt from central (recomputed from aggregated station data). */
+export async function fetchVisitPersona(visitId: string): Promise<VisitPersona | null> {
+  const base = centralApiBase()
+  if (!base || !visitId) return null
+  try {
+    const response = await fetch(
+      `${base}/api/visits/${encodeURIComponent(visitId)}/persona`,
+      { cache: 'no-store' },
+    )
+    if (!response.ok) return null
+    const body = (await response.json()) as VisitPersona
+    if (!body.visit_id || typeof body.system_prompt !== 'string') return null
+    return body
+  } catch {
+    return null
+  }
+}
+
+/** Persona for the visit currently at Station III / reveal. */
+export async function fetchPersonaForCurrentVisit(): Promise<VisitPersona | null> {
+  await refreshVisitCache(true)
+  const visit = pickVisitForStationThree()
+  if (!visit) return null
+  return fetchVisitPersona(visit.visit_id)
 }
 
 export async function refreshVisitCache(force = false): Promise<ActiveVisit[]> {

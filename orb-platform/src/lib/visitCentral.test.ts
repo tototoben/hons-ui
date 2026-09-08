@@ -1,10 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   centralApiBase,
+  fetchPersonaForCurrentVisit,
+  fetchVisitPersona,
   isStationTurnActive,
   peekStationOneForStation,
   pickVisitAtStation,
   pickVisitForReveal,
+  pickVisitForStationThree,
   refreshVisitCache,
   resetVisitCacheForTests,
   shouldGateStationTurn,
@@ -125,5 +128,54 @@ describe('visitCentral', () => {
   it('does not gate local dev without an explicit central param', () => {
     expect(shouldGateStationTurn(2)).toBe(false)
     expect(isStationTurnActive(2, [])).toBe(true)
+  })
+
+  it('fetches the persona system prompt for a visit id', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        visit_id: 'v-persona',
+        system_prompt: 'Satellite 5 persona for Ada',
+      }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const persona = await fetchVisitPersona('v-persona')
+    expect(persona?.system_prompt).toContain('Satellite 5')
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://localhost:8087/api/visits/v-persona/persona',
+      { cache: 'no-store' },
+    )
+  })
+
+  it('loads persona for the active station-three visit', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          visits: [
+            {
+              visit_id: 'v-3',
+              state: 'station_3',
+              active_station: 3,
+              station_data: { '1': { answers: { callName: 'Ada' } } },
+            },
+          ],
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          visit_id: 'v-3',
+          system_prompt: 'Ego type: Hero',
+        }),
+      })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const persona = await fetchPersonaForCurrentVisit()
+    expect(pickVisitForStationThree()).toBeTruthy()
+    expect(persona?.visit_id).toBe('v-3')
+    expect(persona?.system_prompt).toContain('Ego type')
   })
 })
