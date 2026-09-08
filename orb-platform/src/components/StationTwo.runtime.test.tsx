@@ -23,11 +23,13 @@ vi.mock('./MirrorGuideOrb', () => ({
 
 import { StationTwo } from './StationTwo'
 import { applyStationVibe } from '../lib/stationVibe'
+import { resetVisitCacheForTests } from '../lib/visitCentral'
 import { resetVisitorProfile, setVisitorProfile } from '../lib/visitorProfile'
 import { clearDeviceLock, writeDeviceLock } from '../lib/deviceLock'
 import { resetStationTwoState, saveStationTwoState } from '../lib/interviewStore'
 import { createStationTwoState } from '../lib/mirrorJourney'
 import { applyRemoteKey, resetRemoteSliderSeq } from '../lib/ipadSimLink'
+import { scaleStepFromValue } from '../lib/scaleTen'
 import * as firehose from '../lib/firehose'
 
 function emptyProfile() {
@@ -71,6 +73,22 @@ describe('StationTwo', () => {
     resetVisitorProfile()
     clearDeviceLock()
     resetRemoteSliderSeq()
+    resetVisitCacheForTests()
+  })
+
+  it('shows a blank wait screen on kiosk central until the visit reaches Station II', () => {
+    vi.stubGlobal('window', {
+      ...window,
+      location: {
+        ...window.location,
+        search: '?central=http%3A%2F%2Fb310-mac%3A8087',
+        hostname: 'rpi400-2',
+      },
+    })
+    act(() => root.render(<StationTwo phaseDurationMs={20} />))
+    expect(container.querySelector('.station-turn-wait')).not.toBeNull()
+    expect(container.textContent).not.toContain('category Rho106')
+    vi.unstubAllGlobals()
   })
 
   it('moves from the category readout through the question set, height, and lightning round', async () => {
@@ -113,11 +131,10 @@ describe('StationTwo', () => {
     answerYesNo() // partnerSmart -> yes, so "How smart?" should follow
     expect(container.textContent).toContain('How smart?')
 
-    const smartSlider = container.querySelector<HTMLInputElement>('input[type="range"]')!
-    expect(smartSlider).not.toBeNull()
-    expect(Number(smartSlider.value)).toBeCloseTo(0.5)
     act(() => applyRemoteKey({ slider: 0.73, seq: 1 }))
-    expect(Number(smartSlider.value)).toBeCloseTo(0.73)
+    const smartStep = container.querySelector<HTMLButtonElement>('.journey-scale-step.is-selected')
+    expect(smartStep).not.toBeNull()
+    expect(smartStep?.textContent).toBe(String(scaleStepFromValue(0.73)))
     act(() => container.querySelector<HTMLButtonElement>('.journey-height-confirm')!.click())
     expect(container.textContent).toContain('Do you want a traditional relationship?')
 
@@ -143,7 +160,7 @@ describe('StationTwo', () => {
     expect(container.textContent).toContain('Do you practice escapism?')
     answerYesNo() // escapism
 
-    const heightSlider = container.querySelector<HTMLInputElement>('input[type="range"]')!
+    const heightSlider = container.querySelector('.journey-scale-ten-steps')
     expect(heightSlider).not.toBeNull()
     expect(container.textContent).toContain('How tall is your ideal partner?')
     expect(container.querySelector('[aria-label="Companion silhouette"]')).not.toBeNull()

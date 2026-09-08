@@ -67,11 +67,16 @@ describe('applyRemoteKey', () => {
       confirmed = true
     })
 
+    let sliderValue = 0.5
+    window.addEventListener('hons-remote-slider', (event) => {
+      sliderValue = Number((event as CustomEvent<{ value?: number }>).detail?.value)
+    })
+
     applyRemoteKey({ slider: 0.73, seq: 1 })
-    expect(Number(range.value)).toBeCloseTo(0.73)
+    expect(sliderValue).toBeCloseTo(0.73)
 
     applyRemoteKey({ slider: 0.2, seq: 0 })
-    expect(Number(range.value)).toBeCloseTo(0.73)
+    expect(sliderValue).toBeCloseTo(0.73)
 
     applyRemoteKey({ special: 'confirm' })
     expect(confirmed).toBe(true)

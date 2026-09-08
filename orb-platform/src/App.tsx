@@ -24,7 +24,7 @@ import { parseStationSimFrame } from './lib/stationSimLayout'
 import { isWallMode } from './lib/wallMode'
 import { isWallRoleMode, parseWallRole } from './lib/wallRole'
 import { showTuningPanel } from './lib/tune'
-import { connectIpadSimLink } from './lib/ipadSimLink'
+import { connectIpadSimLink, applyRemoteKey, applyRemoteSliderValue } from './lib/ipadSimLink'
 import { connectRoomStream } from './lib/roomStream'
 import { publishKeyboardFocus } from './lib/keyboardFocus'
 import {
@@ -163,9 +163,26 @@ export default function App() {
         handleRoomReset()
         return
       }
+      if (event.type === 'remote-input') {
+        const { slider, seq, confirm, operator } = event.data
+        if (operator === 'restart') {
+          restartStation()
+          return
+        }
+        if (operator === 'picker') {
+          setPickerOpen(true)
+          return
+        }
+        if (typeof slider === 'number' && Number.isFinite(slider)) {
+          applyRemoteSliderValue(slider)
+        }
+        if (confirm) {
+          applyRemoteKey({ special: 'confirm' })
+        }
+      }
       // Future room-level events can be dispatched here.
     }) ?? undefined
-  }, [handleRoomReset])
+  }, [handleRoomReset, restartStation])
 
   useEffect(() => {
     applyDeviceQuality()

@@ -16,6 +16,8 @@ import { useMicLevel } from '../hooks/useMicLevel'
 import { useSpeechDictation } from '../hooks/useSpeechDictation'
 import { useWhisperDictation } from '../hooks/useWhisperDictation'
 import { useStationVibe } from '../hooks/useStationVibe'
+import { useVisitCentralPoll } from '../hooks/useVisitCentral'
+import { isStationTurnActive, visitSessionKeyForStation } from '../lib/visitCentral'
 import { submitKioskInterview } from '../lib/arsIngest'
 import { captionLines } from '../lib/captionLines'
 import { isTranscriptHotkey } from '../lib/productionHotkey'
@@ -28,6 +30,7 @@ import { MirrorGuideOrb } from './MirrorGuideOrb'
 import { MirrorHeadline } from './MirrorHeadline'
 import { JourneyHeadline } from './JourneyHeadline'
 import { CodePanel, MiniBar } from './HudDebris'
+import { StationTurnWait } from './StationTurnWait'
 import './ThirdStation.css'
 
 const MirrorDevPanel = lazy(() =>
@@ -465,6 +468,14 @@ function RecordingStage({
 }
 
 export function ThirdStation() {
+  const visits = useVisitCentralPoll()
+  if (!isStationTurnActive(3, visits)) {
+    return <StationTurnWait station="III" stationId="station-3" />
+  }
+  return <ThirdStationSession key={visitSessionKeyForStation(3, visits)} />
+}
+
+function ThirdStationSession() {
   const [vibe] = useStationVibe()
   const warm = vibe === 'warm'
   const rootRef = useRef<HTMLElement>(null)

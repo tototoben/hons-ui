@@ -13,7 +13,7 @@ import {
 import { firehoseReducer, publish } from '../lib/firehose'
 import { loadStationTwoState, saveStationTwoState } from '../lib/interviewStore'
 import { useVisitCentralPoll } from '../hooks/useVisitCentral'
-import { peekStationOneForStation } from '../lib/visitCentral'
+import { peekStationOneForStation, isStationTurnActive, visitSessionKeyForStation } from '../lib/visitCentral'
 import { getVisitorProfile, visitorProfileFromAnswers } from '../lib/visitorProfile'
 import { journeySettings } from '../dev/journeySettingsStore'
 import { CompanionOutline } from './CompanionOutline'
@@ -21,12 +21,14 @@ import { DebraGuide } from './DebraGuide'
 import { JourneyButton } from './JourneyButton'
 import { JourneyHeadline } from './JourneyHeadline'
 import { MirrorChoice } from './MirrorChoice'
+import { MirrorScale } from './MirrorScale'
 import { MirrorStationShell } from './MirrorStationShell'
 import { useStationVibe } from '../hooks/useStationVibe'
 import { readDeviceLock } from '../lib/deviceLock'
 import { keyboardFocusForQuestion, startKeyboardFocusHeartbeat } from '../lib/keyboardFocus'
-import { REMOTE_SLIDER_EVENT } from '../lib/ipadSimLink'
+import { scaleStepFromValue, valueFromScaleStep } from '../lib/scaleTen'
 import { showTuningPanel } from '../lib/tune'
+import { StationTurnWait } from './StationTurnWait'
 
 const JourneyDevPanel = lazy(() =>
   import('../dev/JourneyDevPanel').then((m) => ({ default: m.JourneyDevPanel })),
@@ -142,6 +144,19 @@ function lightningLines(pair: ThisOrThatPair, warm: boolean): string[] {
 }
 
 export function StationTwo({ phaseDurationMs }: { phaseDurationMs?: number }) {
+  const visits = useVisitCentralPoll()
+  if (!isStationTurnActive(2, visits)) {
+    return <StationTurnWait station="II" stationId="station-2" />
+  }
+  return (
+    <StationTwoActive
+      key={visitSessionKeyForStation(2, visits)}
+      phaseDurationMs={phaseDurationMs}
+    />
+  )
+}
+
+function StationTwoActive({ phaseDurationMs }: { phaseDurationMs?: number }) {
   const [vibe] = useStationVibe()
   const warm = vibe === 'warm'
   const visits = useVisitCentralPoll()
@@ -201,16 +216,34 @@ export function StationTwo({ phaseDurationMs }: { phaseDurationMs?: number }) {
   const answer = useCallback((value: BinaryAnswer) => dispatch({ type: 'ANSWER', value }), [])
   const submitText = useCallback((value: string) => dispatch({ type: 'SUBMIT_TEXT', value }), [])
   const question = STATION_TWO_QUESTIONS[state.questionIndex]
+  const heightStep = scaleStepFromValue(state.height)
+  const outlineHeight = valueFromScaleStep(heightStep)
   const questionLines = (warm ? QUESTION_LINES_WARM : QUESTION_LINES_ORIGINAL)[state.questionIndex]
   const lightningPair = STATION_TWO_LIGHTNING[state.lightningIndex]
+  const liveScaleFocusRef = useRef({
+    value: Number(state.answers[question?.id ?? ''] ?? 0.5),
+    prompt: question?.prompt ?? '',
+  })
+  const liveHeightFocusRef = useRef({ value: state.height, prompt: 'How tall is your ideal partner?' })
+  if (question?.type === 'scale') {
+    liveScaleFocusRef.current = {
+      value: Number(state.answers[question.id] ?? 0.5),
+      prompt: question.prompt,
+    }
+  }
+  liveHeightFocusRef.current = {
+    value: outlineHeight,
+    prompt: 'How tall is your ideal partner?',
+  }
 
   useEffect(() => {
     if (state.phase === 'question' && question?.type === 'scale') {
-      return startKeyboardFocusHeartbeat(STATION_ID, 'scale', {
+      const resolveScale = () => ({
         ...HOW_SMART_SCALE,
-        value: Number(state.answers[question.id] ?? 0.5),
-        prompt: question.prompt,
+        value: liveScaleFocusRef.current.value,
+        prompt: liveScaleFocusRef.current.prompt,
       })
+      return startKeyboardFocusHeartbeat(STATION_ID, 'scale', resolveScale(), undefined, resolveScale)
     }
     if (state.phase === 'question') {
       return startKeyboardFocusHeartbeat(STATION_ID, keyboardFocusForQuestion(question), {
@@ -218,11 +251,12 @@ export function StationTwo({ phaseDurationMs }: { phaseDurationMs?: number }) {
       })
     }
     if (state.phase === 'height') {
-      return startKeyboardFocusHeartbeat(STATION_ID, 'scale', {
+      const resolveHeight = () => ({
         ...HEIGHT_SCALE,
-        value: state.height,
-        prompt: 'How tall is your ideal partner?',
+        value: liveHeightFocusRef.current.value,
+        prompt: liveHeightFocusRef.current.prompt,
       })
+      return startKeyboardFocusHeartbeat(STATION_ID, 'scale', resolveHeight(), undefined, resolveHeight)
     }
     if (state.phase === 'lightning' && lightningPair) {
       return startKeyboardFocusHeartbeat(STATION_ID, 'choice', {
@@ -241,22 +275,6 @@ export function StationTwo({ phaseDurationMs }: { phaseDurationMs?: number }) {
     state.phase,
     state.questionIndex,
   ])
-
-  useEffect(() => {
-    const onSlider = (event: Event) => {
-      const value = Number((event as CustomEvent<{ value?: number }>).detail?.value)
-      if (!Number.isFinite(value)) return
-      if (state.phase === 'height') {
-        dispatch({ type: 'SET_HEIGHT', value })
-        return
-      }
-      if (state.phase === 'question' && question?.type === 'scale') {
-        dispatch({ type: 'SET_SCALE', value })
-      }
-    }
-    window.addEventListener(REMOTE_SLIDER_EVENT, onSlider)
-    return () => window.removeEventListener(REMOTE_SLIDER_EVENT, onSlider)
-  }, [state.phase, question])
 
   return (
     <>
@@ -337,21 +355,12 @@ export function StationTwo({ phaseDurationMs }: { phaseDurationMs?: number }) {
       {state.phase === 'question' && question?.type === 'scale' ? (
         <div className="journey-scale">
           <JourneyHeadline lines={questionLines}>{question.prompt}</JourneyHeadline>
-          <label>
-            <span>{HOW_SMART_SCALE.left}</span>
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.01"
-              value={Number(state.answers[question.id] ?? 0.5)}
-              onChange={(event) =>
-                dispatch({ type: 'SET_SCALE', value: Number(event.target.value) })
-              }
-              aria-label={question.prompt}
-            />
-            <span>{HOW_SMART_SCALE.right}</span>
-          </label>
+          <MirrorScale
+            value={Number(state.answers[question.id] ?? 0.5)}
+            leftLabel={HOW_SMART_SCALE.left}
+            rightLabel={HOW_SMART_SCALE.right}
+            onChange={(value) => dispatch({ type: 'SET_SCALE', value })}
+          />
           <JourneyButton
             className="journey-height-confirm"
             type="button"
@@ -371,21 +380,12 @@ export function StationTwo({ phaseDurationMs }: { phaseDurationMs?: number }) {
             >
               How tall is your ideal partner?
             </JourneyHeadline>
-            <label>
-              <span>{HEIGHT_SCALE.left}</span>
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.01"
-                value={state.height}
-                onChange={(event) =>
-                  dispatch({ type: 'SET_HEIGHT', value: Number(event.target.value) })
-                }
-                aria-label="Ideal partner height"
-              />
-              <span>{HEIGHT_SCALE.right}</span>
-            </label>
+            <MirrorScale
+              value={state.height}
+              leftLabel={HEIGHT_SCALE.left}
+              rightLabel={HEIGHT_SCALE.right}
+              onChange={(value) => dispatch({ type: 'SET_HEIGHT', value })}
+            />
             <JourneyButton
               className="journey-height-confirm"
               type="button"

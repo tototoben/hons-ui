@@ -4,6 +4,8 @@
  * Station I/II answers and face instead of each Pi's localStorage.
  */
 
+import { getDeviceQuality } from './deviceQuality'
+
 export const DEFAULT_CENTRAL_API = 'http://localhost:8087'
 
 const CACHE_TTL_MS = 1500
@@ -153,4 +155,47 @@ export function resetVisitCacheForTests() {
   cachedVisits = []
   lastFetchAt = 0
   inflight = null
+}
+
+/** Kiosk Pis with ?central=… or arm-linux hardware wait for central's turn signal. */
+export function shouldGateStationTurn(_station: 2 | 3): boolean {
+  const base = centralApiBase()
+  if (!base || typeof window === 'undefined') return false
+
+  const explicit = new URLSearchParams(window.location.search).get('central')
+  if (explicit && explicit !== '0' && explicit !== 'false') return true
+
+  return getDeviceQuality() === 'kiosk'
+}
+
+/** True when central says this station should run its visitor flow. */
+export function isStationTurnActive(
+  station: 2 | 3,
+  visits: ActiveVisit[] = cachedVisits,
+): boolean {
+  if (!shouldGateStationTurn(station)) return true
+  if (!visits.length) return false
+
+  if (station === 2) {
+    return visits.some((visit) => visit.active_station === 2 || visit.state === 'station_2')
+  }
+
+  return visits.some(
+    (visit) =>
+      visit.active_station === 3 || visit.state === 'station_3' || visit.state === 'reveal',
+  )
+}
+
+/** Remount key so a fresh visit (or return from waiting) starts clean. */
+export function visitSessionKeyForStation(
+  station: 2 | 3,
+  visits: ActiveVisit[] = cachedVisits,
+): string {
+  if (station === 2) {
+    return pickVisitAtStation(2, visits)?.visit_id ?? 'active'
+  }
+  const atStation = pickVisitAtStation(3, visits)
+  if (atStation) return atStation.visit_id
+  const reveal = visits.find((visit) => visit.state === 'reveal')
+  return reveal?.visit_id ?? 'active'
 }

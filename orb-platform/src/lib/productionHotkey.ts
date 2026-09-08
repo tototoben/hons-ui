@@ -20,11 +20,28 @@ function hasOperatorModifier(event: OperatorChordEvent): boolean {
   return event.altKey || event.metaKey
 }
 
+const OPERATOR_KEY_CHARS: Record<string, string> = {
+  KeyP: 'p',
+  KeyR: 'r',
+  KeyT: 't',
+}
+
 function isOperatorChord(event: OperatorChordEvent, code: string): boolean {
   if (event.repeat) return false
-  if (event.code !== code || !event.shiftKey) return false
+  // KDE Connect on the Pis often drops Shift; Alt+letter (or Cmd on Mac) is enough.
   if (event.ctrlKey && !event.altKey && !event.metaKey) return false
-  return hasOperatorModifier(event)
+  if (!hasOperatorModifier(event)) return false
+  const expected = OPERATOR_KEY_CHARS[code]
+  const codeMatch = event.code === code
+  // KDE Connect virtual keys often arrive with `key` but no `code` in cog/WPE.
+  const missingCode = !event.code || event.code === 'Unidentified'
+  const keyMatch =
+    missingCode &&
+    expected !== undefined &&
+    typeof event.key === 'string' &&
+    event.key.length === 1 &&
+    event.key.toLowerCase() === expected
+  return codeMatch || keyMatch
 }
 
 export function isProductionHotkey(event: OperatorChordEvent): boolean {

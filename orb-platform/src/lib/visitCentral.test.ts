@@ -1,13 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   centralApiBase,
+  isStationTurnActive,
   peekStationOneForStation,
   pickVisitAtStation,
   pickVisitForReveal,
   refreshVisitCache,
   resetVisitCacheForTests,
+  shouldGateStationTurn,
   stationOnePayload,
   stationTwoPayload,
+  visitSessionKeyForStation,
 } from './visitCentral'
 
 describe('visitCentral', () => {
@@ -83,5 +86,44 @@ describe('visitCentral', () => {
       cache: 'no-store',
     })
     expect(peekStationOneForStation(3)?.answers?.callName).toBe('Ada')
+  })
+
+  it('gates station turns when central is explicit on the URL', () => {
+    vi.stubGlobal('window', {
+      location: {
+        search: '?central=http%3A%2F%2Fb310-mac%3A8087',
+        hostname: 'rpi400-2',
+      },
+    })
+    expect(shouldGateStationTurn(2)).toBe(true)
+    expect(isStationTurnActive(2, [])).toBe(false)
+    expect(
+      isStationTurnActive(2, [
+        { visit_id: 'v-1', state: 'station_1', active_station: 1, station_data: {} },
+      ]),
+    ).toBe(false)
+    expect(
+      isStationTurnActive(2, [
+        { visit_id: 'v-1', state: 'station_2', active_station: 2, station_data: {} },
+      ]),
+    ).toBe(true)
+    expect(
+      isStationTurnActive(3, [
+        { visit_id: 'v-1', state: 'station_2', active_station: 2, station_data: {} },
+      ]),
+    ).toBe(false)
+    expect(
+      isStationTurnActive(3, [
+        { visit_id: 'v-1', state: 'reveal', active_station: null, station_data: {} },
+      ]),
+    ).toBe(true)
+    expect(visitSessionKeyForStation(2, [{ visit_id: 'v-9', state: 'station_2', active_station: 2, station_data: {} }])).toBe(
+      'v-9',
+    )
+  })
+
+  it('does not gate local dev without an explicit central param', () => {
+    expect(shouldGateStationTurn(2)).toBe(false)
+    expect(isStationTurnActive(2, [])).toBe(true)
   })
 })

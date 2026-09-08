@@ -15,6 +15,7 @@ export type RemoteKeyPayload = {
 }
 
 export const REMOTE_SLIDER_EVENT = 'hons-remote-slider'
+export const REMOTE_CONFIRM_EVENT = 'hons-remote-confirm'
 
 let lastSliderSeq = Number.NEGATIVE_INFINITY
 
@@ -39,8 +40,14 @@ function rangeField() {
   )
 }
 
-function confirmScaleButton() {
-  return document.querySelector<HTMLButtonElement>('.journey-height-confirm')
+function dispatchRemoteConfirm() {
+  window.dispatchEvent(new CustomEvent(REMOTE_CONFIRM_EVENT))
+}
+
+/** Apply a remote slider position from MQTT (production kiosk path). */
+export function applyRemoteSliderValue(value: number) {
+  const clamped = Math.min(1, Math.max(0, value))
+  window.dispatchEvent(new CustomEvent(REMOTE_SLIDER_EVENT, { detail: { value: clamped } }))
 }
 
 function applyRemoteSlider(value: number, seq?: number) {
@@ -48,14 +55,16 @@ function applyRemoteSlider(value: number, seq?: number) {
     if (seq <= lastSliderSeq) return
     lastSliderSeq = seq
   }
-  const clamped = Math.min(1, Math.max(0, value))
-  const range = rangeField()
-  if (range) setNativeValue(range, String(clamped))
-  window.dispatchEvent(new CustomEvent(REMOTE_SLIDER_EVENT, { detail: { value: clamped } }))
+  applyRemoteSliderValue(value)
 }
 
 function clickScaleConfirm() {
-  confirmScaleButton()?.click()
+  const button = document.querySelector<HTMLButtonElement>('.journey-height-confirm')
+  if (button) {
+    button.click()
+    return true
+  }
+  return false
 }
 
 function intakeTypingField() {
@@ -91,11 +100,11 @@ function codeForKey(ch: string): string | undefined {
 }
 
 export function applyRemoteKey(payload: RemoteKeyPayload) {
-  ensureIntakeTypingFocus()
   if (typeof payload.slider === 'number' && Number.isFinite(payload.slider)) {
     applyRemoteSlider(payload.slider, payload.seq)
     return
   }
+  ensureIntakeTypingFocus()
   if (payload.special === 'return' || payload.special === 'confirm') {
     const field = typingField()
     const form = field?.form ?? field?.closest('form')
@@ -103,10 +112,8 @@ export function applyRemoteKey(payload: RemoteKeyPayload) {
       form.requestSubmit()
       return
     }
-    if (confirmScaleButton()) {
-      clickScaleConfirm()
-      return
-    }
+    if (clickScaleConfirm()) return
+    dispatchRemoteConfirm()
     window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', bubbles: true }))
     return
   }
@@ -150,9 +157,8 @@ function installScaleConfirmKeys() {
   const onKey = (event: KeyboardEvent) => {
     if (event.key !== 'Enter') return
     if (typingField()) return
-    if (!confirmScaleButton()) return
-    event.preventDefault()
-    clickScaleConfirm()
+    if (clickScaleConfirm()) return
+    dispatchRemoteConfirm()
   }
   window.addEventListener('keydown', onKey)
   return () => window.removeEventListener('keydown', onKey)

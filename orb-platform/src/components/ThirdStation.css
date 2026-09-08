@@ -30,6 +30,10 @@
   height: min(100svh, calc(100vw * 16 / 9));
 }
 
+.third-station-wait .mirror-frame {
+  background: #000;
+}
+
 .mirror-frame {
   position: relative;
   width: 100%;

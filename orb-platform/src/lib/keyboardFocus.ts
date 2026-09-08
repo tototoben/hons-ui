@@ -33,7 +33,9 @@ export function publishKeyboardFocus(
   station: string,
   mode: KeyboardFocusMode,
   labels?: KeyboardFocusLabels,
+  options?: { includeValue?: boolean },
 ) {
+  const includeValue = options?.includeValue ?? true
   const data: {
     mode: KeyboardFocusMode
     left?: string
@@ -51,7 +53,12 @@ export function publishKeyboardFocus(
     if (labels.left) data.left = labels.left
     if (labels.right) data.right = labels.right
   }
-  if (mode === 'scale' && typeof labels?.value === 'number' && Number.isFinite(labels.value)) {
+  if (
+    includeValue &&
+    mode === 'scale' &&
+    typeof labels?.value === 'number' &&
+    Number.isFinite(labels.value)
+  ) {
     data.value = Math.min(1, Math.max(0, labels.value))
   }
   publish(station, 'keyboard_focus', data)
@@ -66,10 +73,14 @@ export function startKeyboardFocusHeartbeat(
   mode: KeyboardFocusMode,
   labels?: KeyboardFocusLabels,
   intervalMs = KEYBOARD_FOCUS_HEARTBEAT_MS,
+  resolveLabels?: () => KeyboardFocusLabels | undefined,
 ): () => void {
-  publishKeyboardFocus(station, mode, labels)
-  const timer = window.setInterval(() => {
-    publishKeyboardFocus(station, mode, labels)
-  }, intervalMs)
+  const snapshot = () => resolveLabels?.() ?? labels
+  const tick = (includeValue: boolean) =>
+    publishKeyboardFocus(station, mode, snapshot(), { includeValue })
+  // First publish includes slider value (layout enter). Heartbeats omit value so
+  // the iPad is not snapped back to a stale kiosk reading while dragging.
+  tick(true)
+  const timer = window.setInterval(() => tick(false), intervalMs)
   return () => window.clearInterval(timer)
 }

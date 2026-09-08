@@ -21,6 +21,10 @@
 export type RoomEvent =
   | { type: 'room-reset'; data: { topic: string; ts?: number; src?: string; reason?: string } }
   | { type: 'ui-state'; data: { topic: string; stage?: string; data?: unknown; ts?: number; src?: string } }
+  | {
+      type: 'remote-input'
+      data: { slider?: number; seq?: number; confirm?: boolean; operator?: string }
+    }
   | { type: string; data: Record<string, unknown> }
 
 const RELAY_DEFAULT = 'http://localhost:8189'
@@ -55,6 +59,7 @@ function getRelayTarget(): string | null {
 export function connectRoomStream(
   handler: (event: RoomEvent) => void,
 ): (() => void) | null {
+  if (typeof EventSource === 'undefined') return null
   const target = getRelayTarget()
   if (!target) return null
 
@@ -74,6 +79,12 @@ export function connectRoomStream(
     source.addEventListener('ui-state', (e: MessageEvent) => {
       try {
         handler({ type: 'ui-state', data: JSON.parse(e.data) })
+      } catch { /* ignore malformed */ }
+    })
+
+    source.addEventListener('remote-input', (e: MessageEvent) => {
+      try {
+        handler({ type: 'remote-input', data: JSON.parse(e.data) })
       } catch { /* ignore malformed */ }
     })
 

@@ -48,9 +48,10 @@ describe('productionHotkey', () => {
     expect(isProductionHotkey(chord({ altKey: false, metaKey: true }))).toBe(true)
     expect(isProductionHotkey(chord({ altKey: false, ctrlKey: true }))).toBe(false)
     expect(isProductionHotkey(chord({ altKey: false, metaKey: false }))).toBe(false)
-    expect(isProductionHotkey(chord({ shiftKey: false }))).toBe(false)
-    expect(isProductionHotkey(chord({ code: 'KeyP', shiftKey: false, metaKey: true }))).toBe(false)
+    expect(isProductionHotkey(chord({ shiftKey: false }))).toBe(true)
+    expect(isProductionHotkey(chord({ code: 'KeyP', shiftKey: false, metaKey: true }))).toBe(true)
     expect(isProductionHotkey(chord({ code: 'KeyO' }))).toBe(false)
+    expect(isProductionHotkey(chord({ code: '', key: 'P' }))).toBe(true)
   })
 
   it('matches Alt+Shift+R and Cmd+Shift+R as the station restart chord', () => {
