@@ -18,14 +18,6 @@
   gap: 8px;
 }
 
-.device-picker-kicker {
-  margin: 0;
-  font-size: 12px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: rgba(255, 244, 232, 0.55);
-}
-
 .device-picker-hint {
   margin: 0;
   font-size: 11px;

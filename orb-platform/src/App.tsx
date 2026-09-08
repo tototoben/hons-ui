@@ -16,7 +16,7 @@ import {
   writeDeviceLock,
   type DeviceLock,
 } from './lib/deviceLock'
-import { isPickerDismissKey, isProductionHotkey, isStationRestartHotkey } from './lib/productionHotkey'
+import { isPickerDismissKey, isProductionHotkey, isStationRestartHotkey, pickerLockFromKey } from './lib/productionHotkey'
 import { resetCurrentStationMemory, stationFirehoseId } from './lib/stationSession'
 import { parseStationSimFrame } from './lib/stationSimLayout'
 import { isWallMode } from './lib/wallMode'
@@ -187,7 +187,7 @@ export default function App() {
     const current = lock ? lockToStation(lock) : station
     const id = stationFirehoseId(current)
     if (!id) return
-    publishKeyboardFocus(id, 'hidden')
+    publishKeyboardFocus(id, 'text')
   }, [lock, showPicker, station])
 
   useEffect(() => {
@@ -197,6 +197,15 @@ export default function App() {
         event.stopPropagation()
         restartStation()
         return
+      }
+      if (showPicker) {
+        const pick = pickerLockFromKey(event)
+        if (pick) {
+          event.preventDefault()
+          event.stopPropagation()
+          applyLock(pick)
+          return
+        }
       }
       if (pickerOpen && isPickerDismissKey(event)) {
         event.preventDefault()
@@ -212,7 +221,7 @@ export default function App() {
     }
     window.addEventListener('keydown', onKeyDown, true)
     return () => window.removeEventListener('keydown', onKeyDown, true)
-  }, [pickerOpen, restartStation])
+  }, [applyLock, pickerOpen, restartStation, showPicker])
 
   return (
     <main className="experience">
@@ -290,7 +299,9 @@ export default function App() {
               <ThirdStation key={stationSession} />
             </WallModeViewport>
           ) : (
-            <ThirdStation key={stationSession} />
+            <MirrorPreviewFrame>
+              <ThirdStation key={stationSession} />
+            </MirrorPreviewFrame>
           )
         ) : station === 'photobash' ? (
           <PhotobashScreen />

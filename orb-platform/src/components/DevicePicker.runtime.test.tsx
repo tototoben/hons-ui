@@ -27,6 +27,7 @@ describe('DevicePicker', () => {
     act(() => root.render(<DevicePicker quality="full" onLock={onLock} />))
     const labels = [...container.querySelectorAll('button')].map((button) => button.textContent)
     expect(labels).toEqual(['Station I', 'Station II', 'Station III', 'Photobash'])
+    expect(container.querySelector('.device-picker-hint')?.textContent).toContain('1 / 2 / 3')
     expect(container.querySelector('.device-picker-hint')?.textContent).toContain('Alt+Shift+P')
 
     act(() => root.render(<DevicePicker quality="kiosk" onLock={onLock} />))

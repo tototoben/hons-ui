@@ -72,6 +72,7 @@ function typingField() {
 
 function codeForKey(ch: string): string | undefined {
   if (ch.length === 1 && /[a-z]/i.test(ch)) return `Key${ch.toUpperCase()}`
+  if (ch.length === 1 && /[0-9]/.test(ch)) return `Digit${ch}`
   if (ch === ' ') return 'Space'
   return undefined
 }

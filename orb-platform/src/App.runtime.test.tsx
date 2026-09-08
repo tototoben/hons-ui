@@ -115,6 +115,17 @@ describe('App production overlay', () => {
     expect(labels).toEqual(['Station I', 'Station II', 'Station III'])
   })
 
+  it('letterboxes unlocked Station III so the switcher stays clickable', async () => {
+    window.location.hash = '#/mirror'
+    await renderApp()
+    expect(container.querySelector('[data-testid="third-station"]')).not.toBeNull()
+    expect(container.querySelector('.experience-mirror-preview-portrait')).not.toBeNull()
+    expect(
+      [...container.querySelectorAll('.station-switcher a')].find((link) => link.getAttribute('aria-current') === 'page')
+        ?.textContent,
+    ).toBe('Station III')
+  })
+
   it('opens the picker on kiosk quality instead of mounting the orb', async () => {
     applyDeviceQuality('kiosk')
     await renderApp()
@@ -318,7 +329,7 @@ describe('App production overlay', () => {
     publish.mockRestore()
   })
 
-  it('hides the iPad remote when the production picker opens over a locked station', async () => {
+  it('shows the iPad letter keyboard when the production picker opens over a locked station', async () => {
     const publish = vi.spyOn(firehose, 'publish')
     window.localStorage.setItem(STORAGE_KEY, 'station-2')
     window.location.hash = '#/station-2'
@@ -332,8 +343,47 @@ describe('App production overlay', () => {
     expect(publish).toHaveBeenCalledWith(
       'station-2',
       'keyboard_focus',
-      expect.objectContaining({ mode: 'hidden' }),
+      expect.objectContaining({ mode: 'text' }),
     )
+    const focus = vi.mocked(publish).mock.calls.find(
+      (call) => call[1] === 'keyboard_focus',
+    )?.[2] as { prompt?: string }
+    expect(focus?.prompt).toBeUndefined()
     publish.mockRestore()
+  })
+
+  it('locks Station II from the picker on the 2 key', async () => {
+    await renderApp()
+    await act(async () => {
+      window.dispatchEvent(chordEvent())
+      await Promise.resolve()
+    })
+    await act(async () => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: '2', code: 'Digit2', bubbles: true, cancelable: true }))
+      await Promise.resolve()
+    })
+    expect(window.localStorage.getItem(STORAGE_KEY)).toBe('station-2')
+    expect(window.location.hash).toBe('#/station-2')
+    expect(container.querySelector('[aria-label="Production lock"]')).toBeNull()
+    expect(container.querySelector('[data-testid="station-two"]')).not.toBeNull()
+  })
+
+  it('locks Station I from an already-locked kiosk when 1 is pressed in the picker', async () => {
+    window.localStorage.setItem(STORAGE_KEY, 'station-2')
+    window.location.hash = '#/station-2'
+    await renderApp()
+    await act(async () => {
+      window.dispatchEvent(chordEvent())
+      await Promise.resolve()
+    })
+    expect(container.querySelector('[aria-label="Production lock"]')).not.toBeNull()
+    await act(async () => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: '1', code: 'Digit1', bubbles: true, cancelable: true }))
+      await Promise.resolve()
+    })
+    expect(window.localStorage.getItem(STORAGE_KEY)).toBe('station-1')
+    expect(window.location.hash).toBe('#/station-1')
+    expect(container.querySelector('[aria-label="Production lock"]')).toBeNull()
+    expect(container.querySelector('[data-testid="station-one"]')).not.toBeNull()
   })
 })

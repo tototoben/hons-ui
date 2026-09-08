@@ -95,4 +95,14 @@ describe('applyRemoteKey', () => {
     expect(event.shiftKey).toBe(true)
     window.removeEventListener('keydown', onKey)
   })
+
+  it('maps a remote digit onto DigitN so the picker can lock a station', () => {
+    const onKey = vi.fn()
+    window.addEventListener('keydown', onKey)
+    applyRemoteKey({ key: '2' })
+    const event = onKey.mock.calls[0][0] as KeyboardEvent
+    expect(event.key).toBe('2')
+    expect(event.code).toBe('Digit2')
+    window.removeEventListener('keydown', onKey)
+  })
 })

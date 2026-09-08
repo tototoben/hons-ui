@@ -1,3 +1,5 @@
+import type { DeviceLock } from './deviceLock'
+
 export function isTypingTarget(target: EventTarget | null): boolean {
   return (
     target instanceof HTMLElement && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')
@@ -39,4 +41,25 @@ export function isPickerDismissKey(
   if (event.repeat) return false
   if (event.key === 'Escape') return !isTyping()
   return isProductionHotkey(event)
+}
+
+const PICKER_DIGIT_LOCKS: Record<string, DeviceLock> = {
+  '1': 'station-1',
+  Digit1: 'station-1',
+  Numpad1: 'station-1',
+  '2': 'station-2',
+  Digit2: 'station-2',
+  Numpad2: 'station-2',
+  '3': 'station-3',
+  Digit3: 'station-3',
+  Numpad3: 'station-3',
+}
+
+/** 1 / 2 / 3 lock Station I / II / III while the production picker is open. */
+export function pickerLockFromKey(
+  event: Pick<KeyboardEvent, 'key' | 'code' | 'repeat' | 'altKey' | 'metaKey' | 'ctrlKey'>,
+): DeviceLock | null {
+  if (event.repeat) return null
+  if (event.altKey || event.metaKey || event.ctrlKey) return null
+  return PICKER_DIGIT_LOCKS[event.key] ?? PICKER_DIGIT_LOCKS[event.code] ?? null
 }
