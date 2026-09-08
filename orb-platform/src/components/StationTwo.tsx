@@ -176,7 +176,8 @@ function StationTwoActive({ phaseDurationMs }: { phaseDurationMs?: number }) {
   const visits = useVisitCentralPoll()
   const centralMode = shouldGateStationTurn(2)
   const centralOne = peekStationOneForStation(2)
-  const centralProfileReady = !centralMode || Boolean(centralOne?.answers)
+  const centralAnswers = centralOne?.answers
+  const centralProfileReady = !centralMode || Boolean(centralAnswers)
   const [state, dispatch] = useReducer(
     firehoseReducer(STATION_ID, stationTwoReducer, actionToEvent),
     undefined,
@@ -210,14 +211,14 @@ function StationTwoActive({ phaseDurationMs }: { phaseDurationMs?: number }) {
   }, [])
 
   useEffect(() => {
-    if (!centralOne?.answers) return
-    const profile = visitorProfileFromAnswers(centralOne.answers)
+    if (!centralAnswers) return
+    const profile = visitorProfileFromAnswers(centralAnswers)
     dispatch({
       type: 'SYNC_VISITOR_PROFILE',
       age: profile.age,
       previousRelationships: profile.previousRelationships,
     })
-  }, [centralOne, visits])
+  }, [centralAnswers, visits])
 
   useEffect(() => {
     if (!centralProfileReady) return
