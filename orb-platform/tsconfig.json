@@ -20,5 +20,5 @@
     "types": ["vite/client"]
   },
   "include": ["src"],
-  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/**/*.runtime.test.tsx"]
+  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/**/*.runtime.test.tsx", "src/lib/ipadSimLinkPlugin.ts"]
 }

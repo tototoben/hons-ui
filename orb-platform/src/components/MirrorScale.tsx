@@ -65,7 +65,7 @@ export function MirrorScale({
               aria-pressed={selected}
               onClick={() => onChange(valueFromScaleStep(step))}
             >
-              {step}
+              {String(step)}
             </JourneyButton>
           )
         })}

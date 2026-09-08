@@ -164,7 +164,7 @@ export default function App() {
         return
       }
       if (event.type === 'remote-input') {
-        const { slider, seq, confirm, operator } = event.data
+        const { slider, confirm, operator } = event.data
         if (operator === 'restart') {
           restartStation()
           return

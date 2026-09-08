@@ -107,6 +107,8 @@ function actionToEvent(action: StationTwoAction): { event: string; data?: unknow
     case 'SET_SCALE':
     case 'SET_HEIGHT':
       return null
+    default:
+      return null
   }
 }
 

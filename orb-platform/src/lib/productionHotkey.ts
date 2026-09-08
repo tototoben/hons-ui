@@ -12,7 +12,7 @@ function isTyping(): boolean {
 
 type OperatorChordEvent = Pick<
   KeyboardEvent,
-  'code' | 'shiftKey' | 'altKey' | 'metaKey' | 'ctrlKey' | 'repeat'
+  'code' | 'key' | 'shiftKey' | 'altKey' | 'metaKey' | 'ctrlKey' | 'repeat'
 >
 
 /** iPad station keyboard has Alt and Shift, not Ctrl. Mac keeps Cmd. */

@@ -34,12 +34,6 @@ function setNativeValue(field: HTMLInputElement | HTMLTextAreaElement, value: st
   field.dispatchEvent(new Event('change', { bubbles: true }))
 }
 
-function rangeField() {
-  return document.querySelector<HTMLInputElement>(
-    '.journey-scale input[type="range"], .journey-height-control input[type="range"], input[type="range"]',
-  )
-}
-
 function dispatchRemoteConfirm() {
   window.dispatchEvent(new CustomEvent(REMOTE_CONFIRM_EVENT))
 }
