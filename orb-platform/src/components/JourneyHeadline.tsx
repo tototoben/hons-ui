@@ -5,17 +5,25 @@ export function JourneyHeadline({
   children,
   lines,
   className,
+  fontPx,
 }: {
-  as?: 'h1' | 'span'
+  as?: 'h1' | 'span' | 'p'
   children: string
   lines: string[]
   className?: string
+  fontPx?: number
 }) {
+  const height = fontPx ? Math.ceil(fontPx * 1.2 * lines.length + 48) : undefined
   return (
     <Tag className={`journey-textured-headline${className ? ` ${className}` : ''}`}>
       <span className="journey-headline-copy">{children}</span>
       <span className="journey-headline-art" aria-hidden="true">
-        <MirrorHeadline lines={lines} className="journey-headline-canvas" />
+        <MirrorHeadline
+          lines={lines}
+          fontPx={fontPx}
+          height={height}
+          className="journey-headline-canvas"
+        />
       </span>
     </Tag>
   )

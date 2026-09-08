@@ -21,6 +21,8 @@ export type GrainyTextOptions = {
   fontFamily?: string
   /** Shrinks fontPx to fit if the text would exceed this width. */
   maxWidthPx?: number
+  /** Horizontal glyph placement. Headlines stay centered; compact labels hug left. */
+  textAlign?: CanvasTextAlign
 
   /** Opacity of the crisp, clearly-legible base layer. */
   crispAlpha?: number
@@ -294,6 +296,7 @@ function styleKey(
     color: [number, number, number]
     smudgeColor: [number, number, number]
     maxWidthPx?: number
+    textAlign?: CanvasTextAlign
   },
 ) {
   return [
@@ -310,6 +313,7 @@ function styleKey(
     opts.color.join(','),
     opts.smudgeColor.join(','),
     opts.maxWidthPx ?? 0,
+    opts.textAlign ?? 'center',
   ].join('|')
 }
 
@@ -323,6 +327,7 @@ export function drawGrainyText(
     weight = 300,
     fontFamily = '"Helvetica Neue", Arial, sans-serif',
     maxWidthPx,
+    textAlign = 'center',
     crispAlpha = 0.85,
     smudgeAlpha = 0.65,
     smudgeBlurPx = 3.5,
@@ -358,6 +363,7 @@ export function drawGrainyText(
     color,
     smudgeColor,
     maxWidthPx,
+    textAlign,
   })
 
   if (key !== cacheKey || !cacheBase || !cacheBlurredSmudge) {
@@ -366,7 +372,7 @@ export function drawGrainyText(
     scratchBase = base
     const bctx = base.getContext('2d', { willReadFrequently: true })!
     bctx.clearRect(0, 0, w, h)
-    bctx.textAlign = 'center'
+    bctx.textAlign = textAlign
     bctx.textBaseline = 'middle'
 
     let fontPx = opts.fontPx
@@ -379,7 +385,13 @@ export function drawGrainyText(
     }
     bctx.font = `${weight} ${fontPx}px ${fontFamily}`
     bctx.fillStyle = '#ffffff'
-    bctx.fillText(text, w / 2, h / 2)
+    const textX =
+      textAlign === 'left' || textAlign === 'start'
+        ? Math.max(6, smudgeBlurPx * 0.9)
+        : textAlign === 'right' || textAlign === 'end'
+          ? w - Math.max(6, smudgeBlurPx * 0.9)
+          : w / 2
+    bctx.fillText(text, textX, h / 2)
     applyGrainAndColor(bctx, w, h, shade, shadeVariance, grain * 0.6, color, 17)
 
     // 2. Smudge source → half-res blur → boost stack (no mask yet).
@@ -387,11 +399,11 @@ export function drawGrainyText(
     scratchSmudgeSource = smudgeSource
     const ssctx = smudgeSource.getContext('2d', { willReadFrequently: true })!
     ssctx.clearRect(0, 0, w, h)
-    ssctx.textAlign = 'center'
+    ssctx.textAlign = textAlign
     ssctx.textBaseline = 'middle'
     ssctx.font = `${smudgeWeight} ${fontPx}px ${fontFamily}`
     ssctx.fillStyle = '#ffffff'
-    ssctx.fillText(text, w / 2, h / 2)
+    ssctx.fillText(text, textX, h / 2)
 
     const blurred = blurTo(smudgeSource, w, h, smudgeBlurPx)
     const smudge = sized(scratchSmudge, w, h)

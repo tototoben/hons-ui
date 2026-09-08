@@ -41,6 +41,9 @@ describe('station composition', () => {
 
   it('keeps Station III as the kiosk ThirdStation only', () => {
     expect(appSource).toContain('<ThirdStation key={stationSession} />')
+    expect(appSource).toContain('MirrorPreviewFrame')
+    expect(journeyStyles).toContain('experience-mirror-preview-portrait .journey-portrait')
+    expect(thirdStationStyles).toContain('experience-mirror-preview-portrait .third-station')
     expect(appSource).not.toContain('WallCollageBlanket')
   })
 
@@ -144,12 +147,16 @@ describe('station composition', () => {
     expect(mirrorGuideOrbSource).toContain('live = false')
   })
 
-  it('hands Photobash a reveal-ready seed without recording speech', () => {
+  it('hands Photobash a reveal-ready seed and dictation to ARS', () => {
     expect(thirdStationSource).toContain('notifyRevealReady')
-    expect(thirdStationSource).toContain('useMirrorCamera')
-    expect(thirdStationSource).toContain('mirror-record-video')
+    expect(thirdStationSource).not.toContain('useMirrorCamera')
+    expect(thirdStationSource).not.toContain('mirror-record-video')
+    expect(thirdStationSource).toContain('speak about yourself')
+    expect(thirdStationSource).toContain('useMicLevel')
+    expect(thirdStationSource).toContain('useSpeechDictation')
+    expect(thirdStationSource).toContain('submitKioskInterview')
+    expect(thirdStationSource).toContain('JourneyHeadline')
     expect(thirdStationSource).not.toContain('useVisitorVoiceRecorder')
-    expect(thirdStationSource).not.toContain('transcript')
     expect(thirdStationStyles).not.toContain('mirror-record-transcript')
     expect(photobashSource).not.toContain('PhotobashVoice')
   })

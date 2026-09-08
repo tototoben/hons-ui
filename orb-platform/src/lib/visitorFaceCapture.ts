@@ -1,7 +1,6 @@
 /**
- * The visitor's own face, captured during Station I's scan and again
- * during Station III's introduce-yourself recording, then carried to
- * the photobash ending — same in-memory, same-session pattern as
+ * The visitor's own face, captured during Station I's scan, then carried
+ * to the photobash ending — same in-memory, same-session pattern as
  * visitorProfile.ts. Never written to disk or localStorage; cleared on
  * reset like the rest of the journey state.
  */

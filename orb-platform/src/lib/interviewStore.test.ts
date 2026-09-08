@@ -4,6 +4,7 @@ import {
   loadStationTwoState,
   parseStationOneState,
   parseStationTwoState,
+  peekStationOneState,
   peekStationTwoState,
   resetInterview,
   resetStationTwoState,
@@ -50,6 +51,20 @@ describe('interviewStore', () => {
     expect(loadStationOneState(storage)).toBeNull()
     saveStationOneState(createStationOneState({ phase: 'scan-face', questionIndex: 10 }), storage)
     expect(loadStationOneState(storage)).toBeNull()
+  })
+
+  it('still peeks finished Station I/II answers for ARS', () => {
+    const storage = memoryStorage()
+    saveStationOneState(
+      createStationOneState({ phase: 'proceed', questionIndex: 10, answers: { callName: 'Ada' } }),
+      storage,
+    )
+    saveStationTwoState(
+      createStationTwoState({ phase: 'complete', answers: { attractiveness: 'yes' } }),
+      storage,
+    )
+    expect(peekStationOneState(storage)?.answers.callName).toBe('Ada')
+    expect(peekStationTwoState(storage)?.answers.attractiveness).toBe('yes')
   })
 
   it('round-trips Station II answers, height, and lightning picks', () => {

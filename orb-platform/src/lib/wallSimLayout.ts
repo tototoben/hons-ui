@@ -8,10 +8,10 @@ import {
 export type WallSimMode = 'css' | 'physical'
 
 /** Lenovo L24i-4A active area (mm), landscape. */
-const LENOVO_ACTIVE_MM = { w: 527, h: 296.5 }
+export const LENOVO_ACTIVE_MM = { w: 527, h: 296.5 }
 
 /** TCL 43P615 approx active area (mm), landscape 16:9 on 43" diagonal. */
-const TCL_ACTIVE_MM = (() => {
+export const TCL_ACTIVE_MM = (() => {
   const diag = 43 * 25.4
   const hyp = Math.hypot(16, 9)
   return { w: (diag * 16) / hyp, h: (diag * 9) / hyp }
@@ -57,6 +57,111 @@ export const WALL_SIM_BEZEL_GAP_MM = 18
 /** Default TCL overscan exaggeration in the physical sim (~8% zoom). */
 export const WALL_SIM_TV_OVERSCAN = 1.08
 
+function wallCssPanels(previewPxPerCssPx: number): WallSimStageLayout {
+  const { wallW, wallH, wallX, wallY } = MEASURED_WALL_BOUNDS
+  return {
+    mode: 'css',
+    scale: previewPxPerCssPx,
+    stageW: wallW * previewPxPerCssPx,
+    stageH: wallH * previewPxPerCssPx,
+    panels: MEASURED_WALL_PANELS.map((panel) => ({
+      role: panel.role,
+      device: panel.device,
+      label: panel.label,
+      nativeW: panel.width,
+      nativeH: panel.height,
+      left: (panel.x - wallX) * previewPxPerCssPx,
+      top: (panel.y - wallY) * previewPxPerCssPx,
+      width: panel.width * previewPxPerCssPx,
+      height: panel.height * previewPxPerCssPx,
+      overscan: 1,
+    })),
+  }
+}
+
+/**
+ * Active-area origins estimated from IMG_7904.HEIC, in millimetres.
+ * Rectified to a front elevation: the photo's slight camera tilt/perspective
+ * is not a rotation of the hardware. Screen sizes come from the models above.
+ * These are simulator coordinates, independent of macOS desktop crop origins.
+ */
+const PHOTO_WALL_ORIGINS_MM: Record<WallRole, { x: number; y: number }> = {
+  code: { x: 310, y: 0 },
+  status: { x: 650, y: 0 },
+  debra: { x: 0, y: 575 },
+  avatar: { x: 1010, y: 150 },
+  copy: { x: 550, y: 1210 },
+  guide: { x: 910, y: 1230 },
+}
+
+function physicalWallMm() {
+  const inset = WALL_SIM_BEZEL_GAP_MM / 2
+  const mmRects = MEASURED_WALL_PANELS.map((panel) => {
+    const mm = activeMm(panel.device, panel.width, panel.height)
+    const origin = PHOTO_WALL_ORIGINS_MM[panel.role]
+    return {
+      role: panel.role,
+      device: panel.device,
+      label: panel.label,
+      nativeW: panel.width,
+      nativeH: panel.height,
+      leftMm: origin.x - inset,
+      topMm: origin.y - inset,
+      widthMm: mm.w + inset * 2,
+      heightMm: mm.h + inset * 2,
+      contentW: mm.w,
+      contentH: mm.h,
+      insetXMm: inset,
+      insetYMm: inset,
+      overscan: panel.device === 'tcl-43p615' ? WALL_SIM_TV_OVERSCAN : 1,
+    }
+  })
+  const minX = Math.min(...mmRects.map((r) => r.leftMm))
+  const minY = Math.min(...mmRects.map((r) => r.topMm))
+  const maxX = Math.max(...mmRects.map((r) => r.leftMm + r.widthMm))
+  const maxY = Math.max(...mmRects.map((r) => r.topMm + r.heightMm))
+  return {
+    minX,
+    minY,
+    stageMmW: maxX - minX,
+    stageMmH: maxY - minY,
+    panels: mmRects,
+  }
+}
+
+function wallPhysicalPanels(cssPxPerMm: number): WallSimStageLayout {
+  const mm = physicalWallMm()
+  return {
+    mode: 'physical',
+    scale: cssPxPerMm,
+    stageW: mm.stageMmW * cssPxPerMm,
+    stageH: mm.stageMmH * cssPxPerMm,
+    panels: mm.panels.map((r) => ({
+      role: r.role,
+      device: r.device,
+      label: r.label,
+      nativeW: r.nativeW,
+      nativeH: r.nativeH,
+      left: (r.leftMm - mm.minX + r.insetXMm) * cssPxPerMm,
+      top: (r.topMm - mm.minY + r.insetYMm) * cssPxPerMm,
+      width: r.contentW * cssPxPerMm,
+      height: r.contentH * cssPxPerMm,
+      overscan: r.overscan,
+    })),
+  }
+}
+
+/** Photobash CSS seams at a millimetre scale (Lenovo portrait pitch). */
+export function layoutWallCssAtMmScale(cssPxPerMm: number): WallSimStageLayout {
+  const mmPerCssPx = LENOVO_ACTIVE_MM.h / 1080
+  return wallCssPanels(mmPerCssPx * cssPxPerMm)
+}
+
+/** Lenovo vs TCL cabinets at a millimetre scale. */
+export function layoutWallPhysicalAtMmScale(cssPxPerMm: number): WallSimStageLayout {
+  return wallPhysicalPanels(cssPxPerMm)
+}
+
 /**
  * Build a scaled wall stage for the home simulator.
  * - `css`: pixel-perfect (what software thinks) — seams look ideal
@@ -73,96 +178,12 @@ export function buildWallSimLayout(
   const availH = Math.max(240, viewportHeight - padY)
 
   if (mode === 'css') {
-    const { wallW, wallH, wallX, wallY } = MEASURED_WALL_BOUNDS
+    const { wallW, wallH } = MEASURED_WALL_BOUNDS
     const scale = Math.min(availW / wallW, availH / wallH)
-    return {
-      mode,
-      scale,
-      stageW: wallW * scale,
-      stageH: wallH * scale,
-      panels: MEASURED_WALL_PANELS.map((panel) => ({
-        role: panel.role,
-        device: panel.device,
-        label: panel.label,
-        nativeW: panel.width,
-        nativeH: panel.height,
-        left: (panel.x - wallX) * scale,
-        top: (panel.y - wallY) * scale,
-        width: panel.width * scale,
-        height: panel.height * scale,
-        overscan: 1,
-      })),
-    }
+    return wallCssPanels(scale)
   }
 
-  // Physical: place each panel by real mm size, centered on measured CSS centers,
-  // with bezel gaps implied by using outer cabinet footprint.
-  const placed = MEASURED_WALL_PANELS.map((panel) => {
-    const mm = activeMm(panel.device, panel.width, panel.height)
-    const gap = WALL_SIM_BEZEL_GAP_MM
-    const cabW = mm.w + gap
-    const cabH = mm.h + gap
-    const cx = panel.x + panel.width / 2
-    const cy = panel.y + panel.height / 2
-    // Map measured CSS centers into an mm stage using Lenovo portrait px as reference
-    // so relative arrangement stays familiar while sizes diverge.
-    const cssPxPerMm = 1080 / LENOVO_ACTIVE_MM.h // portrait width px / mm
-    return {
-      role: panel.role,
-      device: panel.device,
-      label: panel.label,
-      nativeW: panel.width,
-      nativeH: panel.height,
-      cxCss: cx,
-      cyCss: cy,
-      cabW,
-      cabH,
-      contentW: mm.w,
-      contentH: mm.h,
-      cssPxPerMm,
-      overscan: panel.device === 'tcl-43p615' ? WALL_SIM_TV_OVERSCAN : 1,
-    }
-  })
-
-  const ref = placed[0].cssPxPerMm
-  const mmRects = placed.map((p) => {
-    const cxMm = (p.cxCss - MEASURED_WALL_BOUNDS.wallX) / ref
-    const cyMm = (p.cyCss - MEASURED_WALL_BOUNDS.wallY) / ref
-    return {
-      ...p,
-      leftMm: cxMm - p.cabW / 2,
-      topMm: cyMm - p.cabH / 2,
-      widthMm: p.cabW,
-      heightMm: p.cabH,
-      insetXMm: (p.cabW - p.contentW) / 2,
-      insetYMm: (p.cabH - p.contentH) / 2,
-    }
-  })
-
-  const minX = Math.min(...mmRects.map((r) => r.leftMm))
-  const minY = Math.min(...mmRects.map((r) => r.topMm))
-  const maxX = Math.max(...mmRects.map((r) => r.leftMm + r.widthMm))
-  const maxY = Math.max(...mmRects.map((r) => r.topMm + r.heightMm))
-  const stageMmW = maxX - minX
-  const stageMmH = maxY - minY
-  const scale = Math.min(availW / stageMmW, availH / stageMmH)
-
-  return {
-    mode,
-    scale,
-    stageW: stageMmW * scale,
-    stageH: stageMmH * scale,
-    panels: mmRects.map((r) => ({
-      role: r.role,
-      device: r.device,
-      label: r.label,
-      nativeW: r.nativeW,
-      nativeH: r.nativeH,
-      left: (r.leftMm - minX + r.insetXMm) * scale,
-      top: (r.topMm - minY + r.insetYMm) * scale,
-      width: r.contentW * scale,
-      height: r.contentH * scale,
-      overscan: r.overscan,
-    })),
-  }
+  const mm = physicalWallMm()
+  const scale = Math.min(availW / mm.stageMmW, availH / mm.stageMmH)
+  return wallPhysicalPanels(scale)
 }

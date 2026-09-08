@@ -152,6 +152,13 @@ export function loadStationTwoState(
   return state
 }
 
+/** Finished visits are skipped by loadStationOneState; ARS still needs the answers. */
+export function peekStationOneState(
+  storage: InterviewStorage | undefined = defaultStorage(),
+): StationOneState | null {
+  return parseStationOneState(readJson(STATION_ONE_STORAGE_KEY, storage))
+}
+
 /** Finished interviews are skipped by loadStationTwoState so a new visitor
  * does not resume on "complete"; the collage wall still needs those answers. */
 export function peekStationTwoState(

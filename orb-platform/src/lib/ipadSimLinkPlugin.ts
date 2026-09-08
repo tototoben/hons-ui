@@ -1,5 +1,7 @@
 import type { IncomingMessage, ServerResponse } from 'http'
 import type { ViteDevServer } from 'vite'
+import { mkdirSync, writeFileSync } from 'fs'
+import { resolve } from 'path'
 
 type FocusState = {
   mode: string
@@ -105,6 +107,40 @@ export function ipadSimLinkPlugin() {
           keyClients.add(res)
           req.on('close', () => {
             keyClients.delete(res)
+          })
+          return
+        }
+
+        if (req.method === 'POST' && path === '/__hons/ars-interview') {
+          readBody(req, (raw) => {
+            try {
+              const payload = JSON.parse(raw) as {
+                users?: unknown
+                conversation?: unknown
+              }
+              if (!payload.users || !Array.isArray(payload.conversation)) {
+                json(res, 400, { ok: false })
+                return
+              }
+              const dataDir = resolve(process.cwd(), '../../hons-avatar/data')
+              mkdirSync(dataDir, { recursive: true })
+              writeFileSync(
+                resolve(dataDir, 'users.json'),
+                `${JSON.stringify(payload.users, null, 4)}\n`,
+              )
+              writeFileSync(
+                resolve(dataDir, 'conversation.json'),
+                `${JSON.stringify(payload.conversation, null, 4)}\n`,
+              )
+              json(res, 200, { ok: true })
+              fetch('http://127.0.0.1:8190/api/kiosk-interview', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: raw,
+              }).catch(() => {})
+            } catch {
+              json(res, 400, { ok: false })
+            }
           })
           return
         }

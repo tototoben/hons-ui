@@ -1,4 +1,5 @@
 import { resetVisitorFaceCapture } from './visitorFaceCapture'
+import { resetVisitorIntro } from './visitorIntro'
 import { resetVisitorProfile } from './visitorProfile'
 import { resetStationTwoState } from './interviewStore'
 import { publish } from './firehose'
@@ -25,6 +26,7 @@ export function resetCurrentStationMemory(station: StationRoute): boolean {
     resetStationTwoState()
   } else {
     resetVisitorFaceCapture()
+    resetVisitorIntro()
   }
   publish(id, 'station_reset', { station })
   // Hide the iPad immediately so it does not keep the previous YES/NO

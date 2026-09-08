@@ -1,16 +1,18 @@
+import { notifyRevealReady } from '../lib/photobashTrigger'
 import { useEffect, useMemo, useState } from 'react'
 import { getStationHref } from '../lib/stationRoute'
 import { buildWallSimLayout, type WallSimMode } from '../lib/wallSimLayout'
 import type { WallRole } from '../lib/wallRole'
 import './WallSim.css'
 
-function panelSrc(role: WallRole, collage: boolean) {
+function panelSrc(role: WallRole, collage: boolean, physical: boolean) {
   const url = new URL(window.location.href)
   const quality =
     new URLSearchParams(window.location.search).get('quality') ??
     document.documentElement.dataset.stationQuality
   url.search = collage ? `?wallRole=${role}&collage=1&bare=1` : `?wallRole=${role}&collage=0&bare=1`
   if (quality === 'full' || quality === 'kiosk') url.searchParams.set('quality', quality)
+  if (physical && collage) url.searchParams.set('wallSimPhysical', '1')
   url.hash = '#/photobash'
   return url.toString()
 }
@@ -25,7 +27,7 @@ export function WallSim() {
     width: window.innerWidth,
     height: window.innerHeight,
   }))
-  const [mode, setMode] = useState<WallSimMode>('css')
+  const [mode, setMode] = useState<WallSimMode>('physical')
   const [collage, setCollage] = useState(true)
   const [reloadKey, setReloadKey] = useState(0)
 
@@ -61,6 +63,9 @@ export function WallSim() {
             />
             Collage photobash
           </label>
+          <button type="button" onClick={() => { setCollage(true); notifyRevealReady() }}>
+            Generate photobash
+          </button>
           <button type="button" onClick={() => setReloadKey((n) => n + 1)}>
             Reload panels
           </button>
@@ -95,10 +100,10 @@ export function WallSim() {
                   key={`${panel.role}-${reloadKey}-${mode}-${collage}`}
                   className="wall-sim-frame"
                   title={`Wall panel ${panel.role}`}
-                  src={panelSrc(panel.role, collage)}
+                  src={panelSrc(panel.role, collage, mode === 'physical')}
                   allow="autoplay; microphone; camera"
                   style={
-                    panel.overscan !== 1
+                    panel.overscan !== 1 && !collage
                       ? { transform: `scale(${panel.overscan})` }
                       : undefined
                   }

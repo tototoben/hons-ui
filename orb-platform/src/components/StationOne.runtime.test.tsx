@@ -279,7 +279,7 @@ describe('StationOne', () => {
       'station-1',
       'keyboard_focus',
       expect.objectContaining({
-        mode: 'numeric',
+        mode: 'text',
         prompt: 'What is your age?',
       }),
     )

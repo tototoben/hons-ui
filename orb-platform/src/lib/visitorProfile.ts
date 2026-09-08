@@ -1,4 +1,5 @@
 import { resetInterview } from './interviewStore'
+import { resetVisitorIntro } from './visitorIntro'
 import type { BinaryAnswer } from './mirrorJourney'
 
 /**
@@ -145,4 +146,5 @@ export function resetVisitorProfile(
   current = emptyProfile()
   clearStoredProfile(storage)
   resetInterview(storage)
+  resetVisitorIntro(storage)
 }

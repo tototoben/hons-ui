@@ -8,8 +8,8 @@ import { publish } from './firehose'
 import { keyboardFocusForQuestion, publishKeyboardFocus } from './keyboardFocus'
 
 describe('keyboardFocusForQuestion', () => {
-  it('uses a numpad for numeric intake', () => {
-    expect(keyboardFocusForQuestion({ type: 'text', numeric: true })).toBe('numeric')
+  it('uses the letter keyboard for numeric intake (age) as well as free text', () => {
+    expect(keyboardFocusForQuestion({ type: 'text', numeric: true })).toBe('text')
   })
 
   it('uses the letter keyboard for free text', () => {

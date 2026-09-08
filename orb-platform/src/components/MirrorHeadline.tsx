@@ -6,8 +6,6 @@ import { mirrorSettings } from '../dev/mirrorSettingsStore'
 
 const REDRAW_INTERVAL_MS = 1000 / 8
 const FADE_IN_MS = 900
-const CANVAS_WIDTH = 1000
-const CANVAS_HEIGHT = 340
 
 /**
  * DOM-canvas headline text using the same drawGrainyText treatment as the
@@ -19,7 +17,23 @@ const CANVAS_HEIGHT = 340
  * Kiosk keeps the haze (it is the look) but paints it once instead of
  * drifting at 8 fps — the wet overlay still reads, without a redraw loop.
  */
-export function MirrorHeadline({ lines, className }: { lines: string[]; className?: string }) {
+export function MirrorHeadline({
+  lines,
+  className,
+  fontPx,
+  width = 1000,
+  height = 340,
+  fade = true,
+  align = 'center',
+}: {
+  lines: string[]
+  className?: string
+  fontPx?: number
+  width?: number
+  height?: number
+  fade?: boolean
+  align?: CanvasTextAlign
+}) {
   const [vibe] = useStationVibe()
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const text = useMemo(
@@ -34,27 +48,30 @@ export function MirrorHeadline({ lines, className }: { lines: string[]; classNam
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    fadeIn.current = 0
-    canvas.style.opacity = '0'
+    fadeIn.current = fade ? 0 : 1
+    canvas.style.opacity = fade ? '0' : '1'
     const start = performance.now()
     const parts = text.split('\n')
     const s = mirrorSettings.text
+    const size = fontPx ?? s.fontPx
+    const scale = size / s.fontPx
     const kiosk = isKioskQuality()
 
     const paint = (t: number) => {
-      ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
-      const lineHeight = s.fontPx * 1.08
+      ctx.clearRect(0, 0, width, height)
+      const lineHeight = size * 1.08
       const totalHeight = lineHeight * parts.length
-      const startY = CANVAS_HEIGHT / 2 - totalHeight / 2 + lineHeight / 2
+      const startY = height / 2 - totalHeight / 2 + lineHeight / 2
       parts.forEach((line, i) => {
         const lineCanvas = document.createElement('canvas')
-        lineCanvas.width = CANVAS_WIDTH
-        lineCanvas.height = lineHeight
+        lineCanvas.width = width
+        lineCanvas.height = Math.max(1, Math.ceil(lineHeight))
         const lctx = lineCanvas.getContext('2d')!
         drawGrainyText(lctx, lineCanvas, line, {
-          fontPx: s.fontPx,
+          fontPx: size,
           weight: 350,
-          maxWidthPx: CANVAS_WIDTH * 0.94,
+          maxWidthPx: width * 0.94,
+          textAlign: align,
           shade: 200,
           shadeVariance: 40,
           color: hexToRgbUnit(s.color),
@@ -63,7 +80,7 @@ export function MirrorHeadline({ lines, className }: { lines: string[]; classNam
           smudgeAlpha: s.smudgeAlpha,
           smudgeWeight: s.smudgeWeight,
           smudgeBoost: s.smudgeBoost,
-          smudgeBlurPx: s.smudgeBlurPx,
+          smudgeBlurPx: Math.max(2.2, s.smudgeBlurPx * scale),
           smudgeCellsX: 10,
           smudgeCellsY: 3,
           smudgeContrast: s.smudgeContrast,
@@ -77,12 +94,14 @@ export function MirrorHeadline({ lines, className }: { lines: string[]; classNam
       })
     }
 
-    if (kiosk) {
+    if (kiosk || !fade) {
       paint(0)
-      canvas.style.transition = `opacity ${FADE_IN_MS}ms linear`
-      requestAnimationFrame(() => {
-        canvas.style.opacity = '1'
-      })
+      if (fade) {
+        canvas.style.transition = `opacity ${FADE_IN_MS}ms linear`
+        requestAnimationFrame(() => {
+          canvas.style.opacity = '1'
+        })
+      }
       return
     }
 
@@ -102,15 +121,15 @@ export function MirrorHeadline({ lines, className }: { lines: string[]; classNam
     }
     raf = requestAnimationFrame(draw)
     return () => cancelAnimationFrame(raf)
-  }, [text])
+  }, [align, fade, fontPx, height, text, width])
 
   return (
     <canvas
       ref={canvasRef}
       className={className}
-      width={CANVAS_WIDTH}
-      height={CANVAS_HEIGHT}
-      style={{ transition: 'opacity 0.2s linear' }}
+      width={width}
+      height={height}
+      style={{ transition: fade ? 'opacity 0.2s linear' : 'none' }}
     />
   )
 }

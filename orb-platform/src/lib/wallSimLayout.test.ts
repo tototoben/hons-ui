@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildWallSimLayout, WALL_SIM_TV_OVERSCAN } from './wallSimLayout'
+import { buildWallSimLayout, layoutWallCssAtMmScale, WALL_SIM_TV_OVERSCAN } from './wallSimLayout'
 
 describe('buildWallSimLayout', () => {
   it('keeps css mode panels in measured pixel proportions', () => {
@@ -22,5 +22,12 @@ describe('buildWallSimLayout', () => {
     expect(tcl.width * tcl.height).toBeGreaterThan(lenovo.width * lenovo.height)
     expect(tcl.overscan).toBe(WALL_SIM_TV_OVERSCAN)
     expect(lenovo.overscan).toBe(1)
+  })
+
+  it('keeps CSS millimetre wall panels in measured proportions', () => {
+    const layout = layoutWallCssAtMmScale(96 / 25.4)
+    expect(layout.panels).toHaveLength(6)
+    const code = layout.panels.find((p) => p.role === 'code')!
+    expect(code.width / code.height).toBeCloseTo(1080 / 1920, 3)
   })
 })

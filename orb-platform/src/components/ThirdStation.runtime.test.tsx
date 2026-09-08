@@ -5,27 +5,7 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mirrorSettings } from '../dev/mirrorSettingsStore'
 import { applyStationVibe } from '../lib/stationVibe'
-import { getVisitorFaceCapture, resetVisitorFaceCapture } from '../lib/visitorFaceCapture'
-
-const cameraMock = vi.hoisted(() => ({
-  videoRef: { current: null as HTMLVideoElement | null },
-  status: 'active' as const,
-  sampleRef: { current: { landmarks: [], signals: null, appearance: null } },
-  landmarks: [],
-  signals: {
-    blink: 0, gazeX: 0, gazeY: 0, mouthOpen: 0, smile: 0,
-    browLift: 0, headYaw: 0, headPitch: 0, headRoll: 0,
-  },
-  appearance: null,
-  devices: [],
-  selectedDeviceId: null,
-  activeDeviceId: null,
-  selectDevice: () => undefined,
-}))
-
-vi.mock('../hooks/useMirrorCamera', () => ({
-  useMirrorCamera: () => cameraMock,
-}))
+import { resetVisitorFaceCapture } from '../lib/visitorFaceCapture'
 
 vi.mock('./MirrorGuideOrb', () => ({
   MirrorGuideOrb: ({ className }: { className?: string }) => <div className={className} />,
@@ -35,10 +15,30 @@ vi.mock('../lib/photobashTrigger', () => ({
   notifyRevealReady: vi.fn(() => 1),
 }))
 
+vi.mock('../lib/arsIngest', () => ({
+  submitKioskInterview: vi.fn(),
+}))
+
+vi.mock('../hooks/useMicLevel', () => ({
+  MIC_BAR_COUNT: 24,
+  useMicLevel: () => Array.from({ length: 24 }, () => 0.2),
+}))
+
 import { ThirdStation } from './ThirdStation'
 
 function settle() {
   return act(async () => {
+    await Promise.resolve()
+  })
+}
+
+async function enterRecording() {
+  await act(async () => {
+    vi.advanceTimersByTime(1000)
+    await Promise.resolve()
+  })
+  await act(async () => {
+    vi.advanceTimersByTime(1000 + 3 * 200)
     await Promise.resolve()
   })
 }
@@ -76,33 +76,56 @@ describe('ThirdStation', () => {
     Object.assign(mirrorSettings.timing, timing)
   })
 
-  it('warms the webcam on mount and fills the viewfinder when recording starts', async () => {
+  it('opens a mic viewfinder without camera or the top-left RECORDING label', async () => {
     act(() => root.render(<ThirdStation />))
     await settle()
 
     expect(container.textContent).toContain('STANDBY')
-    const video = container.querySelector<HTMLVideoElement>('.mirror-record-video')
-    expect(video).not.toBeNull()
-    expect(container.querySelector('.mirror-screen-recording')?.classList.contains('is-live')).toBe(
-      false,
-    )
+    expect(container.querySelector('.mirror-record-video')).toBeNull()
+    expect(container.querySelector('.mirror-screen-recording')).toBeNull()
 
     await act(async () => {
       vi.advanceTimersByTime(1000)
       await Promise.resolve()
     })
-    expect(container.textContent).toContain('LISTENING')
+    expect(container.querySelector('.mirror-status-label')).toBeNull()
+    expect(container.textContent).not.toContain('LISTENING')
 
     await act(async () => {
       vi.advanceTimersByTime(1000 + 3 * 200)
       await Promise.resolve()
     })
 
-    expect(container.querySelector('.mirror-screen-recording')?.classList.contains('is-live')).toBe(
-      true,
-    )
+    expect(container.querySelector('.mirror-status-label')).toBeNull()
     expect(container.querySelector('.mirror-rec-indicator')?.textContent).toContain('REC')
-    expect(container.querySelector('.mirror-record-video')).toBe(video)
-    expect(getVisitorFaceCapture()).toBeNull()
+    expect(container.querySelector('.mirror-record-prompt')?.textContent).toBe('speak about yourself')
+    expect(container.querySelector('.mirror-record-prompt .journey-headline-canvas')).not.toBeNull()
+    expect(container.querySelector('.mirror-rec-haze')).not.toBeNull()
+    expect(container.querySelector('.mirror-record-timer-haze')).not.toBeNull()
+    expect(container.querySelectorAll('.mirror-record-level-bar')).toHaveLength(24)
+    expect(container.querySelector('.mirror-record-video')).toBeNull()
+  })
+
+  it('cuts the countdown ring away as time elapses', async () => {
+    act(() => root.render(<ThirdStation />))
+    await settle()
+    await enterRecording()
+
+    const ring = container.querySelector<SVGPathElement>('.mirror-record-timer-progress')
+    expect(ring?.getAttribute('d') ?? '').toMatch(/^M /)
+    expect(container.querySelector('.mirror-record-timer-cut')).toBeNull()
+    expect(container.querySelector('.mirror-record-timer .journey-headline-copy')?.textContent).toBe(
+      '2',
+    )
+    const fullArc = ring?.getAttribute('d')
+
+    await act(async () => {
+      vi.advanceTimersByTime(1000)
+      await Promise.resolve()
+    })
+
+    const laterArc = container.querySelector('.mirror-record-timer-progress')?.getAttribute('d')
+    expect(laterArc).not.toBe(fullArc)
+    expect(laterArc ?? '').toMatch(/A 34 34 0 0 1/)
   })
 })

@@ -16,6 +16,7 @@
   --mirror-bg-bottom: #0a0806;
   --mirror-accent: #e4b67a;
   position: relative;
+  width: 100%;
   height: 100svh;
   max-height: 100svh;
   overflow: hidden;
@@ -24,11 +25,16 @@
   font-family: system-ui, sans-serif;
 }
 
+.experience-mirror-preview-portrait .third-station {
+  width: min(100vw, calc(100svh * 9 / 16));
+  height: min(100svh, calc(100vw * 16 / 9));
+}
+
 .mirror-frame {
   position: relative;
-  width: 100vw;
-  height: 100svh;
-  max-height: 100svh;
+  width: 100%;
+  height: 100%;
+  max-height: 100%;
   overflow: hidden;
   margin-inline: auto;
   display: flex;
@@ -39,12 +45,10 @@
 }
 
 /* Persistent outer HUD chrome — just the status readout now (the corner
-   brackets that used to frame the whole viewport were removed; the
-   recording phase's own brackets around its dashed viewfinder,
-   .mirror-hud-corner-*, are unrelated and stay). Stays mounted across
-   every phase instead of fading with the .mirror-screen content, so the
-   station reads as one continuous scanning apparatus with the phase
-   content changing inside it. */
+   brackets that used to frame the whole viewport were removed). Stays
+   mounted across every phase instead of fading with the .mirror-screen
+   content, so the station reads as one continuous scanning apparatus
+   with the phase content changing inside it. */
 .mirror-status-label {
   position: absolute;
   top: 22px;
@@ -185,127 +189,106 @@
   }
 }
 
-/* Recording — dashed viewfinder frame, HUD corner ticks, REC indicator,
-   circular countdown badge. No orb here, matching the sketch. */
+/* Recording — dashed viewfinder, REC in the box, prompt + mic bars
+   stacked over a countdown ring that gets cut away. */
 .mirror-screen-recording {
   height: 100%;
   justify-content: center;
-}
-
-/* Stay mounted while warming the webcam so getUserMedia is already
-   attached when REC starts. Keep it out of layout and invisible until
-   the recording phase — display:none would stall the video element. */
-.mirror-screen-recording.is-live {
   animation: mirror-screen-in 0.7s ease-out both;
-}
-
-.mirror-screen-recording:not(.is-live) {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-  animation: none;
 }
 
 .mirror-record-frame {
   position: relative;
   width: min(86vw, 440px);
   aspect-ratio: 3 / 4;
-  border: 1px dashed rgba(255, 244, 232, 0.4);
+  border: 1px dashed color-mix(in srgb, var(--mirror-accent) 55%, transparent);
   border-radius: 6px;
+  background: rgba(0, 0, 0, 0.35);
+  box-shadow:
+    0 0 22px color-mix(in srgb, var(--mirror-accent) 16%, transparent),
+    inset 0 0 40px color-mix(in srgb, var(--mirror-accent) 6%, transparent);
 }
 
-.mirror-record-camera {
+.mirror-record-body {
   position: absolute;
   inset: 0;
-  overflow: hidden;
-  border-radius: inherit;
-  background: #000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(14px, 3vh, 28px);
+  padding: 64px 20px 28px;
 }
 
-.mirror-record-video {
-  position: absolute;
-  inset: 0;
+.mirror-record-prompt {
+  margin: 0;
   width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transform: scaleX(-1);
-  filter: contrast(1.1) brightness(0.92);
 }
 
-.mirror-record-veil {
-  position: absolute;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.12);
-  pointer-events: none;
+.mirror-record-prompt .journey-headline-canvas {
+  width: 100%;
+  height: auto;
 }
 
-.mirror-record-camera-fallback {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  padding: 24px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 16px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: rgba(255, 244, 232, 0.62);
-  background: #000;
+.mirror-record-levels {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 3px;
+  height: 44px;
+  width: min(100%, 220px);
+  filter: blur(0.25px);
 }
 
-.mirror-hud-corner {
-  position: absolute;
-  z-index: 1;
-  width: 18px;
-  height: 18px;
-  border: 2px solid var(--mirror-accent);
-}
-
-.mirror-hud-corner-tl {
-  top: -2px;
-  left: -2px;
-  border-right: none;
-  border-bottom: none;
-}
-
-.mirror-hud-corner-tr {
-  top: -2px;
-  right: -2px;
-  border-left: none;
-  border-bottom: none;
-}
-
-.mirror-hud-corner-bl {
-  bottom: -2px;
-  left: -2px;
-  border-right: none;
-  border-top: none;
-}
-
-.mirror-hud-corner-br {
-  bottom: -2px;
-  right: -2px;
-  border-left: none;
-  border-top: none;
+.mirror-record-level-bar {
+  flex: 1 1 0;
+  max-width: 4px;
+  height: calc(5px + var(--h, 0.08) * 39px);
+  border-radius: 1px;
+  background: var(--mirror-accent);
+  opacity: 0.9;
+  box-shadow:
+    0 0 8px color-mix(in srgb, var(--mirror-accent) 80%, transparent),
+    0 0 16px color-mix(in srgb, var(--mirror-accent) 35%, transparent);
+  transform-origin: center bottom;
 }
 
 .mirror-rec-indicator {
   position: absolute;
   z-index: 1;
-  top: 16px;
-  left: 16px;
+  top: 12px;
+  left: 12px;
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 16px;
-  letter-spacing: 0.14em;
-  color: rgba(255, 244, 232, 0.86);
+  gap: 0;
+}
+
+.mirror-rec-label {
+  position: relative;
+  display: block;
+  width: 38px;
+  height: 16px;
+  overflow: visible;
+  margin-left: 2px;
+}
+
+.mirror-rec-haze {
+  position: absolute;
+  left: -4px;
+  top: 50%;
+  display: block;
+  width: 72px;
+  height: 28px;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.mirror-screen-recording .journey-headline-copy {
+  clip-path: inset(50%);
 }
 
 .mirror-rec-dot {
+  flex-shrink: 0;
   width: 8px;
   height: 8px;
   border-radius: 50%;
@@ -325,13 +308,10 @@
 }
 
 .mirror-record-timer {
-  position: absolute;
+  position: relative;
   z-index: 1;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 56px;
-  height: 56px;
+  width: 72px;
+  height: 72px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -340,22 +320,28 @@
 .mirror-record-timer-ring {
   position: absolute;
   inset: 0;
-  transform: rotate(-90deg);
 }
 
 .mirror-record-timer-track {
   fill: none;
-  stroke: rgba(255, 244, 232, 0.18);
+  stroke: rgba(255, 244, 232, 0.1);
   stroke-width: 3;
 }
 
-.mirror-record-timer-progress {
+.mirror-record-timer-progress,
+.mirror-record-timer-progress-glow {
   fill: none;
   stroke: var(--mirror-accent);
-  stroke-width: 3;
-  stroke-linecap: round;
-  stroke-dasharray: 175.93px;
-  transition: stroke-dashoffset 0.2s linear;
+  stroke-linecap: butt;
+}
+
+.mirror-record-timer-progress {
+  stroke-width: 5;
+}
+
+.mirror-record-timer-progress-glow {
+  stroke-width: 11;
+  opacity: 0.38;
 }
 
 .mirror-record-timer-value {
@@ -363,6 +349,16 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 15px;
   color: rgba(255, 244, 232, 0.92);
+}
+
+.mirror-record-timer-haze {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
 }
 
 /* Loading — headline, guide orb wrapped in a Detroit-style segmented
@@ -431,19 +427,7 @@
 }
 
 :root[data-station-vibe="original"] .mirror-record-frame {
-  border-color: rgba(238, 241, 240, 0.45);
-}
-
-:root[data-station-vibe="original"] .mirror-rec-indicator {
-  color: rgba(238, 241, 240, 0.85);
-}
-
-:root[data-station-vibe="original"] .mirror-record-timer-track {
-  stroke: rgba(238, 241, 240, 0.18);
-}
-
-:root[data-station-vibe="original"] .mirror-record-timer-value {
-  color: rgba(238, 241, 240, 0.92);
+  border-color: color-mix(in srgb, var(--mirror-accent) 50%, transparent);
 }
 
 :root[data-station-vibe="original"] .mirror-loading-readout {

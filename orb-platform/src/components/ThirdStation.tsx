@@ -11,23 +11,22 @@ import { mirrorSettings } from '../dev/mirrorSettingsStore'
 import { getDeviceQuality } from '../lib/deviceQuality'
 import { readDeviceLock } from '../lib/deviceLock'
 import { showTuningPanel } from '../lib/tune'
-import { useMirrorCamera, type MirrorCameraHandle } from '../hooks/useMirrorCamera'
+import { useMicLevel } from '../hooks/useMicLevel'
+import { useSpeechDictation } from '../hooks/useSpeechDictation'
 import { useStationVibe } from '../hooks/useStationVibe'
+import { submitKioskInterview } from '../lib/arsIngest'
 import type { WallPhase } from '../lib/wallPhaseSync'
 import { publish } from '../lib/firehose'
 import { publishKeyboardFocus } from '../lib/keyboardFocus'
 import { notifyRevealReady } from '../lib/photobashTrigger'
-import { captureVisitorFaceFrame, setVisitorFaceCapture } from '../lib/visitorFaceCapture'
 import { MirrorGuideOrb } from './MirrorGuideOrb'
 import { MirrorHeadline } from './MirrorHeadline'
+import { JourneyHeadline } from './JourneyHeadline'
 import { CodePanel, MiniBar } from './HudDebris'
 import './ThirdStation.css'
 
 const MirrorDevPanel = lazy(() =>
   import('../dev/MirrorDevPanel').then((m) => ({ default: m.MirrorDevPanel })),
-)
-const CameraDevPanel = lazy(() =>
-  import('../dev/CameraDevPanel').then((m) => ({ default: m.CameraDevPanel })),
 )
 
 type Phase = WallPhase
@@ -325,59 +324,102 @@ function GuideOrb({ variant, progress }: { variant: 'idle' | 'loading'; progress
   )
 }
 
+function polar(cx: number, cy: number, r: number, deg: number) {
+  const rad = (deg * Math.PI) / 180
+  return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) }
+}
+
+/** Remaining countdown stroke pinned at 12 o'clock, retracting clockwise so
+ *  only one end moves instead of a gap opening and dropping both sides. */
+function remainingArcPath(cx: number, cy: number, r: number, remaining: number) {
+  const span = Math.max(0, Math.min(1, remaining)) * 360
+  if (span <= 0) return ''
+  if (span >= 359.9) {
+    return `M ${cx} ${cy - r} A ${r} ${r} 0 1 1 ${cx - 0.001} ${cy - r}`
+  }
+  const start = polar(cx, cy, r, -90)
+  const end = polar(cx, cy, r, -90 + span)
+  const large = span > 180 ? 1 : 0
+  return `M ${start.x} ${start.y} A ${r} ${r} 0 ${large} 1 ${end.x} ${end.y}`
+}
+
 function RecordingStage({
-  live,
-  camera,
   secondsLeft,
   totalSeconds,
 }: {
-  live: boolean
-  camera: MirrorCameraHandle
   secondsLeft: number
   totalSeconds: number
 }) {
-  const progress = 1 - secondsLeft / totalSeconds
-  const cameraFailed = camera.status === 'denied' || camera.status === 'unavailable'
+  const remaining = Math.max(0, Math.min(1, secondsLeft / totalSeconds))
+  const bars = useMicLevel(true)
+  const arc = remainingArcPath(40, 40, 34, remaining)
 
   return (
-    <div
-      className={`mirror-screen mirror-screen-recording${live ? ' is-live' : ''}`}
-      aria-hidden={!live}
-    >
+    <div className="mirror-screen mirror-screen-recording is-live">
       <div className="mirror-record-frame">
-        <div className="mirror-record-camera">
-          <video
-            ref={camera.videoRef}
-            className="mirror-record-video"
-            muted
-            playsInline
-            autoPlay
-          />
-          <div className="mirror-record-veil" />
-          {live && cameraFailed ? (
-            <div className="mirror-record-camera-fallback">Camera unavailable</div>
-          ) : null}
-        </div>
-        <span className="mirror-hud-corner mirror-hud-corner-tl" />
-        <span className="mirror-hud-corner mirror-hud-corner-tr" />
-        <span className="mirror-hud-corner mirror-hud-corner-bl" />
-        <span className="mirror-hud-corner mirror-hud-corner-br" />
         <div className="mirror-rec-indicator">
           <span className="mirror-rec-dot" />
-          REC
-        </div>
-        <div className="mirror-record-timer">
-          <svg viewBox="0 0 64 64" className="mirror-record-timer-ring">
-            <circle cx="32" cy="32" r="28" className="mirror-record-timer-track" />
-            <circle
-              cx="32"
-              cy="32"
-              r="28"
-              className="mirror-record-timer-progress"
-              style={{ strokeDashoffset: `${(1 - progress) * 2 * Math.PI * 28}px` }}
+          <span className="mirror-rec-label">
+            <span className="journey-headline-copy">REC</span>
+            <MirrorHeadline
+              lines={['REC']}
+              fontPx={18}
+              width={72}
+              height={28}
+              fade={false}
+              align="left"
+              className="mirror-rec-haze"
             />
-          </svg>
-          <span className="mirror-record-timer-value">{Math.ceil(secondsLeft)}</span>
+          </span>
+        </div>
+        <div className="mirror-record-body">
+          <JourneyHeadline
+            as="p"
+            className="mirror-record-prompt"
+            lines={['speak about', 'yourself']}
+            fontPx={52}
+          >
+            speak about yourself
+          </JourneyHeadline>
+          <div className="mirror-record-levels" aria-hidden="true">
+            {bars.map((value, i) => (
+              <span
+                key={i}
+                className="mirror-record-level-bar"
+                style={{ '--h': value } as CSSProperties}
+              />
+            ))}
+          </div>
+          <div className="mirror-record-timer">
+            <svg viewBox="0 0 80 80" className="mirror-record-timer-ring">
+              <defs>
+                <filter id="mirror-record-ice-glow" x="-40%" y="-40%" width="180%" height="180%">
+                  <feGaussianBlur stdDeviation="1.6" />
+                </filter>
+              </defs>
+              <circle cx="40" cy="40" r="34" className="mirror-record-timer-track" />
+              {arc ? (
+                <>
+                  <path
+                    d={arc}
+                    className="mirror-record-timer-progress-glow"
+                    filter="url(#mirror-record-ice-glow)"
+                  />
+                  <path d={arc} className="mirror-record-timer-progress" />
+                </>
+              ) : null}
+            </svg>
+            <span className="journey-headline-copy">{Math.ceil(secondsLeft)}</span>
+            <MirrorHeadline
+              key={Math.ceil(secondsLeft)}
+              lines={[String(Math.ceil(secondsLeft))]}
+              fontPx={26}
+              width={72}
+              height={72}
+              fade={false}
+              className="mirror-record-timer-haze"
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -389,9 +431,6 @@ export function ThirdStation() {
   const warm = vibe === 'warm'
   const rootRef = useRef<HTMLElement>(null)
   useLiveMirrorTheme(rootRef)
-  const camera = useMirrorCamera({ tracking: false })
-  const cameraRef = useRef(camera)
-  cameraRef.current = camera
 
   const [phase, setPhase] = useState<Phase>('intro')
   const [countdown, setCountdown] = useState<number | null>(null)
@@ -399,6 +438,9 @@ export function ThirdStation() {
   const [loadingProgress, setLoadingProgress] = useState(0)
   const prevPhaseRef = useRef<Phase | null>(null)
   const recording = phase === 'recording'
+  const spokenIntro = useSpeechDictation(recording)
+  const spokenRef = useRef('')
+  spokenRef.current = spokenIntro
 
   useEffect(() => {
     publish('station-3', 'station_mounted', { phase: 'intro' })
@@ -412,7 +454,10 @@ export function ThirdStation() {
       }
       prevPhaseRef.current = phase
     }
-    if (phase === 'loading') notifyRevealReady()
+    if (phase === 'loading') {
+      submitKioskInterview(spokenRef.current)
+      notifyRevealReady()
+    }
   }, [phase])
 
   // Phase advance chain — reads current durations at the moment each timer
@@ -489,26 +534,15 @@ export function ThirdStation() {
     return () => cancelAnimationFrame(raf)
   }, [phase])
 
-  useEffect(() => {
-    if (phase !== 'recording' || camera.status !== 'active') return
-    const grab = () => {
-      const video = cameraRef.current.videoRef.current
-      if (!video) return
-      const frame = captureVisitorFaceFrame(video)
-      if (frame) setVisitorFaceCapture(frame)
-    }
-    grab()
-    const id = window.setInterval(grab, 500)
-    return () => window.clearInterval(id)
-  }, [phase, camera.status])
-
   return (
     <section className="third-station" aria-label="Mirror station" ref={rootRef}>
       <div className="mirror-frame">
-        <div className="mirror-status-label" aria-hidden="true">
-          <span className="mirror-status-marker" />
-          {(warm ? STATUS_LABEL_WARM : STATUS_LABEL_ORIGINAL)[phase]}
-        </div>
+        {phase === 'prompt' || phase === 'recording' ? null : (
+          <div className="mirror-status-label" aria-hidden="true">
+            <span className="mirror-status-marker" />
+            {(warm ? STATUS_LABEL_WARM : STATUS_LABEL_ORIGINAL)[phase]}
+          </div>
+        )}
         {getDeviceQuality() === 'kiosk' ? null : <HudDebrisField phase={phase} key={phase} />}
 
         {phase === 'intro' ? (
@@ -529,12 +563,12 @@ export function ThirdStation() {
           </div>
         ) : null}
 
-        <RecordingStage
-          live={recording}
-          camera={camera}
-          secondsLeft={recordSecondsLeft}
-          totalSeconds={mirrorSettings.timing.recordingSeconds}
-        />
+        {recording ? (
+          <RecordingStage
+            secondsLeft={recordSecondsLeft}
+            totalSeconds={mirrorSettings.timing.recordingSeconds}
+          />
+        ) : null}
 
         {phase === 'loading' ? (
           <div className="mirror-screen mirror-screen-loading">
@@ -555,7 +589,6 @@ export function ThirdStation() {
       {showTuningPanel() && !readDeviceLock() ? (
         <Suspense fallback={null}>
           <MirrorDevPanel />
-          {import.meta.env.MODE !== 'test' ? <CameraDevPanel camera={camera} /> : null}
         </Suspense>
       ) : null}
     </section>
