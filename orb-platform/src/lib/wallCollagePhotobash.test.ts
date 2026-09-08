@@ -113,7 +113,7 @@ describe('wallCollagePhotobash', () => {
   it('counts how many 9-piece collages each answer type can seed from the live bank', () => {
     const faces = parseFaceBankManifest(JSON.parse(readFileSync(manifestPath, 'utf8')))
     const stats = collageCombinationStats(faces)
-    expect(stats.faces).toBe(23)
+    expect(stats.faces).toBeGreaterThanOrEqual(48)
     expect(stats.rectCount).toBe(9)
     expect(stats.typeCount).toBeGreaterThanOrEqual(8)
     expect(stats.maxCollages).toBeGreaterThan(stats.minCollages)
