@@ -39,6 +39,10 @@ describe('getStationFromHash', () => {
     expect(getStationFromHash('#/wall-sim')).toBe('wall-sim')
   })
 
+  it('resolves the station monitor simulator hash', () => {
+    expect(getStationFromHash('#/station-sim')).toBe('station-sim')
+  })
+
   it('resolves the wall calibrate hash', () => {
     expect(getStationFromHash('#/wall-cal')).toBe('wall-cal')
   })
@@ -66,6 +70,8 @@ describe('getStationFromHash', () => {
     expect(isKioskBlockedStation('orb')).toBe(true)
     expect(isKioskBlockedStation('cards')).toBe(true)
     expect(isKioskBlockedStation('photobash')).toBe(true)
+    expect(isKioskBlockedStation('wall-sim')).toBe(true)
+    expect(isKioskBlockedStation('station-sim')).toBe(true)
     expect(isKioskBlockedStation('station-1')).toBe(false)
     expect(isKioskBlockedStation('station-2')).toBe(false)
     expect(isKioskBlockedStation('mirror')).toBe(false)
@@ -81,6 +87,7 @@ describe('getStationHref', () => {
     expect(getStationHref('station-2')).toBe('#/station-2')
     expect(getStationHref('face-align')).toBe('#/face-align')
     expect(getStationHref('wall-sim')).toBe('#/wall-sim')
+    expect(getStationHref('station-sim')).toBe('#/station-sim')
     expect(getStationHref('wall-cal')).toBe('#/wall-cal')
     expect(getStationHref('photobash')).toBe('#/photobash')
   })

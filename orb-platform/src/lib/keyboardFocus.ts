@@ -10,6 +10,13 @@ export type KeyboardFocusLabels = {
   prompt?: string
 }
 
+let focusSeq = 0
+
+export function nextKeyboardFocusSeq() {
+  focusSeq += 1
+  return focusSeq
+}
+
 export function keyboardFocusForQuestion(
   question: { type: string; numeric?: boolean } | undefined,
 ): KeyboardFocusMode {
@@ -32,7 +39,8 @@ export function publishKeyboardFocus(
     right?: string
     value?: number
     prompt?: string
-  } = { mode }
+    seq: number
+  } = { mode, seq: nextKeyboardFocusSeq() }
   const prompt = labels?.prompt?.trim()
   if (prompt) data.prompt = prompt
   if (mode === 'yesno') {

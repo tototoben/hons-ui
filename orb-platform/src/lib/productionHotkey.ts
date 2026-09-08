@@ -8,20 +8,35 @@ function isTyping(): boolean {
   return typeof document !== 'undefined' && isTypingTarget(document.activeElement)
 }
 
-export function isProductionHotkey(
-  event: Pick<KeyboardEvent, 'code' | 'shiftKey' | 'metaKey' | 'ctrlKey' | 'repeat'>,
-): boolean {
+type OperatorChordEvent = Pick<
+  KeyboardEvent,
+  'code' | 'shiftKey' | 'altKey' | 'metaKey' | 'ctrlKey' | 'repeat'
+>
+
+/** iPad station keyboard has Alt and Shift, not Ctrl. Mac keeps Cmd. */
+function hasOperatorModifier(event: OperatorChordEvent): boolean {
+  return event.altKey || event.metaKey
+}
+
+function isOperatorChord(event: OperatorChordEvent, code: string): boolean {
   if (event.repeat) return false
-  if (isTyping()) return false
-  if (event.code !== 'KeyP' || !event.shiftKey) return false
-  return event.metaKey || event.ctrlKey
+  if (event.code !== code || !event.shiftKey) return false
+  if (event.ctrlKey && !event.altKey && !event.metaKey) return false
+  return hasOperatorModifier(event)
+}
+
+export function isProductionHotkey(event: OperatorChordEvent): boolean {
+  return isOperatorChord(event, 'KeyP')
+}
+
+export function isStationRestartHotkey(event: OperatorChordEvent): boolean {
+  return isOperatorChord(event, 'KeyR')
 }
 
 export function isPickerDismissKey(
-  event: Pick<KeyboardEvent, 'key' | 'code' | 'shiftKey' | 'metaKey' | 'ctrlKey' | 'repeat'>,
+  event: Pick<KeyboardEvent, 'key' | 'code' | 'shiftKey' | 'altKey' | 'metaKey' | 'ctrlKey' | 'repeat'>,
 ): boolean {
   if (event.repeat) return false
-  if (isTyping()) return false
-  if (event.key === 'Escape') return true
+  if (event.key === 'Escape') return !isTyping()
   return isProductionHotkey(event)
 }

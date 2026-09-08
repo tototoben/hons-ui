@@ -15,7 +15,10 @@ export function DevicePicker({
 }) {
   return (
     <section className="device-picker" aria-label="Production lock">
-      <p className="device-picker-kicker">Lock this machine</p>
+      <div className="device-picker-copy">
+        <p className="device-picker-kicker">Lock this machine</p>
+        <p className="device-picker-hint">Alt+Shift+P to open · Alt+Shift+R to restart</p>
+      </div>
       <ul className="device-picker-list">
         {pickerChoices(quality).map((lock) => (
           <li key={lock}>
@@ -26,9 +29,14 @@ export function DevicePicker({
         ))}
       </ul>
       {quality === 'full' ? (
-        <a className="device-picker-sim" href="#/wall-sim">
-          Wall sim
-        </a>
+        <div className="device-picker-sims">
+          <a className="device-picker-sim" href="#/wall-sim">
+            Wall sim
+          </a>
+          <a className="device-picker-sim" href="#/station-sim">
+            Station sim
+          </a>
+        </div>
       ) : null}
     </section>
   )

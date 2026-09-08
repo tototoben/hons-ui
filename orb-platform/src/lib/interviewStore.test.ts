@@ -6,6 +6,7 @@ import {
   parseStationTwoState,
   peekStationTwoState,
   resetInterview,
+  resetStationTwoState,
   saveStationOneState,
   saveStationTwoState,
   STATION_ONE_STORAGE_KEY,
@@ -96,6 +97,17 @@ describe('interviewStore', () => {
         previousRelationships: 'maybe',
       }),
     ).toMatchObject({ age: null, previousRelationships: null })
+  })
+
+  it('clears only Station II on a station restart', () => {
+    const storage = memoryStorage()
+    saveStationOneState(createStationOneState({ answers: { callName: 'Ada' } }), storage)
+    saveStationTwoState(createStationTwoState({ answers: { attractiveness: 'yes' } }), storage)
+
+    resetStationTwoState(storage)
+
+    expect(loadStationOneState(storage)?.answers.callName).toBe('Ada')
+    expect(loadStationTwoState(storage)).toBeNull()
   })
 
   it('clears both station keys on reset', () => {

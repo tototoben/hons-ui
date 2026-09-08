@@ -6,6 +6,7 @@ export type StationRoute =
   | 'station-2'
   | 'face-align'
   | 'wall-sim'
+  | 'station-sim'
   | 'wall-cal'
   | 'photobash'
   | 'debra-capture'
@@ -17,6 +18,7 @@ export function getStationFromHash(hash: string): StationRoute {
   if (hash === '#/station-2') return 'station-2'
   if (hash === '#/face-align') return 'face-align'
   if (hash === '#/wall-sim') return 'wall-sim'
+  if (hash === '#/station-sim') return 'station-sim'
   if (hash === '#/wall-cal') return 'wall-cal'
   if (hash === '#/photobash') return 'photobash'
   if (hash === '#/debra-capture') return 'debra-capture'
@@ -38,6 +40,7 @@ export function isKioskBlockedStation(station: StationRoute) {
     station === 'cards' ||
     station === 'face-align' ||
     station === 'wall-sim' ||
+    station === 'station-sim' ||
     station === 'wall-cal' ||
     station === 'debra-capture' ||
     station === 'photobash'

@@ -35,11 +35,12 @@ describe('station composition', () => {
     expect(appSource).toContain('DeviceUnlockLayer')
     expect(appSource).toContain('PhotobashScreen')
     expect(appSource).toContain('isProductionHotkey')
+    expect(appSource).toContain('isStationRestartHotkey')
     expect(appSource).toContain("station === 'photobash'")
   })
 
   it('keeps Station III as the kiosk ThirdStation only', () => {
-    expect(appSource).toContain('<ThirdStation />')
+    expect(appSource).toContain('<ThirdStation key={stationSession} />')
     expect(appSource).not.toContain('WallCollageBlanket')
   })
 

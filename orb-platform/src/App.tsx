@@ -16,11 +16,14 @@ import {
   writeDeviceLock,
   type DeviceLock,
 } from './lib/deviceLock'
-import { isPickerDismissKey, isProductionHotkey } from './lib/productionHotkey'
+import { isPickerDismissKey, isProductionHotkey, isStationRestartHotkey } from './lib/productionHotkey'
+import { resetCurrentStationMemory, stationFirehoseId } from './lib/stationSession'
+import { parseStationSimFrame } from './lib/stationSimLayout'
 import { isWallMode } from './lib/wallMode'
 import { isWallRoleMode, parseWallRole } from './lib/wallRole'
 import { showTuningPanel } from './lib/tune'
 import { connectIpadSimLink } from './lib/ipadSimLink'
+import { publishKeyboardFocus } from './lib/keyboardFocus'
 import {
   getStationFromHash,
   getStationHref,
@@ -54,6 +57,9 @@ const WallCalibrate = lazy(() =>
   import('./components/WallCalibrate').then((m) => ({ default: m.WallCalibrate })),
 )
 const WallSim = lazy(() => import('./components/WallSim').then((m) => ({ default: m.WallSim })))
+const StationSim = lazy(() =>
+  import('./components/StationSim').then((m) => ({ default: m.StationSim })),
+)
 const OrbStation = lazy(() =>
   import('./components/OrbStation').then((m) => ({ default: m.OrbStation })),
 )
@@ -68,6 +74,7 @@ export default function App() {
   const [lock, setLock] = useState<DeviceLock | null>(() => readDeviceLock())
   const [quality] = useState(() => getDeviceQuality())
   const [pickerOpen, setPickerOpen] = useState(false)
+  const [stationSession, setStationSession] = useState(0)
   const [routeHash, setRouteHash] = useState(() => window.location.hash)
   const [station, setStation] = useState<StationRoute>(() =>
     getStationFromHash(window.location.hash),
@@ -76,6 +83,8 @@ export default function App() {
   const [wallRole] = useState(() => parseWallRole())
   const lockedStation = lock ? lockToStation(lock) : null
   const isWallSim = station === 'wall-sim'
+  const isStationSim = station === 'station-sim'
+  const isStationSimFrame = parseStationSimFrame()
   const isWallPanel = wallRole !== null
   const showPicker =
     pickerOpen ||
@@ -87,6 +96,8 @@ export default function App() {
     wallCropMode ||
     isWallRoleMode() ||
     station === 'wall-sim' ||
+    station === 'station-sim' ||
+    isStationSimFrame ||
     station === 'wall-cal' ||
     station === 'debra-capture'
   const showMainNav = !hideChrome
@@ -111,11 +122,22 @@ export default function App() {
     setPickerOpen(false)
   }, [])
 
+  const restartStation = useCallback(() => {
+    const current = lock ? lockToStation(lock) : station
+    if (!resetCurrentStationMemory(current)) return
+    setStationSession((value) => value + 1)
+  }, [lock, station])
+
   useEffect(() => {
     applyDeviceQuality()
   }, [])
 
-  useEffect(() => connectIpadSimLink(), [])
+  useEffect(() => {
+    // One long-lived HTTP stream per interactive station. Wall iframes must
+    // leave connections available for lazy modules, face images and WASM.
+    if (isWallPanel || isWallSim || isStationSim || station === 'photobash') return
+    return connectIpadSimLink()
+  }, [isWallPanel, isWallSim, isStationSim, station])
 
   useEffect(() => {
     perfSetView(station)
@@ -131,7 +153,7 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    if (!lock || isWallSim || isWallPanel) return
+    if (!lock || isWallSim || isStationSim || isStationSimFrame || isWallPanel) return
     const href = lockHref(lock)
     if (window.location.hash !== href) {
       window.history.replaceState(null, '', href)
@@ -140,6 +162,8 @@ export default function App() {
     }
     const onHashChange = () => {
       if (getStationFromHash(window.location.hash) === 'wall-sim') return
+      if (getStationFromHash(window.location.hash) === 'station-sim') return
+      if (parseStationSimFrame()) return
       if (parseWallRole()) return
       if (window.location.hash !== href) {
         window.history.replaceState(null, '', href)
@@ -147,7 +171,7 @@ export default function App() {
     }
     window.addEventListener('hashchange', onHashChange)
     return () => window.removeEventListener('hashchange', onHashChange)
-  }, [isWallPanel, isWallSim, lock])
+  }, [isWallPanel, isStationSim, isStationSimFrame, isWallSim, lock])
 
   useEffect(() => {
     const onStorage = (event: StorageEvent) => {
@@ -159,7 +183,21 @@ export default function App() {
   }, [])
 
   useEffect(() => {
+    if (!showPicker) return
+    const current = lock ? lockToStation(lock) : station
+    const id = stationFirehoseId(current)
+    if (!id) return
+    publishKeyboardFocus(id, 'hidden')
+  }, [lock, showPicker, station])
+
+  useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
+      if (isStationRestartHotkey(event)) {
+        event.preventDefault()
+        event.stopPropagation()
+        restartStation()
+        return
+      }
       if (pickerOpen && isPickerDismissKey(event)) {
         event.preventDefault()
         event.stopPropagation()
@@ -172,9 +210,9 @@ export default function App() {
         setPickerOpen(true)
       }
     }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [pickerOpen])
+    window.addEventListener('keydown', onKeyDown, true)
+    return () => window.removeEventListener('keydown', onKeyDown, true)
+  }, [pickerOpen, restartStation])
 
   return (
     <main className="experience">
@@ -212,27 +250,29 @@ export default function App() {
           <DevicePicker quality={quality} onLock={applyLock} />
         ) : isWallSim ? (
           <WallSim />
-        ) : lock && isWallPanel ? (
+        ) : isStationSim ? (
+          <StationSim />
+        ) : !isStationSimFrame && lock && isWallPanel ? (
           <PhotobashScreen />
-        ) : lock && lockedStation === 'photobash' ? (
+        ) : !isStationSimFrame && lock && lockedStation === 'photobash' ? (
           <PhotobashScreen />
-        ) : lock && lockedStation === 'station-1' ? (
+        ) : !isStationSimFrame && lock && lockedStation === 'station-1' ? (
           <MirrorPreviewFrame>
-            <StationOne />
+            <StationOne key={stationSession} />
           </MirrorPreviewFrame>
-        ) : lock && lockedStation === 'station-2' ? (
+        ) : !isStationSimFrame && lock && lockedStation === 'station-2' ? (
           <MirrorPreviewFrame>
-            <StationTwo />
+            <StationTwo key={stationSession} />
           </MirrorPreviewFrame>
-        ) : lock ? (
-          <ThirdStation />
+        ) : !isStationSimFrame && lock ? (
+          <ThirdStation key={stationSession} />
         ) : station === 'station-1' ? (
           <MirrorPreviewFrame>
-            <StationOne />
+            <StationOne key={stationSession} />
           </MirrorPreviewFrame>
         ) : station === 'station-2' ? (
           <MirrorPreviewFrame>
-            <StationTwo />
+            <StationTwo key={stationSession} />
           </MirrorPreviewFrame>
         ) : station === 'orb' ? (
           <OrbStation />
@@ -247,10 +287,10 @@ export default function App() {
             <ThirdStationWall role={wallRole} />
           ) : wallCropMode ? (
             <WallModeViewport>
-              <ThirdStation />
+              <ThirdStation key={stationSession} />
             </WallModeViewport>
           ) : (
-            <ThirdStation />
+            <ThirdStation key={stationSession} />
           )
         ) : station === 'photobash' ? (
           <PhotobashScreen />

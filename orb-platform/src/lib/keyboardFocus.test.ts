@@ -46,8 +46,17 @@ describe('publishKeyboardFocus', () => {
         left: 'YES',
         right: 'NO',
         prompt: 'Is attractiveness important to you?',
+        seq: expect.any(Number),
       }),
     )
+  })
+
+  it('bumps seq so the iPad applies a repeat of the same layout', () => {
+    publishKeyboardFocus('station-2', 'hidden')
+    publishKeyboardFocus('station-2', 'hidden')
+    const first = vi.mocked(publish).mock.calls[0][2] as { seq: number }
+    const second = vi.mocked(publish).mock.calls[1][2] as { seq: number }
+    expect(second.seq).toBeGreaterThan(first.seq)
   })
 })
 

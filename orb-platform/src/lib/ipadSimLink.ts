@@ -9,6 +9,9 @@ export type RemoteKeyPayload = {
   special?: 'return' | 'backspace' | 'tab' | 'confirm'
   slider?: number
   seq?: number
+  alt?: boolean
+  shift?: boolean
+  ctrl?: boolean
 }
 
 export const REMOTE_SLIDER_EVENT = 'hons-remote-slider'
@@ -67,6 +70,12 @@ function typingField() {
   return document.querySelector<HTMLInputElement>('.journey-intake input')
 }
 
+function codeForKey(ch: string): string | undefined {
+  if (ch.length === 1 && /[a-z]/i.test(ch)) return `Key${ch.toUpperCase()}`
+  if (ch === ' ') return 'Space'
+  return undefined
+}
+
 export function applyRemoteKey(payload: RemoteKeyPayload) {
   if (typeof payload.slider === 'number' && Number.isFinite(payload.slider)) {
     applyRemoteSlider(payload.slider, payload.seq)
@@ -101,11 +110,25 @@ export function applyRemoteKey(payload: RemoteKeyPayload) {
   }
   const ch = payload.key
   if (!ch) return
+  const altKey = Boolean(payload.alt)
+  const shiftKey = Boolean(payload.shift)
+  const ctrlKey = Boolean(payload.ctrl)
+  const operatorChord = altKey || ctrlKey
   const field = typingField()
-  if (field) {
+  if (field && !operatorChord) {
     setNativeValue(field, field.value + ch)
   }
-  window.dispatchEvent(new KeyboardEvent('keydown', { key: ch, bubbles: true }))
+  window.dispatchEvent(
+    new KeyboardEvent('keydown', {
+      key: ch,
+      code: codeForKey(ch),
+      altKey,
+      shiftKey,
+      ctrlKey,
+      bubbles: true,
+      cancelable: true,
+    }),
+  )
 }
 
 function installScaleConfirmKeys() {

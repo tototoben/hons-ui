@@ -167,6 +167,16 @@ export function saveStationTwoState(
   writeJson(STATION_TWO_STORAGE_KEY, state, storage)
 }
 
+export function resetStationTwoState(
+  storage: InterviewStorage | undefined = defaultStorage(),
+) {
+  try {
+    storage?.removeItem(STATION_TWO_STORAGE_KEY)
+  } catch {
+    // Storage can be unavailable in privacy-restricted kiosk browsers.
+  }
+}
+
 export function resetInterview(
   storage: InterviewStorage | undefined = defaultStorage(),
 ) {

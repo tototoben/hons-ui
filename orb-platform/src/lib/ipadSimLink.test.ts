@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { applyRemoteKey, resetRemoteSliderSeq } from './ipadSimLink'
 
 describe('applyRemoteKey', () => {
@@ -75,5 +75,24 @@ describe('applyRemoteKey', () => {
 
     applyRemoteKey({ special: 'confirm' })
     expect(confirmed).toBe(true)
+  })
+
+  it('dispatches Alt+Shift+P with a KeyP code and does not type into the intake field', () => {
+    const input = document.createElement('input')
+    input.className = 'journey-intake'
+    document.body.append(input)
+    input.focus()
+    const onKey = vi.fn()
+    window.addEventListener('keydown', onKey)
+
+    applyRemoteKey({ key: 'p', alt: true, shift: true })
+
+    expect(input.value).toBe('')
+    expect(onKey).toHaveBeenCalled()
+    const event = onKey.mock.calls[0][0] as KeyboardEvent
+    expect(event.code).toBe('KeyP')
+    expect(event.altKey).toBe(true)
+    expect(event.shiftKey).toBe(true)
+    window.removeEventListener('keydown', onKey)
   })
 })

@@ -27,16 +27,19 @@ describe('DevicePicker', () => {
     act(() => root.render(<DevicePicker quality="full" onLock={onLock} />))
     const labels = [...container.querySelectorAll('button')].map((button) => button.textContent)
     expect(labels).toEqual(['Station I', 'Station II', 'Station III', 'Photobash'])
+    expect(container.querySelector('.device-picker-hint')?.textContent).toContain('Alt+Shift+P')
 
     act(() => root.render(<DevicePicker quality="kiosk" onLock={onLock} />))
     const kioskLabels = [...container.querySelectorAll('button')].map((button) => button.textContent)
     expect(kioskLabels).toEqual(['Station I', 'Station II', 'Station III'])
     expect(container.querySelector('a[href="#/wall-sim"]')).toBeNull()
+    expect(container.querySelector('a[href="#/station-sim"]')).toBeNull()
   })
 
-  it('links to the wall simulator on full quality', () => {
+  it('links to the wall and station simulators on full quality', () => {
     act(() => root.render(<DevicePicker quality="full" onLock={vi.fn()} />))
     expect(container.querySelector('a[href="#/wall-sim"]')?.textContent).toBe('Wall sim')
+    expect(container.querySelector('a[href="#/station-sim"]')?.textContent).toBe('Station sim')
   })
 
   it('emits station-1 when Station I is chosen', () => {

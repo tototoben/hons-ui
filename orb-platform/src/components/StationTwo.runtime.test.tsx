@@ -25,7 +25,7 @@ import { StationTwo } from './StationTwo'
 import { applyStationVibe } from '../lib/stationVibe'
 import { resetVisitorProfile, setVisitorProfile } from '../lib/visitorProfile'
 import { clearDeviceLock, writeDeviceLock } from '../lib/deviceLock'
-import { saveStationTwoState } from '../lib/interviewStore'
+import { resetStationTwoState, saveStationTwoState } from '../lib/interviewStore'
 import { createStationTwoState } from '../lib/mirrorJourney'
 import { applyRemoteKey, resetRemoteSliderSeq } from '../lib/ipadSimLink'
 import * as firehose from '../lib/firehose'
@@ -279,6 +279,33 @@ describe('StationTwo', () => {
 
     expect(container.textContent).toContain('Is attractiveness important to you?')
     expect(container.textContent).not.toContain('category Rho106')
+  })
+
+  it('wipes mid-interview answers and tells the iPad to hide until the first question', () => {
+    saveStationTwoState(
+      createStationTwoState({
+        phase: 'question',
+        questionIndex: 4,
+        answers: { attractiveness: 'yes' },
+        age: 25,
+        previousRelationships: 'yes',
+      }),
+    )
+    resetStationTwoState()
+    const publish = vi.spyOn(firehose, 'publish')
+    act(() => root.render(<StationTwo phaseDurationMs={20} />))
+
+    expect(container.textContent).toContain('You have been placed in category Rho106.')
+    expect(publish).toHaveBeenCalledWith(
+      'station-2',
+      'keyboard_focus',
+      expect.objectContaining({ mode: 'hidden' }),
+    )
+    expect(publish).not.toHaveBeenCalledWith(
+      'station-2',
+      'keyboard_focus',
+      expect.objectContaining({ prompt: 'Is attractiveness important to you?' }),
+    )
   })
 
   it('publishes keyboard_focus with the current question prompt', async () => {
