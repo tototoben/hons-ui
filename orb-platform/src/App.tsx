@@ -6,6 +6,8 @@ import { WallModeViewport } from './components/WallModeViewport'
 import { applyDeviceQuality, getDeviceQuality } from './lib/deviceQuality'
 import { resetVisitorProfile } from './lib/visitorProfile'
 import { resetVisitorFaceCapture } from './lib/visitorFaceCapture'
+import { resetInterview } from './lib/interviewStore'
+import { resetVisitorIntro } from './lib/visitorIntro'
 import { perfSetView } from './lib/perfMonitor'
 import {
   STORAGE_KEY,
@@ -127,6 +129,23 @@ export default function App() {
     if (!resetCurrentStationMemory(current)) return
     setStationSession((value) => value + 1)
   }, [lock, station])
+
+  useEffect(() => {
+    const onMessage = (event: MessageEvent) => {
+      const data = event.data
+      if (!data || data.source !== 'orb-firehose' || data.event !== 'room-reset') return
+      // Full room reset: wipe all local state and remount.
+      resetInterview()
+      resetVisitorProfile()
+      resetVisitorFaceCapture()
+      resetVisitorIntro()
+      try { localStorage.removeItem('hons-photobash-reveal') } catch { /* kiosk browser may block */ }
+      setStationSession((value) => value + 1)
+      console.log('[reset] room-reset received — local state cleared')
+    }
+    window.addEventListener('message', onMessage)
+    return () => window.removeEventListener('message', onMessage)
+  }, [])
 
   useEffect(() => {
     applyDeviceQuality()
