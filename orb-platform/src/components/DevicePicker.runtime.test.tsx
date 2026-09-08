@@ -29,6 +29,7 @@ describe('DevicePicker', () => {
     expect(labels).toEqual(['Station I', 'Station II', 'Station III', 'Photobash'])
     expect(container.querySelector('.device-picker-hint')?.textContent).toContain('1 / 2 / 3')
     expect(container.querySelector('.device-picker-hint')?.textContent).toContain('Alt+Shift+P')
+    expect(container.querySelector('.device-picker-hint')?.textContent).toContain('Alt+Shift+T')
 
     act(() => root.render(<DevicePicker quality="kiosk" onLock={onLock} />))
     const kioskLabels = [...container.querySelectorAll('button')].map((button) => button.textContent)

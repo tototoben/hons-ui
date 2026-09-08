@@ -35,6 +35,10 @@ export function isStationRestartHotkey(event: OperatorChordEvent): boolean {
   return isOperatorChord(event, 'KeyR')
 }
 
+export function isTranscriptHotkey(event: OperatorChordEvent): boolean {
+  return isOperatorChord(event, 'KeyT')
+}
+
 export function isPickerDismissKey(
   event: Pick<KeyboardEvent, 'key' | 'code' | 'shiftKey' | 'altKey' | 'metaKey' | 'ctrlKey' | 'repeat'>,
 ): boolean {

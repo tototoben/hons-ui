@@ -13,8 +13,11 @@ import { readDeviceLock } from '../lib/deviceLock'
 import { showTuningPanel } from '../lib/tune'
 import { useMicLevel } from '../hooks/useMicLevel'
 import { useSpeechDictation } from '../hooks/useSpeechDictation'
+import { useWhisperDictation } from '../hooks/useWhisperDictation'
 import { useStationVibe } from '../hooks/useStationVibe'
 import { submitKioskInterview } from '../lib/arsIngest'
+import { captionLines } from '../lib/captionLines'
+import { isTranscriptHotkey } from '../lib/productionHotkey'
 import type { WallPhase } from '../lib/wallPhaseSync'
 import { publish } from '../lib/firehose'
 import { publishKeyboardFocus } from '../lib/keyboardFocus'
@@ -346,13 +349,19 @@ function remainingArcPath(cx: number, cy: number, r: number, remaining: number) 
 function RecordingStage({
   secondsLeft,
   totalSeconds,
+  transcript,
+  stream,
 }: {
   secondsLeft: number
   totalSeconds: number
+  transcript: string
+  stream: MediaStream | null
 }) {
   const remaining = Math.max(0, Math.min(1, secondsLeft / totalSeconds))
-  const bars = useMicLevel(true)
+  const bars = useMicLevel(true, stream)
   const arc = remainingArcPath(40, 40, 34, remaining)
+  const spoken = transcript.trim()
+  const lines = captionLines(spoken, 3, 28)
 
   return (
     <div className="mirror-screen mirror-screen-recording is-live">
@@ -373,14 +382,19 @@ function RecordingStage({
           </span>
         </div>
         <div className="mirror-record-body">
-          <JourneyHeadline
-            as="p"
-            className="mirror-record-prompt"
-            lines={['speak about', 'yourself']}
-            fontPx={52}
-          >
-            speak about yourself
-          </JourneyHeadline>
+          {spoken ? (
+            <p className="mirror-record-caption">{lines.join('\n')}</p>
+          ) : (
+            <JourneyHeadline
+              as="p"
+              className="mirror-record-prompt"
+              lines={lines}
+              fontPx={52}
+              fade={false}
+            >
+              speak about yourself
+            </JourneyHeadline>
+          )}
           <div className="mirror-record-levels" aria-hidden="true">
             {bars.map((value, i) => (
               <span
@@ -439,8 +453,22 @@ export function ThirdStation() {
   const prevPhaseRef = useRef<Phase | null>(null)
   const recording = phase === 'recording'
   const spokenIntro = useSpeechDictation(recording)
+  const whisper = useWhisperDictation(recording)
+  const caption = spokenIntro.trim() || whisper.text
   const spokenRef = useRef('')
-  spokenRef.current = spokenIntro
+  spokenRef.current = caption
+  const flushIntro = whisper.flush
+  const [showCaption, setShowCaption] = useState(false)
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!isTranscriptHotkey(event)) return
+      event.preventDefault()
+      setShowCaption((on) => !on)
+    }
+    window.addEventListener('keydown', onKeyDown, true)
+    return () => window.removeEventListener('keydown', onKeyDown, true)
+  }, [])
 
   useEffect(() => {
     publish('station-3', 'station_mounted', { phase: 'intro' })
@@ -455,10 +483,12 @@ export function ThirdStation() {
       prevPhaseRef.current = phase
     }
     if (phase === 'loading') {
-      submitKioskInterview(spokenRef.current)
       notifyRevealReady()
+      void flushIntro().then((final) => {
+        submitKioskInterview(final.trim() || spokenRef.current)
+      })
     }
-  }, [phase])
+  }, [phase, flushIntro])
 
   // Phase advance chain — reads current durations at the moment each timer
   // is scheduled, so tuning the panel mid-loop takes effect next cycle
@@ -567,6 +597,8 @@ export function ThirdStation() {
           <RecordingStage
             secondsLeft={recordSecondsLeft}
             totalSeconds={mirrorSettings.timing.recordingSeconds}
+            transcript={showCaption ? caption : ''}
+            stream={whisper.stream}
           />
         ) : null}
 
