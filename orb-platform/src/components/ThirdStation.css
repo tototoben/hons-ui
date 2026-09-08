@@ -41,7 +41,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: flex-end;
-  padding: 8vh 24px var(--question-desk-bottom, 12vh);
+  padding: 20px;
 }
 
 /* Persistent outer HUD chrome — just the status readout now (the corner
@@ -200,7 +200,7 @@
 
 .mirror-record-frame {
   position: relative;
-  width: min(86vw, 440px);
+  width: min(calc(100vw - 40px), calc((100vh - 40px) * 3 / 4));
   aspect-ratio: 3 / 4;
   border: 1px dashed color-mix(in srgb, var(--mirror-accent) 55%, transparent);
   border-radius: 6px;

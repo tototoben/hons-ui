@@ -1,6 +1,7 @@
 import {
   lazy,
   Suspense,
+  useCallback,
   useEffect,
   useRef,
   useState,
@@ -20,7 +21,7 @@ import { captionLines } from '../lib/captionLines'
 import { isTranscriptHotkey } from '../lib/productionHotkey'
 import type { WallPhase } from '../lib/wallPhaseSync'
 import { publish } from '../lib/firehose'
-import { publishKeyboardFocus } from '../lib/keyboardFocus'
+import { publishKeyboardFocus, startKeyboardFocusHeartbeat } from '../lib/keyboardFocus'
 import { PHOTOBASH_FILL_MS } from '../lib/photobashLoop'
 import { notifyRevealReadyFromVisit } from '../lib/photobashTrigger'
 import { MirrorGuideOrb } from './MirrorGuideOrb'
@@ -471,6 +472,15 @@ export function ThirdStation() {
 
   const [phase, setPhase] = useState<Phase>('intro')
   const [countdown, setCountdown] = useState<number | null>(null)
+  // Gate between "introduce yourself" and the recording countdown --
+  // waits for an explicit Yes (iPad button / 'y' key, same remote-input
+  // path MirrorChoice uses) so the recording frame never appears until
+  // the visitor actually confirms they're ready.
+  const [awaitingReady, setAwaitingReady] = useState(false)
+  // 'yes' or 'skip' -- whichever the visitor pressed at the Ready gate.
+  // A ref (not state) since it only needs to be read once, later, inside
+  // the phase==='loading' completion effect below.
+  const readyAnswerRef = useRef<'yes' | 'skip' | null>(null)
   const [recordSecondsLeft, setRecordSecondsLeft] = useState(mirrorSettings.timing.recordingSeconds)
   const [loadingProgress, setLoadingProgress] = useState(0)
   const prevPhaseRef = useRef<Phase | null>(null)
@@ -508,13 +518,28 @@ export function ThirdStation() {
     }
     if (phase === 'loading' && !completionRef.current) {
       completionRef.current = true
-      void notifyRevealReadyFromVisit().then(() => {
+      void notifyRevealReadyFromVisit(undefined, undefined, readyAnswerRef.current ?? undefined).then(() => {
         void flushIntro().then((final) => {
           submitKioskInterview(final.trim() || spokenRef.current)
         })
       })
     }
   }, [phase, flushIntro])
+
+  const startRecordingCountdown = useCallback(() => {
+    const t = mirrorSettings.timing
+    setCountdown(3)
+    window.setTimeout(() => {
+      setCountdown(2)
+      window.setTimeout(() => {
+        setCountdown(1)
+        window.setTimeout(() => {
+          setCountdown(null)
+          setPhase('recording')
+        }, t.countdownStepSeconds * 1000)
+      }, t.countdownStepSeconds * 1000)
+    }, t.countdownStepSeconds * 1000)
+  }, [])
 
   // Phase advance chain — reads current durations at the moment each timer
   // is scheduled, so tuning the panel mid-loop takes effect next cycle
@@ -527,27 +552,9 @@ export function ThirdStation() {
       timers.push(window.setTimeout(() => setPhase('prompt'), t.introSeconds * 1000))
     } else if (phase === 'prompt') {
       setCountdown(null)
-      timers.push(
-        window.setTimeout(() => {
-          setCountdown(3)
-          timers.push(
-            window.setTimeout(() => {
-              setCountdown(2)
-              timers.push(
-                window.setTimeout(() => {
-                  setCountdown(1)
-                  timers.push(
-                    window.setTimeout(() => {
-                      setCountdown(null)
-                      setPhase('recording')
-                    }, t.countdownStepSeconds * 1000),
-                  )
-                }, t.countdownStepSeconds * 1000),
-              )
-            }, t.countdownStepSeconds * 1000),
-          )
-        }, t.promptSeconds * 1000),
-      )
+      if (!awaitingReady) {
+        timers.push(window.setTimeout(() => setAwaitingReady(true), t.promptSeconds * 1000))
+      }
     } else if (phase === 'recording') {
       setRecordSecondsLeft(t.recordingSeconds)
       timers.push(window.setTimeout(() => setPhase('loading'), t.recordingSeconds * 1000))
@@ -559,6 +566,36 @@ export function ThirdStation() {
     return () => timers.forEach((id) => window.clearTimeout(id))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase])
+
+  useEffect(() => {
+    if (!awaitingReady) return
+    const stopHeartbeat = startKeyboardFocusHeartbeat('station-3', 'yesno', {
+      prompt: 'Ready?',
+      left: 'Yes',
+      right: 'Skip',
+    })
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.repeat) return
+      const key = event.key.toLowerCase()
+      if (key !== 'y' && key !== 'n') return
+      event.preventDefault()
+      setAwaitingReady(false)
+      publishKeyboardFocus('station-3', 'hidden')
+      if (key === 'y') {
+        readyAnswerRef.current = 'yes'
+        startRecordingCountdown()
+      } else {
+        // Skip -- decline to record, go straight to the match/loading step.
+        readyAnswerRef.current = 'skip'
+        setPhase('loading')
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+      stopHeartbeat()
+    }
+  }, [awaitingReady, startRecordingCountdown])
 
   // Second-by-second recording countdown display + smooth loading progress —
   // both derived from elapsed time against the same durations used above.
@@ -609,7 +646,7 @@ export function ThirdStation() {
           </div>
         ) : null}
 
-        {phase === 'prompt' ? (
+        {phase === 'prompt' && !awaitingReady ? (
           <div className="mirror-screen mirror-screen-prompt">
             <GuideOrb variant="idle" />
             <MirrorHeadline
@@ -617,6 +654,13 @@ export function ThirdStation() {
               className="mirror-headline"
             />
             <Dots lit={countdown === null ? 0 : 4 - countdown} />
+          </div>
+        ) : null}
+
+        {phase === 'prompt' && awaitingReady ? (
+          <div className="mirror-screen mirror-screen-prompt">
+            <GuideOrb variant="idle" />
+            <MirrorHeadline lines={['Ready?']} className="mirror-headline" />
           </div>
         ) : null}
 

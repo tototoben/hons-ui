@@ -53,6 +53,7 @@ export function notifyRevealReady(
   seed: number = mintPhotobashSeed(),
   storage: Pick<Storage, 'setItem'> | undefined = defaultStorage(),
   cue: CollageCue = collageCueFromLocalAnswers(),
+  readyAnswer?: 'yes' | 'skip',
 ): number {
   const message: RevealReadyMessage = {
     type: 'reveal-ready',
@@ -70,7 +71,16 @@ export function notifyRevealReady(
     channel.postMessage(message)
     channel.close()
   }
-  publish('station-3', 'reveal_ready', { photobashSeed: seed, collageCue: cue })
+  // readyAnswer ("yes" | "skip") rides along in the ui/event data so it
+  // lands in central's persisted visit.aggregated_data via the station-3
+  // "reveal_ready" done-event -- same mechanism stations 1/2 use to save
+  // their intake answers, just carried on this event instead of a
+  // dedicated one, since reveal_ready is station 3's done-event.
+  publish('station-3', 'reveal_ready', {
+    photobashSeed: seed,
+    collageCue: cue,
+    ...(readyAnswer ? { readyAnswer } : {}),
+  })
   return seed
 }
 
@@ -78,7 +88,8 @@ export function notifyRevealReady(
 export async function notifyRevealReadyFromVisit(
   seed: number = mintPhotobashSeed(),
   storage: Pick<Storage, 'setItem'> | undefined = defaultStorage(),
+  readyAnswer?: 'yes' | 'skip',
 ): Promise<number> {
   const cue = await collageCueFromVisitCentral()
-  return notifyRevealReady(seed, storage, cue)
+  return notifyRevealReady(seed, storage, cue, readyAnswer)
 }

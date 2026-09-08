@@ -92,6 +92,15 @@ export function useMirrorCamera({
   }
 
   useEffect(() => {
+    // Camera hardware should only be requested while something actually
+    // needs it (the scan phases) -- not for the whole time the station is
+    // mounted, which would leave the camera indicator light on during
+    // intake / complete / etc. `tracking` mirrors that intent.
+    if (!tracking) {
+      setStatus('starting')
+      return
+    }
+
     let cancelled = false
     let stream: MediaStream | null = null
     let permissionTimer: ReturnType<typeof setTimeout> | undefined
@@ -233,7 +242,7 @@ export function useMirrorCamera({
         video.srcObject = null
       }
     }
-  }, [selectedDeviceId])
+  }, [selectedDeviceId, tracking])
 
   useEffect(() => {
     if (!tracking || status !== 'active') {
