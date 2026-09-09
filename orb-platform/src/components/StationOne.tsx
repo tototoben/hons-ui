@@ -179,7 +179,6 @@ export function StationOne({ phaseDurationMs = 2200 }: { phaseDurationMs?: numbe
           ) : (
             <p className="journey-ipad-hint">Type on the iPad</p>
           )}
-          <JourneyButton type="submit">Continue</JourneyButton>
         </form>
       ) : null}
 

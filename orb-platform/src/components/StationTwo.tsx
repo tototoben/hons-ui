@@ -497,7 +497,6 @@ function StationTwoTextQuestion({
       ) : (
         <p className="journey-ipad-hint">Type on the iPad</p>
       )}
-      <JourneyButton type="submit">Continue</JourneyButton>
     </form>
   )
 }
