@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import {
   PHOTOBASH_CYCLE_MS,
   PHOTOBASH_FILL_MS,
+  DEFAULT_PLACEHOLDER_PHOTOBASH_SEED,
+  PLACEHOLDER_PHOTOBASH_SEEDS,
   mintPhotobashSeed,
   photobashProgress,
 } from './photobashLoop'
@@ -18,6 +20,7 @@ import {
   readLastRevealReady,
   WALL_PHASE_CHANNEL,
 } from './photobashTrigger'
+import { maybeSubmitWallCapture } from './wallPanelCapture'
 
 export type WallPhase = 'intro' | 'prompt' | 'recording' | 'loading' | 'handoff'
 
@@ -258,19 +261,24 @@ export function useWallSyncedPhase(isConductor: boolean) {
 /** Collage-only loop for the Photobash wall. No intro / prompt / recording. */
 export function usePhotobashLoop(isConductor: boolean) {
   const lastReveal = readLastRevealReady()
-  const [photobashSeed, setPhotobashSeed] = useState(() => lastReveal?.photobashSeed ?? 1)
+  const [photobashSeed, setPhotobashSeed] = useState(
+    () => lastReveal?.photobashSeed ?? DEFAULT_PLACEHOLDER_PHOTOBASH_SEED,
+  )
   const [collageCue, setCollageCue] = useState<CollageCue>(
     () => lastReveal?.collageCue ?? collageCueFromLocalAnswers(),
   )
   const [loadingProgress, setLoadingProgress] = useState(0)
   const [cycleKey, setCycleKey] = useState(0)
-  // No visitor has finished Station 3 yet in this browser session -- stay
-  // blank rather than mint an ambient random collage with nobody there.
-  const [hasRevealed, setHasRevealed] = useState(() => lastReveal !== null)
+  // Idle wall shows a looping placeholder on every panel — do not gate the
+  // collage behind BroadcastChannel for listeners (missed messages = black screens).
+  const [hasRevealed, setHasRevealed] = useState(true)
   const channelRef = useRef<BroadcastChannel | null>(null)
-  const pendingSeedRef = useRef<number | null>(lastReveal?.photobashSeed ?? null)
+  const pendingSeedRef = useRef<number | null>(
+    lastReveal?.photobashSeed ?? DEFAULT_PLACEHOLDER_PHOTOBASH_SEED,
+  )
   const pendingCueRef = useRef<CollageCue | null>(lastReveal?.collageCue ?? null)
   const activeJobIdRef = useRef<string | null>(lastReveal?.jobId ?? null)
+  const placeholderIndexRef = useRef(0)
 
   useEffect(() => {
     if (typeof BroadcastChannel === 'undefined') return
@@ -356,14 +364,14 @@ export function usePhotobashLoop(isConductor: boolean) {
     let timeout = 0
 
     const run = async () => {
-      // One real visit = one photobash -- never fabricate an ambient one.
-      // A run is only ever supposed to start from an actual pending reveal
-      // (set by a BroadcastChannel reveal-ready or the Central poll below);
-      // if hasRevealed flipped true without one somehow, there is nothing
-      // real to show, so stay/go blank instead of minting a random seed.
       if (pendingSeedRef.current === null) {
-        setHasRevealed(false)
-        return
+        if (!isConductor) return
+        placeholderIndexRef.current += 1
+        pendingSeedRef.current =
+          PLACEHOLDER_PHOTOBASH_SEEDS[
+            placeholderIndexRef.current % PLACEHOLDER_PHOTOBASH_SEEDS.length
+          ]
+        pendingCueRef.current = {}
       }
       const seed = pendingSeedRef.current
       const cueOverride = pendingCueRef.current
@@ -404,10 +412,15 @@ export function usePhotobashLoop(isConductor: boolean) {
             completeActivePhotowallJob(jobId)
             activeJobIdRef.current = null
           }
-          // Hold this visit's finished collage -- do NOT loop into a fresh
-          // ambient one. The Central-poll effect below keeps running
-          // independently and will set a new pending seed + bump cycleKey
-          // itself whenever the next real visit actually reaches reveal.
+          if (!activeJobIdRef.current) {
+            placeholderIndexRef.current += 1
+            pendingSeedRef.current =
+              PLACEHOLDER_PHOTOBASH_SEEDS[
+                placeholderIndexRef.current % PLACEHOLDER_PHOTOBASH_SEEDS.length
+              ]
+            pendingCueRef.current = {}
+            setCycleKey((key) => key + 1)
+          }
         }
       }, PHOTOBASH_CYCLE_MS)
     }
@@ -419,6 +432,23 @@ export function usePhotobashLoop(isConductor: boolean) {
       window.clearTimeout(timeout)
     }
   }, [isConductor, hasRevealed, cycleKey])
+
+  useEffect(() => {
+    if (!isConductor || !hasRevealed) return
+    let cancelled = false
+    const tick = () => {
+      if (cancelled) return
+      void maybeSubmitWallCapture(loadingProgress).catch((error) => {
+        console.error('[wall-capture] submit failed', error)
+      })
+    }
+    tick()
+    const timer = window.setInterval(tick, 1500)
+    return () => {
+      cancelled = true
+      window.clearInterval(timer)
+    }
+  }, [isConductor, hasRevealed, loadingProgress])
 
   return { photobashSeed, collageCue, loadingProgress, cycleKey, hasRevealed }
 }

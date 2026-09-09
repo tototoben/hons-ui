@@ -67,6 +67,17 @@ export default defineConfig({
     hmr: process.env.VITE_HMR_HOST
       ? { host: process.env.VITE_HMR_HOST, port: Number(process.env.PORT) || 5176 }
       : undefined,
+    // Reveal kiosks load from :5176 in a WKWebView; proxy /api to central so
+    // wall capture and visit polling stay same-origin (cross-port fetch is flaky).
+    proxy: {
+      '/api': {
+        target: 'http://127.0.0.1:8087',
+        changeOrigin: true,
+        bypass(req) {
+          if (req.url?.startsWith('/api/log-perf')) return req.url
+        },
+      },
+    },
   },
   build: {
     outDir: isVercel ? 'dist' : '../../visualizer/public/orb',
