@@ -19,7 +19,7 @@ import { useStationVibe } from '../hooks/useStationVibe'
 import { useVisitCentralPoll } from '../hooks/useVisitCentral'
 import { isStationTurnActive, visitSessionKeyForStation } from '../lib/visitCentral'
 import { deriveStationStatus } from '../lib/stationStatus'
-import { submitKioskInterview } from '../lib/arsIngest'
+import { prepareKioskVisit, submitKioskInterview } from '../lib/arsIngest'
 import { captionLines } from '../lib/captionLines'
 import { isTranscriptHotkey } from '../lib/productionHotkey'
 import type { WallPhase } from '../lib/wallPhaseSync'
@@ -531,13 +531,17 @@ function ThirdStationSession() {
     }
     if (phase === 'loading' && !completionRef.current) {
       completionRef.current = true
+      const visitContextPromise = prepareKioskVisit()
       void flushIntro().then((final) => {
         const spoken = final.trim() || spokenRef.current
-        void submitKioskInterview(spoken).then((built) => {
-          void notifyRevealReadyFromVisit({
-            readyAnswer: readyAnswerRef.current ?? undefined,
-            transcript: built.intro,
-            transcriptSource: built.transcriptSource,
+        void visitContextPromise.then((visitContext) => {
+          void submitKioskInterview(spoken, visitContext).then((built) => {
+            void notifyRevealReadyFromVisit({
+              readyAnswer: readyAnswerRef.current ?? undefined,
+              transcript: built.intro,
+              transcriptSource: built.transcriptSource,
+              visitId: visitContext?.visitId ?? null,
+            })
           })
         })
       })

@@ -13,7 +13,12 @@ import {
 import { firehoseReducer, publish } from '../lib/firehose'
 import { loadStationTwoState, saveStationTwoState } from '../lib/interviewStore'
 import { useVisitCentralPoll } from '../hooks/useVisitCentral'
-import { peekStationOneForStation, isStationTurnActive, visitSessionKeyForStation } from '../lib/visitCentral'
+import {
+  isStationTurnActive,
+  peekStationOneForStation,
+  shouldGateStationTurn,
+  visitSessionKeyForStation,
+} from '../lib/visitCentral'
 import { deriveStationStatus } from '../lib/stationStatus'
 import { getVisitorProfile, visitorProfileFromAnswers } from '../lib/visitorProfile'
 import { journeySettings } from '../dev/journeySettingsStore'
@@ -118,6 +123,7 @@ function phaseEvent(phase: StationTwoState['phase']): string {
 }
 
 function initialStationTwoState(): StationTwoState {
+  const centralMode = shouldGateStationTurn(2)
   const centralOne = peekStationOneForStation(2)
   if (centralOne?.answers) {
     const profile = visitorProfileFromAnswers(centralOne.answers)
@@ -126,6 +132,10 @@ function initialStationTwoState(): StationTwoState {
       previousRelationships: profile.previousRelationships,
     })
   }
+  // Never fall back to stale localStorage on a Central-backed kiosk. The
+  // current visit's Station I answers must arrive before the question flow
+  // starts, otherwise adult-gated questions can be skipped on first mount.
+  if (centralMode) return createStationTwoState()
   const profile = getVisitorProfile()
   const saved = loadStationTwoState()
   if (saved) {
@@ -164,6 +174,10 @@ function StationTwoActive({ phaseDurationMs }: { phaseDurationMs?: number }) {
   const [vibe] = useStationVibe()
   const warm = vibe === 'warm'
   const visits = useVisitCentralPoll()
+  const centralMode = shouldGateStationTurn(2)
+  const centralOne = peekStationOneForStation(2)
+  const centralAnswers = centralOne?.answers
+  const centralProfileReady = !centralMode || Boolean(centralAnswers)
   const [state, dispatch] = useReducer(
     firehoseReducer(STATION_ID, stationTwoReducer, actionToEvent),
     undefined,
@@ -197,17 +211,17 @@ function StationTwoActive({ phaseDurationMs }: { phaseDurationMs?: number }) {
   }, [])
 
   useEffect(() => {
-    const centralOne = peekStationOneForStation(2)
-    if (!centralOne?.answers) return
-    const profile = visitorProfileFromAnswers(centralOne.answers)
+    if (!centralAnswers) return
+    const profile = visitorProfileFromAnswers(centralAnswers)
     dispatch({
       type: 'SYNC_VISITOR_PROFILE',
       age: profile.age,
       previousRelationships: profile.previousRelationships,
     })
-  }, [visits])
+  }, [centralAnswers, visits])
 
   useEffect(() => {
+    if (!centralProfileReady) return
     const automaticDurationMs = getAutoPhaseDurationMs(state.phase)
     if (automaticDurationMs === undefined) return
     const timer = window.setTimeout(
@@ -215,7 +229,7 @@ function StationTwoActive({ phaseDurationMs }: { phaseDurationMs?: number }) {
       phaseDurationMs ?? automaticDurationMs,
     )
     return () => window.clearTimeout(timer)
-  }, [phaseDurationMs, state.phase])
+  }, [centralProfileReady, phaseDurationMs, state.phase])
 
   const answer = useCallback((value: BinaryAnswer) => dispatch({ type: 'ANSWER', value }), [])
   const submitText = useCallback((value: string) => dispatch({ type: 'SUBMIT_TEXT', value }), [])

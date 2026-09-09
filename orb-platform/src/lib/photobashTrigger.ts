@@ -167,6 +167,7 @@ export async function notifyRevealReadyFromVisit(options: {
   readyAnswer?: 'yes' | 'skip'
   transcript?: string
   transcriptSource?: 'spoken' | 'synthetic'
+  visitId?: string | null
 } = {}): Promise<number> {
   await refreshVisitCache(true)
   const cue = await collageCueFromVisitCentral()
@@ -177,7 +178,7 @@ export async function notifyRevealReadyFromVisit(options: {
     storage: options.storage,
     cue,
     readyAnswer: options.readyAnswer,
-    visitId: visit?.visit_id ?? null,
+    visitId: options.visitId ?? visit?.visit_id ?? null,
     transcript: options.transcript,
     transcriptSource: options.transcriptSource ?? 'synthetic',
   })

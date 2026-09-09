@@ -212,5 +212,6 @@ describe('station composition', () => {
     expect(journeyStyles).not.toContain('rgba(0, 0, 0, 0.88)')
     expect(thirdStationStyles).toContain('min(calc(100vw - 40px), calc((100vh - 40px) * 3 / 4))')
     expect(thirdStationStyles).toContain('.mirror-record-frame')
+    expect(thirdStationStyles).toContain('padding: 20px')
   })
 })

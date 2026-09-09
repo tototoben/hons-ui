@@ -78,13 +78,30 @@ function getRelayTarget(): string | null {
 function postToStation(msg: FirehoseMessage): void {
   const target = getRelayTarget()
   if (!target) return
-  // Same-shape JSON the station bridge expects. Fire-and-forget: the bridge
-  // may be down in dev; nothing to do about it here.
-  fetch(`${target}/api/firehose`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(msg),
-  }).catch(() => {})
+  // Most telemetry is intentionally fire-and-forget. Terminal events are
+  // different: a dropped `interview_done`/`reveal_ready` strands the visit,
+  // while a dropped loading transition makes the wall appear to skip a job.
+  // Retry only those small, state-changing messages so transient Wi-Fi/SSH
+  // forwarding loss cannot strand an otherwise completed kiosk flow.
+  const retryable =
+    msg.event === 'interview_done' || msg.event === 'reveal_ready' || msg.event === 'phase:loading'
+  const attempts = retryable ? 3 : 1
+  const body = JSON.stringify(msg)
+  void (async () => {
+    for (let attempt = 0; attempt < attempts; attempt += 1) {
+      try {
+        const response = await fetch(`${target}/api/firehose`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body,
+        })
+        if (response.ok || attempt === attempts - 1) return
+      } catch {
+        if (attempt === attempts - 1) return
+      }
+      await new Promise((resolve) => window.setTimeout(resolve, 150 * (attempt + 1)))
+    }
+  })()
 }
 
 /**
