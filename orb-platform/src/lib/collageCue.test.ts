@@ -1,86 +1,104 @@
-// @vitest-environment jsdom
-
-import { afterEach, describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import {
-  ageBandFromAge,
   collageCueFromAnswers,
-  collageCueFromLocalAnswers,
   collageCueKey,
+  normalizeOrientation,
   parseCollageCue,
   presentationFromIdentity,
+  targetPresentationsFromAnswers,
 } from './collageCue'
-import { saveStationTwoState } from './interviewStore'
-import { createStationTwoState } from './mirrorJourney'
-import { resetVisitorProfile, setVisitorProfile, visitorProfileFromAnswers } from './visitorProfile'
-
-afterEach(() => {
-  resetVisitorProfile()
-})
 
 describe('collageCue', () => {
-  it('reads presentation from free-text identity', () => {
-    expect(presentationFromIdentity('woman')).toBe('woman')
-    expect(presentationFromIdentity('Trans woman')).toBe('woman')
-    expect(presentationFromIdentity('she/her')).toBe('woman')
-    expect(presentationFromIdentity('man')).toBe('man')
-    expect(presentationFromIdentity('non-binary')).toBe('androgynous')
-    expect(presentationFromIdentity('they/them')).toBe('androgynous')
-    expect(presentationFromIdentity('pilot')).toBeUndefined()
-  })
-
-  it('bins age onto the young / mid / older bands the bank uses', () => {
-    expect(ageBandFromAge(16)).toBe('young')
-    expect(ageBandFromAge(29)).toBe('young')
-    expect(ageBandFromAge(40)).toBe('mid')
-    expect(ageBandFromAge(70)).toBe('older')
-    expect(ageBandFromAge(null)).toBeUndefined()
-  })
-
-  it('builds a cue from Station I and II answers', () => {
+  it('maps a heterosexual man to woman-tagged strangers', () => {
     expect(
-      collageCueFromAnswers({
-        identity: 'woman',
-        age: 41,
-        attractiveness: 'yes',
-      }),
-    ).toEqual({ presentation: 'woman', ageBand: 'mid', smile: true })
+      targetPresentationsFromAnswers('man', 'heterosexual'),
+    ).toEqual(['woman'])
     expect(
-      collageCueFromAnswers({
-        identity: 'man',
-        age: 22,
-        attractiveness: 'no',
-      }),
-    ).toEqual({ presentation: 'man', ageBand: 'young', smile: false })
-    expect(collageCueFromAnswers({ lightningAnswers: { beautyMoney: 'Beauty' } })).toEqual({
-      smile: true,
-    })
-  })
-
-  it('reads the cue from the stored profile and a finished Station II interview', () => {
-    setVisitorProfile(visitorProfileFromAnswers({ identity: 'woman', age: '26' }))
-    saveStationTwoState(
-      createStationTwoState({
-        phase: 'complete',
-        answers: { attractiveness: 'yes' },
-      }),
-    )
-    expect(collageCueFromLocalAnswers()).toEqual({
-      presentation: 'woman',
+      collageCueFromAnswers({ identity: 'man', age: 28, orientation: 'straight' }),
+    ).toEqual({
+      presentations: ['woman'],
       ageBand: 'young',
-      smile: true,
+      lockPresentation: true,
     })
-    expect(collageCueKey(collageCueFromLocalAnswers())).toBe('woman|young||true')
   })
 
-  it('parses a stored reveal cue and ignores unknown fields', () => {
+  it('maps a heterosexual woman to man-tagged strangers', () => {
+    expect(targetPresentationsFromAnswers('woman', 'straight')).toEqual(['man'])
+  })
+
+  it('maps a gay man to man-tagged strangers', () => {
+    expect(targetPresentationsFromAnswers('man', 'gay')).toEqual(['man'])
+    expect(
+      collageCueFromAnswers({ identity: 'man', orientation: 'homosexual' }).presentations,
+    ).toEqual(['man'])
+  })
+
+  it('maps a lesbian to woman-tagged strangers even without identity', () => {
+    expect(targetPresentationsFromAnswers('', 'lesbian')).toEqual(['woman'])
+  })
+
+  it('uses the full bank for bisexual and pan visitors', () => {
+    expect(targetPresentationsFromAnswers('man', 'bisexual')).toEqual(['woman', 'man', 'androgynous'])
+    expect(targetPresentationsFromAnswers('woman', 'pansexual')).toEqual(['woman', 'man', 'androgynous'])
+  })
+
+  it('falls back to visitor identity when orientation is unknown', () => {
+    expect(targetPresentationsFromAnswers('woman', '')).toEqual(['woman'])
+    expect(
+      collageCueFromAnswers({ identity: 'woman', age: 40, orientation: '' }),
+    ).toEqual({
+      presentations: ['woman'],
+      ageBand: 'mid',
+      lockPresentation: false,
+    })
+  })
+
+  it('reads explicit attraction wording from free-form orientation text', () => {
+    expect(targetPresentationsFromAnswers('man', 'mostly attracted to women')).toEqual(['woman'])
+    expect(targetPresentationsFromAnswers('woman', 'into men and women')).toEqual([
+      'woman',
+      'man',
+      'androgynous',
+    ])
+  })
+
+  it('normalizes common orientation answers', () => {
+    expect(normalizeOrientation('straight')).toBe('heterosexual')
+    expect(normalizeOrientation('gay')).toBe('homosexual')
+    expect(normalizeOrientation('bi')).toBe('bisexual')
+    expect(normalizeOrientation('queer')).toBe('pansexual')
+    expect(normalizeOrientation('')).toBe('unknown')
+  })
+
+  it('parses presentation arrays and lock flags from persisted cues', () => {
     expect(
       parseCollageCue({
-        presentation: 'man',
-        ageBand: 'mid',
-        smile: false,
-        extra: 1,
+        presentations: ['woman', 'man', 'androgynous'],
+        ageBand: 'young',
+        smile: true,
+        lockPresentation: true,
       }),
-    ).toEqual({ presentation: 'man', ageBand: 'mid', smile: false })
-    expect(parseCollageCue(null)).toEqual({})
+    ).toEqual({
+      presentations: ['woman', 'man', 'androgynous'],
+      ageBand: 'young',
+      smile: true,
+      lockPresentation: true,
+    })
+  })
+
+  it('builds stable cue keys for presentation sets', () => {
+    expect(
+      collageCueKey({
+        presentations: ['man', 'woman'],
+        ageBand: 'young',
+        smile: true,
+        lockPresentation: true,
+      }),
+    ).toBe('man+woman|young||true|1')
+  })
+
+  it('still parses identity text into visitor presentation helpers', () => {
+    expect(presentationFromIdentity('trans woman')).toBe('woman')
+    expect(presentationFromIdentity('non-binary')).toBe('androgynous')
   })
 })

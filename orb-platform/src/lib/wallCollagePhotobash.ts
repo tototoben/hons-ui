@@ -1,4 +1,4 @@
-import { facesMatching, type FaceBankFace, type FaceTagQuery } from './faceBank'
+import { facesMatching, type FaceBankFace, type FacePresentation, type FaceTagQuery } from './faceBank'
 import type { CollageCue } from './collageCue'
 import {
   DEFAULT_VISITOR_ALIGN,
@@ -111,19 +111,29 @@ function omitKey<T extends FaceTagQuery>(query: T, key: keyof FaceTagQuery): Fac
 
 function queryForSlot(cue: CollageCue, slotIndex: number, mouthIndex: number): FaceTagQuery {
   const query: FaceTagQuery = {}
-  if (cue.presentation) query.presentation = cue.presentation
+  if (cue.presentations?.length) query.presentations = cue.presentations
+  else if (cue.presentation) query.presentation = cue.presentation
   if (cue.ageBand) query.ageBand = cue.ageBand
   if (cue.hairColor && HAIR_SLOT_INDICES.has(slotIndex)) query.hairColor = cue.hairColor
   if (cue.smile !== undefined && slotIndex === mouthIndex) query.smile = cue.smile
   return query
 }
 
-function relaxedQueries(query: FaceTagQuery): FaceTagQuery[] {
+function omitPresentation(query: FaceTagQuery): FaceTagQuery {
+  const next = { ...query }
+  delete next.presentation
+  delete next.presentations
+  return next
+}
+
+function relaxedQueries(query: FaceTagQuery, lockPresentation = false): FaceTagQuery[] {
   const steps: FaceTagQuery[] = [query]
   if (query.smile !== undefined) steps.push(omitKey(query, 'smile'))
-  if (query.hairColor) steps.push(omitKey(steps[steps.length - 1], 'hairColor'))
-  if (query.ageBand) steps.push(omitKey(steps[steps.length - 1], 'ageBand'))
-  if (query.presentation) steps.push({})
+  if (steps[steps.length - 1].hairColor) steps.push(omitKey(steps[steps.length - 1], 'hairColor'))
+  if (steps[steps.length - 1].ageBand) steps.push(omitKey(steps[steps.length - 1], 'ageBand'))
+  if (!lockPresentation && (query.presentation || query.presentations?.length)) {
+    steps.push(omitPresentation(steps[steps.length - 1]))
+  }
   return steps
 }
 
@@ -135,10 +145,12 @@ export function strangerPoolIndices(
   mouthIndex: number,
 ): number[] {
   if (faces.length === 0) return []
-  for (const query of relaxedQueries(queryForSlot(cue, slotIndex, mouthIndex))) {
+  const lockPresentation = cue.lockPresentation === true
+  for (const query of relaxedQueries(queryForSlot(cue, slotIndex, mouthIndex), lockPresentation)) {
     const hits = faces.flatMap((face, index) => (facesMatching([face], query).length ? [index] : []))
     if (hits.length > 0) return hits
   }
+  if (lockPresentation) return []
   return faces.map((_, index) => index)
 }
 
@@ -184,13 +196,18 @@ export function collageCombinationStats(
   faces: FaceBankFace[],
   rectCount = 9,
 ): CollageCombinationStats {
-  const presentations: CollageCue['presentation'][] = ['woman', 'man', 'androgynous']
+  const presentationSets: FacePresentation[][] = [
+    ['woman'],
+    ['man'],
+    ['androgynous'],
+    ['woman', 'man', 'androgynous'],
+  ]
   const types: CollageTypeStats[] = []
-  for (const presentation of presentations) {
+  for (const presentations of presentationSets) {
     for (const ageBand of ['young', 'mid'] as const) {
       for (const smile of [true, false]) {
-        const cue: CollageCue = { presentation, ageBand, smile }
-        const identityPool = facesMatching(faces, { presentation, ageBand }).length
+        const cue: CollageCue = { presentations, ageBand, smile, lockPresentation: true }
+        const identityPool = facesMatching(faces, { presentations, ageBand }).length
         if (identityPool === 0) continue
         const mouthIndex = rectCount - 1
         const slotPools = Array.from({ length: rectCount }, (_, slot) =>

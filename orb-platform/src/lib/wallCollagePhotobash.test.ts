@@ -95,7 +95,7 @@ describe('wallCollagePhotobash', () => {
     const assignments = pickTaggedStrangerAssignments(
       9,
       faces,
-      { presentation: 'woman', ageBand: 'young', smile: true },
+      { presentations: ['woman'], ageBand: 'young', smile: true, lockPresentation: true },
       rects.length,
     )
     expect(assignments).toHaveLength(rects.length)
@@ -105,9 +105,33 @@ describe('wallCollagePhotobash', () => {
       expect(faces[index].presentation).toBe('woman')
       if (slot === mouth) expect(faces[index].smile).toBe(true)
     })
-    expect(pickTaggedStrangerAssignments(9, faces, { presentation: 'woman', ageBand: 'young', smile: true }, rects.length)).toEqual(
-      assignments,
+    expect(
+      pickTaggedStrangerAssignments(
+        9,
+        faces,
+        { presentations: ['woman'], ageBand: 'young', smile: true, lockPresentation: true },
+        rects.length,
+      ),
+    ).toEqual(assignments)
+  })
+
+  it('keeps orientation-locked cues on the target presentation only', () => {
+    const faces = parseFaceBankManifest({
+      faces: [
+        { file: 'w.jpg', presentation: 'woman', ageBand: 'young', smile: false },
+        { file: 'm.jpg', presentation: 'man', ageBand: 'young', smile: false },
+      ],
+    })
+    const rects = collageRects(1)
+    const assignments = pickTaggedStrangerAssignments(
+      3,
+      faces,
+      { presentations: ['woman'], ageBand: 'young', lockPresentation: true },
+      rects.length,
     )
+    assignments.forEach((index) => {
+      expect(faces[index].presentation).toBe('woman')
+    })
   })
 
   it('counts how many 9-piece collages each answer type can seed from the live bank', () => {
