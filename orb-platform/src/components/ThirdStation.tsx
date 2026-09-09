@@ -540,6 +540,7 @@ function ThirdStationSession() {
               readyAnswer: readyAnswerRef.current ?? undefined,
               transcript: built.intro,
               transcriptSource: built.transcriptSource,
+              visitId: visitContext?.visitId ?? null,
             })
           })
         })
