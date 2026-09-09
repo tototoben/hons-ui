@@ -66,7 +66,7 @@ describe('PhotobashScreen collage wall', () => {
     window.history.replaceState({}, '', '/?collage=0')
     act(() => root.render(<PhotobashScreen />))
     expect(container.querySelector('.wall-forming-canvas')).toBeNull()
-    expect(container.querySelector('.wall-face-canvas')).toBeNull()
+    expect(container.querySelector('.wall-face-match')).toBeNull()
     expect(container.querySelector('.wall-collage-canvas')).not.toBeNull()
   })
 })

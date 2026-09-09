@@ -1,30 +1,17 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { publish } from '../lib/firehose'
-import { parseWallCollage, parseWallRole } from '../lib/wallRole'
+import { parseWallRole } from '../lib/wallRole'
 import { usePhotobashLoop } from '../lib/wallPhaseSync'
-import { useCollageBankReady } from '../lib/wallCollageBank'
-import { pickWallLoadingSurface, shouldShowForming } from '../lib/wallForming'
 import { photowallRuntimeStatus } from '../lib/stationStatus'
 import { subscribePhotowallQueue } from '../lib/photowallQueue'
 import { WallCollageBlanket } from './WallCollageBlanket'
-import { WallFaceBlanket } from './WallFaceBlanket'
-import { WallFormingBlanket } from './WallFormingBlanket'
 import './DeviceUnlockLayer.css'
 
 export function PhotobashScreen() {
   const role = parseWallRole()
-  const collage = parseWallCollage()
   const isConductor = role === 'debra' || role === null
-  const { photobashSeed, collageCue, loadingProgress } = usePhotobashLoop(isConductor)
+  const { photobashSeed, collageCue } = usePhotobashLoop(isConductor)
   const crop = role ?? 'copy'
-  const collageReady = useCollageBankReady(
-    photobashSeed || 1,
-    !shouldShowForming(loadingProgress),
-    collageCue,
-  )
-  const surface = pickWallLoadingSurface(collage, loadingProgress, collageReady)
-  const forming = surface === 'forming'
-  const lastCueRef = useRef<string | null>(null)
   const [queueDetail, setQueueDetail] = useState(() => photowallRuntimeStatus().detail)
 
   useEffect(() => {
@@ -44,11 +31,8 @@ export function PhotobashScreen() {
 
   useEffect(() => {
     if (!isConductor) return
-    const event = forming ? 'forming' : 'reveal'
-    if (lastCueRef.current === event) return
-    lastCueRef.current = event
-    publish('photobash', event)
-  }, [forming, isConductor])
+    publish('photobash', 'reveal')
+  }, [isConductor])
 
   return (
     <section className="photobash-screen" aria-label="Photobash reveal">
@@ -57,17 +41,7 @@ export function PhotobashScreen() {
           {queueDetail}
         </div>
       ) : null}
-      {surface === 'forming' ? (
-        <WallFormingBlanket
-          role={crop}
-          photobashSeed={photobashSeed}
-          loadingProgress={loadingProgress}
-        />
-      ) : surface === 'collage' ? (
-        <WallCollageBlanket role={crop} photobashSeed={photobashSeed} collageCue={collageCue} />
-      ) : (
-        <WallFaceBlanket role={crop} photobashSeed={photobashSeed} />
-      )}
+      <WallCollageBlanket role={crop} photobashSeed={photobashSeed} collageCue={collageCue} />
     </section>
   )
 }
