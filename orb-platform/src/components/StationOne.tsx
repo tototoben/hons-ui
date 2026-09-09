@@ -12,7 +12,6 @@ import {
 import { loadStationOneState, saveStationOneState } from '../lib/interviewStore'
 import { setVisitorProfile, visitorProfileFromAnswers } from '../lib/visitorProfile'
 import { getVisitorFaceCapture } from '../lib/visitorFaceCapture'
-import { JourneyButton } from './JourneyButton'
 import { JourneyHeadline } from './JourneyHeadline'
 import { MirrorChoice } from './MirrorChoice'
 import { MirrorStationShell } from './MirrorStationShell'
@@ -28,6 +27,8 @@ function actionToEvent(action: StationOneAction): { event: string; data?: unknow
       return { event: 'self_check_answer', data: { answer: action.value } }
     case 'ADVANCE':
       return { event: 'phase_advance' }
+    case 'RESET':
+      return { event: 'station_reset' }
   }
 }
 
@@ -92,6 +93,22 @@ export function StationOne({ phaseDurationMs = 2200 }: { phaseDurationMs?: numbe
     const timer = window.setTimeout(() => dispatch({ type: 'ADVANCE' }), phaseDurationMs)
     return () => window.clearTimeout(timer)
   }, [phaseDurationMs, state.phase])
+
+  // 'proceed' ("proceed to the next station") is a dead end for the state
+  // machine -- nothing else ever dispatches ADVANCE for it, so without this
+  // the kiosk sits on that screen forever instead of resetting for the next
+  // visitor. Central's own visit-abandon/new-visit logic is server-side and
+  // never remounts this component (only an explicit room/reset command or
+  // a manual restartStation() does), so the reset has to happen locally.
+  useEffect(() => {
+    if (state.phase !== 'proceed') return
+    const timer = window.setTimeout(() => {
+      presenceFallbackFiredRef.current = false
+      dispatch({ type: 'RESET' })
+      publish(STATION_ID, 'station_mounted', { phase: 'name' })
+    }, 10000)
+    return () => window.clearTimeout(timer)
+  }, [state.phase])
 
   useEffect(() => {
     saveStationOneState(state)

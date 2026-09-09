@@ -100,6 +100,12 @@ describe('faceBank', () => {
       ],
     })
     expect(facesMatching(faces, { presentation: 'woman' }).map((face) => face.file)).toEqual(['w.jpg', 'g.jpg'])
+    expect(facesMatching(faces, { presentations: ['man'] }).map((face) => face.file)).toEqual(['m.jpg'])
+    expect(
+      facesMatching(faces, { presentations: ['woman', 'man'] })
+        .map((face) => face.file)
+        .sort(),
+    ).toEqual(['g.jpg', 'm.jpg', 'w.jpg'])
     expect(facesMatching(faces, { hairColor: 'blonde', ageBand: 'mid' }).map((face) => face.file)).toEqual([
       'm.jpg',
     ])

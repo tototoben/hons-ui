@@ -43,6 +43,7 @@ export type StationOneAction =
   | { type: 'SUBMIT_TEXT'; value: string }
   | { type: 'ANSWER'; value: BinaryAnswer }
   | { type: 'ADVANCE' }
+  | { type: 'RESET' }
 
 const STATION_ONE_ADVANCE: Partial<Record<StationOnePhase, StationOnePhase>> = {
   'analysis-intro': 'scan-face',
@@ -88,6 +89,13 @@ export function stationOneReducer(
   if (action.type === 'ADVANCE') {
     const phase = STATION_ONE_ADVANCE[state.phase]
     return phase ? { ...state, phase } : state
+  }
+
+  // 'proceed' is a dead end in STATION_ONE_ADVANCE (a finished visit has
+  // nowhere further to auto-advance to) -- RESET is the only way back to
+  // 'intake' for the next visitor, dispatched by StationOne on a timer.
+  if (action.type === 'RESET') {
+    return createStationOneState()
   }
 
   return state

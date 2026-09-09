@@ -100,11 +100,20 @@ export function parseFaceBankManifest(value: unknown): FaceBankFace[] {
 
 export type FaceTagQuery = Partial<
   Pick<FaceBankFace, 'presentation' | 'ageBand' | 'hairColor' | 'hairLength' | 'skin' | 'facialHair'>
-> & { glasses?: boolean; smile?: boolean }
+> & { glasses?: boolean; smile?: boolean; presentations?: FacePresentation[] }
+
+function faceMatchesPresentation(
+  face: FaceBankFace,
+  query: FaceTagQuery,
+): boolean {
+  if (query.presentations?.length) return query.presentations.includes(face.presentation)
+  if (query.presentation) return face.presentation === query.presentation
+  return true
+}
 
 export function facesMatching(faces: FaceBankFace[], query: FaceTagQuery = {}): FaceBankFace[] {
   return faces.filter((face) => {
-    if (query.presentation && face.presentation !== query.presentation) return false
+    if (!faceMatchesPresentation(face, query)) return false
     if (query.ageBand && face.ageBand !== query.ageBand) return false
     if (query.hairColor && face.hairColor !== query.hairColor) return false
     if (query.hairLength && face.hairLength !== query.hairLength) return false
