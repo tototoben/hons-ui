@@ -61,4 +61,12 @@ describe('PhotobashScreen collage wall', () => {
     expect(container.querySelector('.wall-forming-caption')).toBeNull()
     expect(container.querySelector('.wall-collage-canvas')).not.toBeNull()
   })
+
+  it('keeps the collage visible even when a deprecated collage=0 flag is present', () => {
+    window.history.replaceState({}, '', '/?collage=0')
+    act(() => root.render(<PhotobashScreen />))
+    expect(container.querySelector('.wall-forming-canvas')).toBeNull()
+    expect(container.querySelector('.wall-face-canvas')).toBeNull()
+    expect(container.querySelector('.wall-collage-canvas')).not.toBeNull()
+  })
 })

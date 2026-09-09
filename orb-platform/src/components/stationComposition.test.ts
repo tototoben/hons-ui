@@ -11,6 +11,7 @@ import cardSwapSource from './CardSwap.jsx?raw'
 import cardSwapStyles from './CardSwap.css?raw'
 import appSource from '../App.tsx?raw'
 import photobashSource from './PhotobashScreen.tsx?raw'
+import thirdStationWallSource from './ThirdStationWall.tsx?raw'
 import stationOneSource from './StationOne.tsx?raw'
 import stationTwoSource from './StationTwo.tsx?raw'
 import thirdStationSource from './ThirdStation.tsx?raw'
@@ -50,11 +51,26 @@ describe('station composition', () => {
   it('keeps Photobash as collage-only with no Debra or code wall chrome', () => {
     expect(photobashSource).toContain('WallCollageBlanket')
     expect(photobashSource).toContain('usePhotobashLoop')
+    expect(photobashSource).not.toContain('WallFormingBlanket')
+    expect(photobashSource).not.toContain('WallFaceBlanket')
+    expect(photobashSource).not.toContain('pickWallLoadingSurface')
     expect(photobashSource).not.toContain('PhotobashVoice')
     expect(photobashSource).not.toContain('WallDebraPanel')
     expect(photobashSource).not.toContain('WallCodePanel')
     expect(photobashSource).not.toContain('STANDBY')
     expect(photobashSource).not.toContain('RECORDING')
+  })
+
+  it('keeps the legacy wall-role entry photobash-only', () => {
+    expect(thirdStationWallSource).toContain('WallCollageBlanket')
+    expect(thirdStationWallSource).not.toContain('WallCodePanel')
+    expect(thirdStationWallSource).not.toContain('WallDebraPanel')
+    expect(thirdStationWallSource).not.toContain('WallCopyPanel')
+    expect(thirdStationWallSource).not.toContain('WallStatusPanel')
+    expect(thirdStationWallSource).not.toContain('WallRoleContent')
+    expect(thirdStationWallSource).not.toContain('WallFormingBlanket')
+    expect(thirdStationWallSource).not.toContain('WallFaceBlanket')
+    expect(thirdStationWallSource).not.toContain('PROCESSING')
   })
 
   it('uses the registry CardSwap implementation and stylesheet', () => {
