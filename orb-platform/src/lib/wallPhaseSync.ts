@@ -289,6 +289,13 @@ export function usePhotobashLoop(isConductor: boolean) {
       }
       if (isConductor || event.data?.type !== 'phase') return
       const phase = event.data as PhaseMessage
+      // A real 'phase' broadcast only ever comes from the conductor once it
+      // has an actual reveal to show -- listeners never get a typed
+      // 'reveal-ready' message of their own (that only ever originates on
+      // Station 3's machine), so this is their only signal to stop staying
+      // blank. Without this, every non-conductor wall panel stays blank
+      // forever even while the conductor is correctly cycling.
+      setHasRevealed(true)
       if (typeof phase.photobashSeed === 'number') {
         setPhotobashSeed(phase.photobashSeed)
       }
