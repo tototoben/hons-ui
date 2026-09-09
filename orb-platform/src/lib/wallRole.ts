@@ -23,8 +23,8 @@ export function parseWallCalibrate(
   return params.get('wallCal') === '1'
 }
 
-/** Collage photobash (WallCollageBlanket) is the live wall reveal.
- * Pass collage=0 to fall back to the older WallFaceBlanket glitch. */
+/** Legacy query parser retained for old simulator URLs. Production wall
+ * routes always render the photobash regardless of this flag. */
 export function parseWallCollage(
   search: string = typeof window === 'undefined' ? '' : window.location.search,
 ) {

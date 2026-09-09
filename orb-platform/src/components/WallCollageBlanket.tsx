@@ -35,10 +35,10 @@ function loadImage(src: string) {
 }
 
 /**
- * Live wall photobash (replaces WallFaceBlanket). Assembles a collage from
- * the local synthetic face bank, then slowly swaps pieces for the visitor's
- * own captured face (visitorFaceCapture) as the loading phase progresses.
- * Pass collage=0 to restore the older WallFaceBlanket glitch reveal.
+ * Live wall photobash. Assembles a collage from the local synthetic face bank,
+ * then slowly swaps pieces for the visitor's own captured face
+ * (visitorFaceCapture). This is the only production wall surface; loading and
+ * legacy station chrome are intentionally not part of this component.
  */
 export function WallCollageBlanket({
   role,

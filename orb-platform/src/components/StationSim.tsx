@@ -22,10 +22,10 @@ function stationSrc(target: StationSimTarget) {
   return url.toString()
 }
 
-function wallSrc(role: WallRole, collage: boolean, physical: boolean) {
+function wallSrc(role: WallRole, physical: boolean) {
   const url = new URL(window.location.href)
-  url.search = collage ? `?wallRole=${role}&collage=1&bare=1` : `?wallRole=${role}&collage=0&bare=1`
-  if (physical && collage) url.searchParams.set('wallSimPhysical', '1')
+  url.search = `?wallRole=${role}&bare=1`
+  if (physical) url.searchParams.set('wallSimPhysical', '1')
   url.hash = '#/photobash'
   return url.toString()
 }
@@ -43,7 +43,6 @@ export function StationSim() {
   const [target, setTarget] = useState<StationSimTarget>('station-1')
   const [mode, setMode] = useState<StationSimScale>('half')
   const [wallSeam, setWallSeam] = useState<WallSimMode>('physical')
-  const [collage, setCollage] = useState(true)
   const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {
@@ -92,15 +91,7 @@ export function StationSim() {
               <option value="physical">Physical cabinets</option>
             </select>
           </label>
-          <label className="station-sim-toggle">
-            <input
-              type="checkbox"
-              checked={collage}
-              onChange={(event) => setCollage(event.target.checked)}
-            />
-            Collage
-          </label>
-          <button type="button" onClick={() => { setCollage(true); notifyRevealReady() }}>
+          <button type="button" onClick={() => notifyRevealReady()}>
             Generate photobash
           </button>
           <button type="button" onClick={() => setReloadKey((n) => n + 1)}>
@@ -159,15 +150,15 @@ export function StationSim() {
                   }}
                 >
                   <iframe
-                    key={`${panel.role}-${reloadKey}-${wallSeam}-${collage}`}
+                  key={`${panel.role}-${reloadKey}-${wallSeam}`}
                     className="station-sim-frame"
                     title={`Wall panel ${panel.role}`}
-                    src={wallSrc(panel.role, collage, wallSeam === 'physical')}
+                    src={wallSrc(panel.role, wallSeam === 'physical')}
                     allow="autoplay; microphone; camera"
                     style={{
                       width: panel.nativeW,
                       height: panel.nativeH,
-                      transform: `scale(${(panel.width / panel.nativeW) * (collage ? 1 : panel.overscan)})`,
+                      transform: `scale(${panel.width / panel.nativeW})`,
                     }}
                   />
                 </div>

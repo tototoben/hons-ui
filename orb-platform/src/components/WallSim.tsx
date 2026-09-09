@@ -5,14 +5,14 @@ import { buildWallSimLayout, type WallSimMode } from '../lib/wallSimLayout'
 import type { WallRole } from '../lib/wallRole'
 import './WallSim.css'
 
-function panelSrc(role: WallRole, collage: boolean, physical: boolean) {
+function panelSrc(role: WallRole, physical: boolean) {
   const url = new URL(window.location.href)
   const quality =
     new URLSearchParams(window.location.search).get('quality') ??
     document.documentElement.dataset.stationQuality
-  url.search = collage ? `?wallRole=${role}&collage=1&bare=1` : `?wallRole=${role}&collage=0&bare=1`
+  url.search = `?wallRole=${role}&bare=1`
   if (quality === 'full' || quality === 'kiosk') url.searchParams.set('quality', quality)
-  if (physical && collage) url.searchParams.set('wallSimPhysical', '1')
+  if (physical) url.searchParams.set('wallSimPhysical', '1')
   url.hash = '#/photobash'
   return url.toString()
 }
@@ -28,7 +28,6 @@ export function WallSim() {
     height: window.innerHeight,
   }))
   const [mode, setMode] = useState<WallSimMode>('physical')
-  const [collage, setCollage] = useState(true)
   const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {
@@ -55,15 +54,7 @@ export function WallSim() {
               <option value="css">CSS (ideal)</option>
             </select>
           </label>
-          <label className="wall-sim-toggle">
-            <input
-              type="checkbox"
-              checked={collage}
-              onChange={(e) => setCollage(e.target.checked)}
-            />
-            Collage photobash
-          </label>
-          <button type="button" onClick={() => { setCollage(true); notifyRevealReady() }}>
+          <button type="button" onClick={() => notifyRevealReady()}>
             Generate photobash
           </button>
           <button type="button" onClick={() => setReloadKey((n) => n + 1)}>
@@ -97,16 +88,12 @@ export function WallSim() {
             >
               <div className="wall-sim-frame-clip">
                 <iframe
-                  key={`${panel.role}-${reloadKey}-${mode}-${collage}`}
+                  key={`${panel.role}-${reloadKey}-${mode}`}
                   className="wall-sim-frame"
                   title={`Wall panel ${panel.role}`}
-                  src={panelSrc(panel.role, collage, mode === 'physical')}
+                  src={panelSrc(panel.role, mode === 'physical')}
                   allow="autoplay; microphone; camera"
-                  style={
-                    panel.overscan !== 1 && !collage
-                      ? { transform: `scale(${panel.overscan})` }
-                      : undefined
-                  }
+                  style={undefined}
                 />
               </div>
             </div>
