@@ -55,7 +55,7 @@ const MAN_RE =
 const ANDROGYNOUS_RE =
   /\b(non[\s-]?binary|enby|\bnb\b|agender|genderfluid|genderqueer|androgynous|they\/them|they)\b/i
 
-const HETERO_RE = /\b(straight|hetero(sexual)?)\b/i
+const HETERO_RE = /\b(straight|hetero(sexual)?|het)\b/i
 const HOMO_RE = /\b(gay|homosexual|lesbian|sapphic)\b/i
 const BI_RE = /\b(bi(sexual)?|ambisexual)\b/i
 const PAN_RE = /\b(pan(sexual)?|omnisexual)\b/i
@@ -81,6 +81,12 @@ export function presentationFromIdentity(identity: string | undefined): FacePres
 export function normalizeOrientation(text: string | undefined): NormalizedOrientation {
   const value = text?.trim() ?? ''
   if (!value) return 'unknown'
+  const token = value.toLowerCase()
+  if (token === 'het' || token === 'hetero' || token === 'straight') return 'heterosexual'
+  if (token === 'gay' || token === 'lesbian') return 'homosexual'
+  if (token === 'bi' || token === 'bisexual') return 'bisexual'
+  if (token === 'pan' || token === 'pansexual' || token === 'queer') return 'pansexual'
+  if (token === 'ace' || token === 'asexual') return 'asexual'
   if (ACE_RE.test(value)) return 'asexual'
   if (BI_RE.test(value)) return 'bisexual'
   if (PAN_RE.test(value) || QUEER_RE.test(value)) return 'pansexual'

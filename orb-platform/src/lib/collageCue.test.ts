@@ -62,8 +62,20 @@ describe('collageCue', () => {
     ])
   })
 
+  it('maps het plus male identity to woman-tagged strangers', () => {
+    expect(targetPresentationsFromAnswers('male', 'het')).toEqual(['woman'])
+    expect(
+      collageCueFromAnswers({ identity: 'male', age: 23, orientation: 'het' }),
+    ).toEqual({
+      presentations: ['woman'],
+      ageBand: 'young',
+      lockPresentation: true,
+    })
+  })
+
   it('normalizes common orientation answers', () => {
     expect(normalizeOrientation('straight')).toBe('heterosexual')
+    expect(normalizeOrientation('het')).toBe('heterosexual')
     expect(normalizeOrientation('gay')).toBe('homosexual')
     expect(normalizeOrientation('bi')).toBe('bisexual')
     expect(normalizeOrientation('queer')).toBe('pansexual')
