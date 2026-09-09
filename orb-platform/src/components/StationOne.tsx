@@ -110,6 +110,40 @@ export function StationOne({ phaseDurationMs = 2200 }: { phaseDurationMs?: numbe
     return () => window.clearTimeout(timer)
   }, [state.phase])
 
+  // Hidden operator shortcut: press Shift on its own (arms it), then type
+  // "print" and hit Enter, to fire an immediate test print without waiting
+  // for a real visit to reach reveal. Armed by Shift's own keydown so it
+  // never fires from normal typing (none of the intake questions need
+  // Shift) -- any other special key, or a mismatched buffer, disarms it.
+  useEffect(() => {
+    let armed = false
+    let buffer = ''
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Shift') {
+        armed = true
+        buffer = ''
+        return
+      }
+      if (!armed) return
+      if (event.key === 'Enter') {
+        if (buffer.toLowerCase() === 'print') {
+          publish(STATION_ID, 'test_print_requested', {})
+        }
+        armed = false
+        buffer = ''
+        return
+      }
+      if (event.key.length === 1) {
+        buffer += event.key
+      } else {
+        armed = false
+        buffer = ''
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [])
+
   useEffect(() => {
     saveStationOneState(state)
     if (Object.keys(state.answers).length > 0) {
