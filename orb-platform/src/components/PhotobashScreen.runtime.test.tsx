@@ -69,4 +69,11 @@ describe('PhotobashScreen collage wall', () => {
     expect(container.querySelector('.wall-face-match')).toBeNull()
     expect(container.querySelector('.wall-collage-canvas')).not.toBeNull()
   })
+
+  it('hides operational queue status on bare physical wall panels', () => {
+    window.history.replaceState({}, '', '/?wallRole=debra&bare=1')
+    act(() => root.render(<PhotobashScreen />))
+    expect(container.querySelector('.photobash-queue-status')).toBeNull()
+    expect(container.querySelector('.wall-collage-canvas')).not.toBeNull()
+  })
 })

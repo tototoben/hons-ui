@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { publish } from '../lib/firehose'
-import { parseWallRole } from '../lib/wallRole'
+import { parseWallBare, parseWallRole } from '../lib/wallRole'
 import { usePhotobashLoop } from '../lib/wallPhaseSync'
 import { photowallRuntimeStatus } from '../lib/stationStatus'
 import { subscribePhotowallQueue } from '../lib/photowallQueue'
@@ -36,7 +36,7 @@ export function PhotobashScreen() {
 
   return (
     <section className="photobash-screen" aria-label="Photobash reveal">
-      {isConductor ? (
+      {isConductor && !parseWallBare() ? (
         <div className="photobash-queue-status" aria-live="polite">
           {queueDetail}
         </div>
