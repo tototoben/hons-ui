@@ -12,7 +12,6 @@
   left: 0;
   overflow: hidden;
   transform-origin: top left;
-  will-change: transform;
 }
 
 .wall-face-canvas {
@@ -20,7 +19,6 @@
   top: 0;
   left: 0;
   transform-origin: top left;
-  will-change: transform;
   background: #120d0a;
 }
 
@@ -101,5 +99,15 @@
   }
   100% {
     transform: translate(var(--wall-glitch-x, 0.12%), calc(var(--wall-glitch-y, 0.06%) * -1));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wall-face-blanket {
+    animation: none;
+  }
+
+  .wall-face-blanket.is-glitch-hot .wall-face-glitch {
+    animation: none;
   }
 }

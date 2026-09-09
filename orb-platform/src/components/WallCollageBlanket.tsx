@@ -18,7 +18,6 @@ import {
   visitorRevealOrder,
 } from '../lib/wallCollagePhotobash'
 import { lipFrameRect, lipStateAt, LIP_SPRITE_SRC } from '../lib/wallLipClips'
-import './WallFaceBlanket.css'
 import './WallCollageBlanket.css'
 
 const COLLAGE_REVEAL_MS = 45_000

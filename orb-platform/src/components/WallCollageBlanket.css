@@ -1,5 +1,34 @@
 .wall-collage-blanket {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: #0a0806;
   animation: none;
+}
+
+.wall-collage-blanket .wall-face-fit {
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: hidden;
+  transform-origin: top left;
+}
+
+.wall-collage-blanket .wall-face-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: top left;
+  background: #120d0a;
+}
+
+.wall-collage-blanket .wall-face-image {
+  position: absolute;
+  display: block;
+  max-width: none;
+  object-fit: cover;
+  pointer-events: none;
+  user-select: none;
 }
 
 .wall-collage-canvas {
@@ -11,4 +40,10 @@
   display: block;
   pointer-events: none;
   user-select: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wall-collage-blanket {
+    animation: none;
+  }
 }
