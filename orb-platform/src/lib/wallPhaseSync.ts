@@ -356,7 +356,16 @@ export function usePhotobashLoop(isConductor: boolean) {
     let timeout = 0
 
     const run = async () => {
-      const seed = pendingSeedRef.current ?? mintPhotobashSeed()
+      // One real visit = one photobash -- never fabricate an ambient one.
+      // A run is only ever supposed to start from an actual pending reveal
+      // (set by a BroadcastChannel reveal-ready or the Central poll below);
+      // if hasRevealed flipped true without one somehow, there is nothing
+      // real to show, so stay/go blank instead of minting a random seed.
+      if (pendingSeedRef.current === null) {
+        setHasRevealed(false)
+        return
+      }
+      const seed = pendingSeedRef.current
       const cueOverride = pendingCueRef.current
       pendingSeedRef.current = null
       pendingCueRef.current = null
@@ -395,7 +404,10 @@ export function usePhotobashLoop(isConductor: boolean) {
             completeActivePhotowallJob(jobId)
             activeJobIdRef.current = null
           }
-          setCycleKey((key) => key + 1)
+          // Hold this visit's finished collage -- do NOT loop into a fresh
+          // ambient one. The Central-poll effect below keeps running
+          // independently and will set a new pending seed + bump cycleKey
+          // itself whenever the next real visit actually reaches reveal.
         }
       }, PHOTOBASH_CYCLE_MS)
     }
