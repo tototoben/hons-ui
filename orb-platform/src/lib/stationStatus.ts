@@ -2,6 +2,8 @@ import type { ActiveVisit } from './visitCentral'
 import { centralApiBase, isStationTurnActive, shouldGateStationTurn } from './visitCentral'
 import { photowallQueueStatus, readPhotowallQueue } from './photowallQueue'
 
+export const WAITING_FOR_PREVIOUS_STATION_INPUT = 'Waiting for previous station input'
+
 export type StationRuntimeStatus =
   | 'offline'
   | 'waiting'
@@ -85,7 +87,7 @@ export function deriveStationStatus(
         status: 'waiting',
         visitId: null,
         centralState: visits[0]?.state ?? null,
-        detail: 'Waiting for your turn',
+        detail: WAITING_FOR_PREVIOUS_STATION_INPUT,
       }
     }
     return {
