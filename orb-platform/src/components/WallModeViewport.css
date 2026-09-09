@@ -8,10 +8,6 @@ html[data-wall-mode='true'] .experience {
   overflow: hidden;
 }
 
-html[data-wall-mode='true'] .station-switcher {
-  display: none !important;
-}
-
 .wall-mode-viewport {
   position: fixed;
   inset: 0;

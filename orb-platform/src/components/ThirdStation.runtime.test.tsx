@@ -18,6 +18,7 @@ vi.mock('../lib/photobashTrigger', () => ({
 }))
 
 vi.mock('../lib/arsIngest', () => ({
+  prepareKioskVisit: vi.fn(async () => null),
   submitKioskInterview: vi.fn(async () => ({
     intro: 'I keep circling back to the idea that I want to be met honestly.',
     transcriptSource: 'synthetic',

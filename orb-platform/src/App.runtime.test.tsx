@@ -95,9 +95,9 @@ describe('App production overlay', () => {
     },
   )
 
-  it('shows the station switcher on #/orb, not the device picker', async () => {
+  it('keeps the unlocked experience free of station-switcher chrome', async () => {
     await renderApp()
-    expect(container.querySelector('.station-switcher')).not.toBeNull()
+    expect(container.querySelector('.station-switcher')).toBeNull()
     expect(container.querySelector('[aria-label="Production lock"]')).toBeNull()
   })
 
@@ -109,21 +109,12 @@ describe('App production overlay', () => {
     expect(container.querySelector('[data-testid="orb-station"]')).toBeNull()
   })
 
-  it('lists only Station I–III in the developer switcher', async () => {
-    await renderApp()
-    const labels = [...container.querySelectorAll('.station-switcher a')].map((link) => link.textContent)
-    expect(labels).toEqual(['Station I', 'Station II', 'Station III'])
-  })
-
-  it('letterboxes unlocked Station III so the switcher stays clickable', async () => {
+  it('letterboxes unlocked Station III without station-switcher chrome', async () => {
     window.location.hash = '#/mirror'
     await renderApp()
     expect(container.querySelector('[data-testid="third-station"]')).not.toBeNull()
     expect(container.querySelector('.experience-mirror-preview-portrait')).not.toBeNull()
-    expect(
-      [...container.querySelectorAll('.station-switcher a')].find((link) => link.getAttribute('aria-current') === 'page')
-        ?.textContent,
-    ).toBe('Station III')
+    expect(container.querySelector('.station-switcher')).toBeNull()
   })
 
   it('opens the picker on kiosk quality instead of mounting the orb', async () => {
@@ -147,7 +138,7 @@ describe('App production overlay', () => {
     expect(container.querySelector('.station-switcher')).toBeNull()
   })
 
-  it('dismisses the picker on Escape without writing a lock', async () => {
+  it('dismisses the picker on Escape without writing a lock or restoring station chrome', async () => {
     await renderApp()
     await act(async () => {
       window.dispatchEvent(chordEvent())
@@ -157,7 +148,7 @@ describe('App production overlay', () => {
       window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true }))
       await Promise.resolve()
     })
-    expect(container.querySelector('.station-switcher')).not.toBeNull()
+    expect(container.querySelector('.station-switcher')).toBeNull()
     expect(container.querySelector('[aria-label="Production lock"]')).toBeNull()
     expect(window.localStorage.getItem(STORAGE_KEY)).toBeNull()
   })
@@ -205,7 +196,7 @@ describe('App production overlay', () => {
     expect(container.querySelector('[data-unlock-corner]')).not.toBeNull()
   })
 
-  it('restores the switcher on tilde and keeps #/station-1', async () => {
+  it('restores the unlocked Station I view on tilde and keeps #/station-1', async () => {
     window.localStorage.setItem(STORAGE_KEY, 'station-1')
     window.location.hash = '#/station-1'
     await renderApp()
@@ -215,7 +206,7 @@ describe('App production overlay', () => {
     })
     expect(window.localStorage.getItem(STORAGE_KEY)).toBeNull()
     expect(window.location.hash).toBe('#/station-1')
-    expect(container.querySelector('.station-switcher')).not.toBeNull()
+    expect(container.querySelector('.station-switcher')).toBeNull()
     expect(container.querySelector('[data-testid="station-one"]')).not.toBeNull()
   })
 
@@ -284,7 +275,7 @@ describe('App production overlay', () => {
       await Promise.resolve()
     })
     expect(container.querySelector('[aria-label="Production lock"]')).toBeNull()
-    expect(container.querySelector('.station-switcher')).not.toBeNull()
+    expect(container.querySelector('.station-switcher')).toBeNull()
   })
 
   it('opens the picker while an input is focused', async () => {

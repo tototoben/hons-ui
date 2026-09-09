@@ -713,8 +713,9 @@ function ThirdStationSession() {
         {phase === 'handoff' ? (
           <div className="mirror-screen mirror-screen-handoff">
             <JourneyHeadline
-              lines={warm ? ['Go meet', 'your match'] : ['MEET YOUR', 'MATCH']}
+              lines={[warm ? 'Go meet your match' : 'Meet your match']}
               className="mirror-headline"
+              fontPx={88}
             >
               {warm ? 'Go meet your match' : 'Meet your match'}
             </JourneyHeadline>

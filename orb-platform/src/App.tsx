@@ -30,7 +30,6 @@ import { clearPhotowallQueueForRoomReset } from './lib/photowallQueue'
 import { publishKeyboardFocus } from './lib/keyboardFocus'
 import {
   getStationFromHash,
-  getStationHref,
   isEmptyStationHash,
   isKioskBlockedStation,
   type StationRoute,
@@ -104,7 +103,6 @@ export default function App() {
     isStationSimFrame ||
     station === 'wall-cal' ||
     station === 'debra-capture'
-  const showMainNav = !hideChrome
 
   const applyLock = useCallback((next: DeviceLock) => {
     writeDeviceLock(next)
@@ -289,28 +287,6 @@ export default function App() {
           <LevaRoot />
           {station === 'orb' ? <DevPanel /> : null}
         </Suspense>
-      ) : null}
-      {showMainNav ? (
-        <nav className={`station-switcher station-switcher-${station}`} aria-label="Station switcher">
-          <a
-            aria-current={station === 'station-1' ? 'page' : undefined}
-            href={getStationHref('station-1')}
-          >
-            Station I
-          </a>
-          <a
-            aria-current={station === 'station-2' ? 'page' : undefined}
-            href={getStationHref('station-2')}
-          >
-            Station II
-          </a>
-          <a
-            aria-current={station === 'mirror' ? 'page' : undefined}
-            href={getStationHref('mirror')}
-          >
-            Station III
-          </a>
-        </nav>
       ) : null}
       <Suspense fallback={null}>
         {showPicker ? (

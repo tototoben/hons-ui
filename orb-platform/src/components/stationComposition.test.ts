@@ -21,11 +21,11 @@ import thirdStationStyles from './ThirdStation.css?raw'
 import mirrorHeadline from './MirrorHeadline.tsx?raw'
 
 describe('station composition', () => {
-  it('keeps a Station I–III switcher and overlays the production picker', () => {
-    expect(appSource).toContain('station-switcher')
-    expect(appSource).toContain('Station I')
-    expect(appSource).toContain('Station II')
-    expect(appSource).toContain('Station III')
+  it('keeps station selection in the production picker without persistent top-right chrome', () => {
+    expect(appSource).not.toContain('station-switcher')
+    expect(appSource).not.toContain('Station I')
+    expect(appSource).not.toContain('Station II')
+    expect(appSource).not.toContain('Station III')
     expect(appSource).not.toContain("getStationHref('orb')")
     expect(appSource).not.toContain("getStationHref('cards')")
     expect(appSource).not.toContain("getStationHref('avatars')")
@@ -157,6 +157,7 @@ describe('station composition', () => {
     expect(thirdStationSource).toContain('useWhisperDictation')
     expect(thirdStationSource).toContain('submitKioskInterview')
     expect(thirdStationSource).toContain('JourneyHeadline')
+    expect(thirdStationSource).toContain("lines={[warm ? 'Go meet your match' : 'Meet your match']}")
     expect(thirdStationSource).toContain('mirror-record-caption')
     expect(thirdStationSource).toContain('isTranscriptHotkey')
     expect(thirdStationSource).not.toContain('useVisitorVoiceRecorder')
@@ -187,6 +188,21 @@ describe('station composition', () => {
     )
   })
 
+  it('hides the accessible handoff copy beneath the rendered Station III headline', () => {
+    expect(thirdStationStyles).toMatch(
+      /\.mirror-screen-handoff \.journey-headline-copy \{[^}]*clip-path: inset\(50%\)/s,
+    )
+  })
+
+  it('resets the Station III handoff headline margin for optical centering', () => {
+    expect(thirdStationStyles).toMatch(
+      /\.mirror-screen-handoff h1 \{[^}]*margin: 0 auto;[^}]*text-align: center;/s,
+    )
+    expect(journeyStyles).toMatch(
+      /\.journey-textured-headline \{[^}]*text-align: center;/s,
+    )
+  })
+
   it('pins station copy to a shared question-desk height and enlarges Station III frame', () => {
     expect(journeyStyles).toContain('--question-desk-bottom: 12vh')
     expect(journeyStyles).toContain('margin-bottom: var(--question-desk-bottom)')
@@ -196,6 +212,5 @@ describe('station composition', () => {
     expect(journeyStyles).not.toContain('rgba(0, 0, 0, 0.88)')
     expect(thirdStationStyles).toContain('min(calc(100vw - 40px), calc((100vh - 40px) * 3 / 4))')
     expect(thirdStationStyles).toContain('.mirror-record-frame')
-    expect(thirdStationStyles).toContain('padding: 20px')
   })
 })

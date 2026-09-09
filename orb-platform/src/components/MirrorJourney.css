@@ -21,7 +21,7 @@
 }
 
 /* Laptop / Simple Browser: fit a 9:16 kiosk in the window so HP 27w type
-   is not a zoomed crop, and the station switcher sits in the letterbox. */
+   is not a zoomed crop. */
 .mirror-preview-frame.experience-mirror-preview-portrait {
   display: grid;
   place-items: center;
@@ -202,15 +202,6 @@
   letter-spacing: 0.06em;
 }
 
-/* The station-switcher nav (index.css, fixed top-right) is visible on
-   these routes now — below this width it wraps to a second row, which
-   would otherwise sit on top of this status readout. */
-@media (max-width: 700px) {
-  .journey-status {
-    top: 62px;
-  }
-}
-
 .journey-content {
   position: absolute;
   z-index: 3;
@@ -227,8 +218,11 @@
 }
 
 .journey-textured-headline {
+  position: relative;
   display: block;
   width: 100%;
+  margin: 0 auto;
+  text-align: center;
 }
 
 .journey-headline-copy {

@@ -88,15 +88,6 @@
   opacity: 0.85;
 }
 
-/* Below this width the six-item station-switcher nav (index.css, fixed
-   top-right) runs out of room and wraps to a second row, which would
-   otherwise sit on top of this chrome — push it down to clear that. */
-@media (max-width: 700px) {
-  .mirror-status-label {
-    top: 62px;
-  }
-}
-
 .mirror-screen {
   display: flex;
   flex-direction: column;
@@ -322,6 +313,25 @@
 
 .mirror-screen-recording .journey-headline-copy {
   clip-path: inset(50%);
+}
+
+.mirror-screen-handoff .journey-headline-copy {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.mirror-screen-handoff h1 {
+  margin: 0 auto;
+  text-align: center;
+}
+
+.mirror-screen-handoff .journey-headline-canvas {
+  margin-inline: auto;
 }
 
 .mirror-rec-dot {
