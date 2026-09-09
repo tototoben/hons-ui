@@ -495,7 +495,7 @@ function StationTwoTextQuestion({
       {draft ? (
         <p className="journey-intake-preview" aria-live="polite">{draft}</p>
       ) : (
-        <p className="journey-ipad-hint">Type on the iPad</p>
+        <p className="journey-ipad-hint">Type on the tablet</p>
       )}
     </form>
   )

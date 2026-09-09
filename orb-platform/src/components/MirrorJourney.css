@@ -304,6 +304,7 @@
   font: 400 13px/1.4 "Helvetica Neue", sans-serif;
   letter-spacing: 0.14em;
   text-transform: uppercase;
+  text-align: center;
   color: var(--mirror-quiet);
   opacity: 0.65;
 }
