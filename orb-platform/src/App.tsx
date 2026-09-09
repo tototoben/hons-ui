@@ -3,6 +3,7 @@ import { DevicePicker } from './components/DevicePicker'
 import { DeviceUnlockLayer } from './components/DeviceUnlockLayer'
 import { MirrorPreviewFrame } from './components/MirrorPreviewToggle'
 import { WallModeViewport } from './components/WallModeViewport'
+import { ThirdStationWall } from './components/ThirdStationWall'
 import { applyDeviceQuality, getDeviceQuality } from './lib/deviceQuality'
 import { resetVisitorProfile } from './lib/visitorProfile'
 import { resetVisitorFaceCapture } from './lib/visitorFaceCapture'
@@ -46,9 +47,6 @@ const StationTwo = lazy(() =>
 )
 const ThirdStation = lazy(() =>
   import('./components/ThirdStation').then((m) => ({ default: m.ThirdStation })),
-)
-const ThirdStationWall = lazy(() =>
-  import('./components/ThirdStationWall').then((m) => ({ default: m.ThirdStationWall })),
 )
 const SecondStation = lazy(() =>
   import('./components/SecondStation').then((m) => ({ default: m.SecondStation })),
@@ -322,6 +320,8 @@ export default function App() {
           <MirrorPreviewFrame>
             <StationTwo key={stationSession} />
           </MirrorPreviewFrame>
+        ) : station === 'station-3' ? (
+          <ThirdStation key={stationSession} />
         ) : station === 'orb' ? (
           <OrbStation />
         ) : station === 'cards' ? (
