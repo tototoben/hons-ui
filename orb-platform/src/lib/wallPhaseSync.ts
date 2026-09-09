@@ -11,7 +11,7 @@ import {
   parseCollageCue,
   type CollageCue,
 } from './collageCue'
-import { refreshVisitCache } from './visitCentral'
+import { peekActiveVisits, refreshVisitCache } from './visitCentral'
 import {
   completeActivePhotowallJob,
   isRevealReadyMessage,
@@ -264,6 +264,9 @@ export function usePhotobashLoop(isConductor: boolean) {
   )
   const [loadingProgress, setLoadingProgress] = useState(0)
   const [cycleKey, setCycleKey] = useState(0)
+  // No visitor has finished Station 3 yet in this browser session -- stay
+  // blank rather than mint an ambient random collage with nobody there.
+  const [hasRevealed, setHasRevealed] = useState(() => lastReveal !== null)
   const channelRef = useRef<BroadcastChannel | null>(null)
   const pendingSeedRef = useRef<number | null>(lastReveal?.photobashSeed ?? null)
   const pendingCueRef = useRef<CollageCue | null>(lastReveal?.collageCue ?? null)
@@ -275,6 +278,7 @@ export function usePhotobashLoop(isConductor: boolean) {
     channelRef.current = channel
     channel.onmessage = (event: MessageEvent<PhaseMessage | { type: string }>) => {
       if (isRevealReadyMessage(event.data)) {
+        setHasRevealed(true)
         if (isConductor) {
           pendingSeedRef.current = event.data.photobashSeed
           pendingCueRef.current = parseCollageCue(event.data.collageCue)
@@ -301,8 +305,45 @@ export function usePhotobashLoop(isConductor: boolean) {
     }
   }, [isConductor])
 
+  // Cross-machine bridge: Station 3's kiosk and this wall are different
+  // physical devices, so its BroadcastChannel/localStorage reveal-ready
+  // signal (above) never reaches here directly -- only Central's HTTP API
+  // does. Poll it for a visit that has reached the 'reveal' state and
+  // isn't one we've already started a cycle for.
   useEffect(() => {
     if (!isConductor) return
+    let cancelled = false
+    const seenVisitIds = new Set<string>()
+    const poll = async () => {
+      if (cancelled) return
+      await refreshVisitCache(true)
+      if (cancelled) return
+      // Strictly `state === 'reveal'` -- Station 3 sets this only after the
+      // visitor is actually done (notifyRevealReadyFromVisit). Do NOT use
+      // pickVisitForReveal()'s looser fallback (still-at-station-3/2), which
+      // would trigger the wall while someone is mid-interview.
+      const candidates = peekActiveVisits().filter((v) => v.state === 'reveal')
+      const visit = candidates.sort((a, b) => (b.last_activity_at ?? 0) - (a.last_activity_at ?? 0))[0]
+      if (!visit?.visit_id || seenVisitIds.has(visit.visit_id) || activeJobIdRef.current) return
+      seenVisitIds.add(visit.visit_id)
+      const cue = await collageCueFromVisitCentral()
+      if (cancelled) return
+      pendingSeedRef.current = mintPhotobashSeed()
+      pendingCueRef.current = cue
+      activeJobIdRef.current = `central-${visit.visit_id}`
+      setHasRevealed(true)
+      setCycleKey((key) => key + 1)
+    }
+    void poll()
+    const timer = window.setInterval(poll, 4000)
+    return () => {
+      cancelled = true
+      window.clearInterval(timer)
+    }
+  }, [isConductor])
+
+  useEffect(() => {
+    if (!isConductor || !hasRevealed) return
     let cancelled = false
     let raf = 0
     let timeout = 0
@@ -358,7 +399,7 @@ export function usePhotobashLoop(isConductor: boolean) {
       cancelAnimationFrame(raf)
       window.clearTimeout(timeout)
     }
-  }, [isConductor, cycleKey])
+  }, [isConductor, hasRevealed, cycleKey])
 
-  return { photobashSeed, collageCue, loadingProgress, cycleKey }
+  return { photobashSeed, collageCue, loadingProgress, cycleKey, hasRevealed }
 }

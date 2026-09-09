@@ -1,7 +1,7 @@
 import { physicalCollageLayout } from '../lib/wallCollageLayout'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { panelFitScale, wallModeTransform } from '../lib/wallMode'
-import { parseWallBare, type WallRole } from '../lib/wallRole'
+import type { WallRole } from '../lib/wallRole'
 import { DEFAULT_VISITOR_ALIGN, MATCH_FACE_SIZE, type VisitorAlign } from '../lib/wallMatchPhotobash'
 import { ensureCollageBank, peekCollageBank } from '../lib/wallCollageBank'
 import { computeFaceAlign } from '../lib/faceBankAlign'
@@ -312,7 +312,6 @@ export function WallCollageBlanket({
           ) : null}
         </div>
       </div>
-      {parseWallBare() ? null : <div className="wall-face-caption">MATCH LOCKED</div>}
     </div>
   )
 }

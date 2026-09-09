@@ -169,13 +169,27 @@ export function enqueuePhotowallReveal(
   return job
 }
 
+/** Longer than one full wall cycle (PHOTOBASH_CYCLE_MS) -- the wall that
+ * shows a reveal runs on a different device than this queue, so there is
+ * no cross-machine "done" signal to clear `processing`. Without a
+ * timeout, one interrupted job (crash, reload, kiosk restart) blocks
+ * every visitor after it forever. */
+const STALE_PROCESSING_MS = 90_000
+
 export function activateNextPhotowallJob(
   storage: Pick<Storage, 'getItem' | 'setItem'> | undefined = defaultStorage(),
 ): PhotowallJob | null {
-  const snapshot = readPhotowallQueue(storage)
-  if (snapshot.activeJobId) {
-    const active = snapshot.jobs.find((job) => job.id === snapshot.activeJobId)
-    if (active?.status === 'processing') return null
+  let snapshot = readPhotowallQueue(storage)
+  const active = snapshot.jobs.find((job) => job.id === snapshot.activeJobId)
+  if (active?.status === 'processing') {
+    const stale =
+      typeof active.startedAt === 'number' && Date.now() - active.startedAt > STALE_PROCESSING_MS
+    if (!stale) return null
+    const jobs = snapshot.jobs.map((job) =>
+      job.id === active.id ? { ...job, status: 'completed' as const, completedAt: Date.now() } : job,
+    )
+    snapshot = { jobs, activeJobId: null, updatedAt: Date.now() }
+    persistSnapshot(snapshot, storage)
   }
   const next = snapshot.jobs.find((job) => job.status === 'pending')
   if (!next) return null

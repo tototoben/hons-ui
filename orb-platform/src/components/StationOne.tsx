@@ -62,6 +62,11 @@ export function StationOne({ phaseDurationMs = 2200 }: { phaseDurationMs?: numbe
   const [draft, setDraft] = useState('')
   const question = STATION_ONE_INTAKE[state.questionIndex]
   const callName = state.answers.callName ?? ''
+  // The ESP32 proximity sensor is the normal presence-enter source, but it
+  // is not reliably firing right now -- a visitor actually typing is a much
+  // stronger real-interaction signal than station_mounted, so fall back to
+  // it (once) rather than leaving Central with no visit at all.
+  const presenceFallbackFiredRef = useRef(false)
 
   // Publish phase transitions (fires after every state change that moves phases).
   const prevPhaseRef = useRef<StationOneState['phase'] | null>(null)
@@ -163,6 +168,10 @@ export function StationOne({ phaseDurationMs = 2200 }: { phaseDurationMs?: numbe
               const next = event.target.value
               if (question.numeric && next !== '' && !/^\d{1,3}$/.test(next)) return
               setDraft(next)
+              if (next !== '' && !presenceFallbackFiredRef.current) {
+                presenceFallbackFiredRef.current = true
+                publish(STATION_ID, 'presence_fallback', {})
+              }
             }}
           />
           {draft ? (

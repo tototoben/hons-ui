@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { useWallSyncedPhase } from '../lib/wallPhaseSync'
+import { usePhotobashLoop } from '../lib/wallPhaseSync'
 import { parseWallCalibrate, parseWallRole, type WallRole } from '../lib/wallRole'
 import { RevealShellChrome } from './RevealShellChrome'
 import { WallCalibrate } from './WallCalibrate'
@@ -12,7 +12,7 @@ export function ThirdStationWall({ role: roleProp }: { role?: WallRole }) {
   const role = roleProp ?? parseWallRole() ?? 'copy'
   const calibrate = parseWallCalibrate()
   const isConductor = role === 'debra' && !calibrate
-  const { photobashSeed, collageCue } = useWallSyncedPhase(isConductor)
+  const { photobashSeed, collageCue, hasRevealed } = usePhotobashLoop(isConductor)
   const rootRef = useRef<HTMLElement>(null)
 
   useEffect(() => {
@@ -39,11 +39,15 @@ export function ThirdStationWall({ role: roleProp }: { role?: WallRole }) {
       ref={rootRef}
     >
       {calibrate ? <WallCalibrate role={role} /> : null}
-      {calibrate ? null : (
+      {calibrate || !hasRevealed ? null : (
         // The wall reveal is photobash only -- "introduce yourself" etc. is
-        // Station 3's own kiosk job, not replayed here. Always show the
-        // collage, regardless of Station 3's own intro/prompt/recording
-        // phase, matching PhotobashScreen's always-cycling approach.
+        // Station 3's own kiosk job, not replayed here. Once a visitor has
+        // actually finished Station 3 (hasRevealed), always show the
+        // collage regardless of Station 3's own intro/prompt/recording
+        // phase. Before that, stay blank -- no visitor, no photobash.
+        // DO NOT reintroduce the old intro/prompt/recording narrative
+        // panels (WallCodePanel/WallStatusPanel/etc.) here -- removed
+        // deliberately, see commit history.
         <WallCollageBlanket role={role} photobashSeed={photobashSeed} collageCue={collageCue} />
       )}
       <RevealShellChrome />

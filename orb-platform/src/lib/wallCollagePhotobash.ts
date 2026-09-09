@@ -315,14 +315,6 @@ export function drawWallCollage(ctx: CanvasRenderingContext2D, options: CollageC
     }
   })
 
-  // Faint rect outlines for photobash texture.
-  ctx.save()
-  ctx.strokeStyle = 'rgba(8, 6, 4, 0.35)'
-  ctx.lineWidth = Math.max(1, width * 0.0015)
-  rects.forEach((rect) => {
-    ctx.strokeRect(rect.x * width, rect.y * height, rect.w * width, rect.h * height)
-  })
-  ctx.restore()
 }
 
 export { normalizeVisitorAlign }
