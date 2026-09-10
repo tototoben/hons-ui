@@ -148,7 +148,7 @@ describe('device quality', () => {
     expect(mirrorCameraConstraints('kiosk')).toMatchObject({
       width: { ideal: 640, max: 960 },
       height: { ideal: 480, max: 720 },
-      frameRate: { ideal: 15, max: 20 },
+      frameRate: { ideal: 30, min: 15 },
     })
     expect(kioskOrbCounts({ shell: 2900, volume: 2425, halo: 1310 }, 'kiosk')).toEqual({
       shell: 812,

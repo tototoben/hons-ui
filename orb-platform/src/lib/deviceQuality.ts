@@ -72,9 +72,21 @@ export function mirrorCameraConstraints(quality: DeviceQuality = getDeviceQualit
       // face zoom. mapLandmarkToMirror already cover-crops the live
       // frame into the portrait UI from whatever the camera actually
       // delivers.
+      //
+      // Do NOT set `max: 20` for frameRate here: the Logitech Brio 500
+      // (and many other UVC webcams on Linux) caps uncompressed YUYV
+      // raw format to 15 fps at 960x720. Capping max <= 20 causes WebKit/
+      // GStreamer to select uncompressed raw YUYV rather than compressed
+      // MJPEG (which runs at 30 fps). On WPE WebKit / GStreamer 1.26,
+      // raw YUYV triggers a DMA_DRM caps negotiation mismatch ("streaming
+      // stopped, reason not-negotiated (-4)") because v4l2src expects the
+      // memory:DMABuf feature while WebKit's downstream capsfilter lacks it.
+      // Specifying `{ ideal: 30, min: 15 }` makes GStreamer select the
+      // camera's native MJPEG stream, which completely avoids the DMA_DRM
+      // memory feature bug and streams frames reliably.
       width: { ideal: 640, max: 960 },
       height: { ideal: 480, max: 720 },
-      frameRate: { ideal: 15, max: 20 },
+      frameRate: { ideal: 30, min: 15 },
     }
   }
   // A portrait 1080x1920 (~2MP) ask with no frameRate floor made external
