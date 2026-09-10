@@ -52,11 +52,6 @@ export function resetCollageBankCache() {
   inflight.clear()
 }
 
-/** Offline render/tests: inject a warmed bank without fetch or MediaPipe. */
-export function seedCollageBank(seed: number, cue: CollageCue, bank: CollageBank) {
-  ready.set(bankKey(seed, cue), bank)
-}
-
 export async function prefetchCollageAssets() {
   prefetchLipSprite()
   return loadFaceBankImages()

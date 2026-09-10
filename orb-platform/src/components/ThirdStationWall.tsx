@@ -78,12 +78,7 @@ export function ThirdStationWall({ role: roleProp }: { role?: WallRole }) {
         // DO NOT reintroduce the old intro/prompt/recording narrative
         // panels (WallCodePanel/WallStatusPanel/etc.) here -- removed
         // deliberately, see commit history.
-        <WallCollageBlanket
-          role={role}
-          photobashSeed={photobashSeed}
-          collageCue={collageCue}
-          staticCapture={capture !== null}
-        />
+        <WallCollageBlanket role={role} photobashSeed={photobashSeed} collageCue={collageCue} />
       )}
       <RevealShellChrome />
     </section>

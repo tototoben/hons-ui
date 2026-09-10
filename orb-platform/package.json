@@ -15,8 +15,7 @@
     "build": "tsc --noEmit && vite build",
     "build:reveal": "tsc --noEmit && vite build --outDir ../components/reveal/ui/orb",
     "preview": "vite preview",
-    "test": "vitest run",
-    "render:placeholder-tickets": "vite-node --config scripts/vite.render.config.ts scripts/render-placeholder-tickets.mts"
+    "test": "vitest run"
   },
   "dependencies": {
     "@mediapipe/tasks-vision": "^0.10.18",
@@ -35,12 +34,9 @@
     "@types/react-dom": "^19.2.4",
     "@types/three": "^0.185.3",
     "@vitejs/plugin-react": "^6.0.3",
-    "canvas": "^3.2.3",
     "jsdom": "^27.4.0",
-    "tsx": "^4.23.13",
     "typescript": "^5.9.3",
     "vite": "^8.1.1",
-    "vite-node": "^6.0.0",
     "vite-tsconfig-paths": "^6.1.1",
     "vitest": "^4.1.10"
   }

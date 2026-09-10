@@ -10,15 +10,18 @@ import { peekVisitorFaceFromCentral, refreshVisitCache } from '../lib/visitCentr
 import { useVisitCentralPoll } from '../hooks/useVisitCentral'
 import { collageCueKey, type CollageCue } from '../lib/collageCue'
 import {
-  buildWallCollagePlateState,
-  COLLAGE_REVEAL_MS,
-  drawWallCollagePlate,
-} from '../lib/wallCollagePlate'
-import { collageRects, mouthRectIndex } from '../lib/wallCollagePhotobash'
+  collageRects,
+  collageRevealAt,
+  drawWallCollage,
+  mouthRectIndex,
+  pickTaggedStrangerAssignments,
+  visitorRevealOrder,
+} from '../lib/wallCollagePhotobash'
 import { lipFrameRect, lipStateAt, LIP_SPRITE_SRC } from '../lib/wallLipClips'
 import './WallFaceBlanket.css'
 import './WallCollageBlanket.css'
 
+const COLLAGE_REVEAL_MS = 45_000
 const PLATE_RATIO = MATCH_FACE_SIZE.width / MATCH_FACE_SIZE.height
 
 function loadImage(src: string) {
@@ -41,13 +44,10 @@ export function WallCollageBlanket({
   role,
   photobashSeed = 1,
   collageCue = {},
-  staticCapture = false,
 }: {
   role: WallRole
   photobashSeed?: number
   collageCue?: CollageCue
-  /** Headless memorabilia capture: draw the full collage immediately. */
-  staticCapture?: boolean
 }) {
   const seed = photobashSeed || 1
   const cueKey = collageCueKey(collageCue)
@@ -69,6 +69,12 @@ export function WallCollageBlanket({
   const rects = useMemo(() => collageRects(seed), [seed])
   const physicalLayout = physicalCollageLayout(role, rects[mouthRectIndex(rects)])
   const panel = physicalLayout.panel
+  const strangerAssignments = useMemo(
+    () => pickTaggedStrangerAssignments(seed, bankFaces, collageCue, rects.length),
+    [seed, rects.length, bankFaces, cueKey],
+  )
+  const revealOrder = useMemo(() => visitorRevealOrder(seed + 1, rects.length), [seed, rects.length])
+
   useEffect(() => {
     const onResize = () => setViewport({ width: window.innerWidth, height: window.innerHeight })
     window.addEventListener('resize', onResize)
@@ -141,26 +147,28 @@ export function WallCollageBlanket({
       const canvas = canvasRef.current
       const ctx = canvas?.getContext('2d')
       if (canvas && ctx) {
-        const plateState = buildWallCollagePlateState({
-          seed,
-          collageCue,
-          faces: bankFaces,
-          visitorImage,
-          elapsedMs: now - start,
-          staticCapture,
-        })
-        drawWallCollagePlate({
-          ctx,
+        const elapsed = now - start
+        const { revealedCount, nextOpacity } = collageRevealAt(
+          elapsed,
+          COLLAGE_REVEAL_MS,
+          rects.length,
+        )
+        const revealedCells = new Set(revealOrder.slice(0, revealedCount))
+        const revealingCell = revealedCount < revealOrder.length ? revealOrder[revealedCount] : null
+        drawWallCollage(ctx, {
+          fillBackground: true,
           width: canvas.width,
           height: canvas.height,
-          state: plateState,
-          bank: { images: bankImages, aligns: bankAligns, faces: bankFaces },
+          rects,
+          bankImages,
+          bankAligns,
+          strangerAssignments,
           visitorImage,
           visitorAlign,
+          revealedCells,
+          revealingCell,
+          revealingOpacity: nextOpacity,
         })
-        if (staticCapture && bankImages.length > 0) {
-          document.documentElement.dataset.captureReady = '1'
-        }
       }
       raf = requestAnimationFrame(tick)
     }
@@ -170,17 +178,7 @@ export function WallCollageBlanket({
       cancelled = true
       cancelAnimationFrame(raf)
     }
-  }, [
-    bankAligns,
-    bankImages,
-    bankFaces,
-    collageCue,
-    rects,
-    seed,
-    staticCapture,
-    visitorAlign,
-    visitorImage,
-  ])
+  }, [bankAligns, bankImages, rects, revealOrder, strangerAssignments, visitorAlign, visitorImage])
 
   // Sprite flipbook: steps through cropped mouth-shape frames during
   // talking bursts, hides the layer during pauses so the still collage

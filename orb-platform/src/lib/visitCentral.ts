@@ -46,14 +46,6 @@ export function centralApiBase(): string {
   const explicit = params.get('central')
   if (explicit === '0' || explicit === 'false') return ''
   if (explicit) return explicit.replace(/\/$/, '')
-  const { hostname, port, origin } = window.location
-  if (
-    port === '5176' &&
-    origin &&
-    (hostname === 'localhost' || hostname === '127.0.0.1')
-  ) {
-    return origin
-  }
   return DEFAULT_CENTRAL_API
 }
 
@@ -121,32 +113,6 @@ export function stationTwoPayload(visit: ActiveVisit | null): StationTwoVisitPay
 
 export function peekActiveVisits(): ActiveVisit[] {
   return cachedVisits
-}
-
-export function findVisitById(
-  visitId: string,
-  visits: ActiveVisit[] = cachedVisits,
-): ActiveVisit | null {
-  return visits.find((visit) => visit.visit_id === visitId) ?? null
-}
-
-export async function fetchVisitById(visitId: string): Promise<ActiveVisit | null> {
-  if (!visitId) return null
-  await refreshVisitCache(true)
-  const cached = findVisitById(visitId)
-  if (cached) return cached
-  const base = centralApiBase()
-  if (!base) return null
-  try {
-    const response = await fetch(`${base}/api/visits/${encodeURIComponent(visitId)}`, {
-      cache: 'no-store',
-    })
-    if (!response.ok) return null
-    const body = (await response.json()) as { visit?: ActiveVisit }
-    return body.visit ?? null
-  } catch {
-    return null
-  }
 }
 
 export function peekStationOneForStation(station: 2 | 3 | 'reveal'): StationOneVisitPayload | null {
