@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react'
 import { ipadSimLinkPlugin } from './src/lib/ipadSimLinkPlugin.ts'
 import { writeFileSync, mkdirSync, existsSync } from 'fs'
 import { resolve, dirname } from 'path'
+import { execSync } from 'child_process'
 
 /**
  * Vite middleware that accepts perf metric beacons from the browser at
@@ -41,8 +42,41 @@ function perfFileLogger() {
 
 const isVercel = Boolean(process.env.VERCEL)
 
+/**
+ * Dev-server route that reports which ui checkout is being served, so the
+ * station bridges and central can publish the dev server's version (see the
+ * admin panel "UI serving" section). Matches with or without the /orb/ base
+ * prefix. `git describe --always --dirty` flags uncommitted live edits with a
+ * `-dirty` suffix.
+ */
+function uiVersionEndpoint() {
+  return {
+    name: 'ui-version-endpoint',
+    configureServer(server: ViteDevServer) {
+      server.middlewares.use((req, res, next) => {
+        const path = (req.url ?? '').split('?')[0]
+        if (path !== '/__version' && path !== '/orb/__version') {
+          next()
+          return
+        }
+        let version = 'unknown'
+        try {
+          version = execSync('git describe --always --dirty', {
+            cwd: process.cwd(),
+            encoding: 'utf-8',
+          }).trim()
+        } catch {
+          // not a git checkout — report "unknown"
+        }
+        res.setHeader('content-type', 'application/json')
+        res.end(JSON.stringify({ version, ts: Date.now() }))
+      })
+    },
+  }
+}
+
 export default defineConfig({
-  plugins: [react(), perfFileLogger(), ipadSimLinkPlugin()],
+  plugins: [react(), perfFileLogger(), uiVersionEndpoint(), ipadSimLinkPlugin()],
   // Visualizer embeds this app at /orb/. The Vercel preview is the app itself at /.
   base: isVercel ? '/' : '/orb/',
   test: {
