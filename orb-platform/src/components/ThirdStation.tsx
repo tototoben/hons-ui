@@ -21,7 +21,7 @@ import { isStationTurnActive, visitSessionKeyForStation } from '../lib/visitCent
 import { deriveStationStatus } from '../lib/stationStatus'
 import { prepareKioskVisit, submitKioskInterview } from '../lib/arsIngest'
 import { captionLines } from '../lib/captionLines'
-import { isTranscriptHotkey } from '../lib/productionHotkey'
+import { isFinishIntroHotkey, isTranscriptHotkey } from '../lib/productionHotkey'
 import type { WallPhase } from '../lib/wallPhaseSync'
 import { publish } from '../lib/firehose'
 import { publishKeyboardFocus, startKeyboardFocusHeartbeat } from '../lib/keyboardFocus'
@@ -504,8 +504,13 @@ function ThirdStationSession() {
   const caption = spokenIntro.trim() || whisper.text
   const spokenRef = useRef('')
   spokenRef.current = caption
+  const speechTextRef = useRef('')
+  speechTextRef.current = spokenIntro
+  const whisperTextRef = useRef('')
+  whisperTextRef.current = whisper.text
   const flushIntro = whisper.flush
   const [showCaption, setShowCaption] = useState(false)
+  const finishReasonRef = useRef<'timer' | 'early'>('timer')
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -516,6 +521,22 @@ function ThirdStationSession() {
     window.addEventListener('keydown', onKeyDown, true)
     return () => window.removeEventListener('keydown', onKeyDown, true)
   }, [])
+
+  const finishIntroEarly = useCallback(() => {
+    if (phase !== 'recording') return
+    finishReasonRef.current = 'early'
+    setPhase('loading')
+  }, [phase])
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!isFinishIntroHotkey(event) || phase !== 'recording') return
+      event.preventDefault()
+      finishIntroEarly()
+    }
+    window.addEventListener('keydown', onKeyDown, true)
+    return () => window.removeEventListener('keydown', onKeyDown, true)
+  }, [finishIntroEarly, phase])
 
   useEffect(() => {
     publish('station-3', 'station_mounted', { phase: 'intro' })
@@ -535,7 +556,13 @@ function ThirdStationSession() {
       void flushIntro().then((final) => {
         const spoken = final.trim() || spokenRef.current
         void visitContextPromise.then((visitContext) => {
-          void submitKioskInterview(spoken, visitContext).then((built) => {
+          void submitKioskInterview(spoken, visitContext, {
+            finishReason: finishReasonRef.current,
+            speechChars: speechTextRef.current.trim().length,
+            whisperChars: whisperTextRef.current.trim().length,
+            capturedChars: spoken.length,
+            recordingSeconds: mirrorSettings.timing.recordingSeconds,
+          }).then((built) => {
             void notifyRevealReadyFromVisit({
               readyAnswer: readyAnswerRef.current ?? undefined,
               transcript: built.intro,
@@ -579,7 +606,12 @@ function ThirdStationSession() {
       }
     } else if (phase === 'recording') {
       setRecordSecondsLeft(t.recordingSeconds)
-      timers.push(window.setTimeout(() => setPhase('loading'), t.recordingSeconds * 1000))
+      timers.push(
+        window.setTimeout(() => {
+          finishReasonRef.current = 'timer'
+          setPhase('loading')
+        }, t.recordingSeconds * 1000),
+      )
     } else if (phase === 'loading') {
       setLoadingProgress(0)
       timers.push(window.setTimeout(() => setPhase('handoff'), PHOTOBASH_FILL_MS))

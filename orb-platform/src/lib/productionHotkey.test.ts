@@ -5,6 +5,7 @@ import {
   isPickerDismissKey,
   isProductionHotkey,
   isStationRestartHotkey,
+  isFinishIntroHotkey,
   isTranscriptHotkey,
   isTypingTarget,
   pickerLockFromKey,
@@ -70,6 +71,12 @@ describe('productionHotkey', () => {
     expect(isTranscriptHotkey(chord({ code: 'KeyT', key: 't', altKey: false, metaKey: true }))).toBe(true)
     expect(isTranscriptHotkey(chord({ code: 'KeyT', key: 't', altKey: false, ctrlKey: true }))).toBe(false)
     expect(isTranscriptHotkey(chord())).toBe(false)
+  })
+
+  it('matches Alt+Shift+F as the early-finish introduction chord', () => {
+    expect(isFinishIntroHotkey(chord({ code: 'KeyF', key: 'f' }))).toBe(true)
+    expect(isFinishIntroHotkey(chord({ code: 'KeyT', key: 't' }))).toBe(false)
+    expect(isFinishIntroHotkey(chord({ code: 'KeyF', key: 'f', repeat: true }))).toBe(false)
   })
 
   it('ignores key repeat', () => {

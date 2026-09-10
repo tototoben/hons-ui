@@ -56,6 +56,11 @@ export function isTranscriptHotkey(event: OperatorChordEvent): boolean {
   return isOperatorChord(event, 'KeyT')
 }
 
+/** Finish Station III's spoken introduction before its timer expires. */
+export function isFinishIntroHotkey(event: OperatorChordEvent): boolean {
+  return isOperatorChord(event, 'KeyF')
+}
+
 export function isPickerDismissKey(
   event: Pick<KeyboardEvent, 'key' | 'code' | 'shiftKey' | 'altKey' | 'metaKey' | 'ctrlKey' | 'repeat'>,
 ): boolean {

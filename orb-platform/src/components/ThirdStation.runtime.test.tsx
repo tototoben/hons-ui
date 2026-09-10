@@ -4,6 +4,7 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mirrorSettings } from '../dev/mirrorSettingsStore'
+import { submitKioskInterview } from '../lib/arsIngest'
 import { PHOTOBASH_FILL_MS } from '../lib/photobashLoop'
 import { applyStationVibe } from '../lib/stationVibe'
 import { resetVisitorFaceCapture } from '../lib/visitorFaceCapture'
@@ -244,5 +245,33 @@ describe('ThirdStation', () => {
 
     expect(container.textContent).toContain('Meet your match')
     expect(notifyRevealReadyFromVisit).toHaveBeenCalledTimes(1)
+  })
+
+  it('finishes the introduction early and reports capture diagnostics', async () => {
+    whisper.text = 'whisper fallback'
+    act(() => root.render(<ThirdStation />))
+    await settle()
+    await enterRecording()
+
+    await act(async () => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          code: 'KeyF',
+          key: 'f',
+          shiftKey: true,
+          altKey: true,
+          bubbles: true,
+        }),
+      )
+      await Promise.resolve()
+    })
+    await settle()
+
+    expect(container.querySelector('.mirror-record-prompt')).toBeNull()
+    expect(vi.mocked(submitKioskInterview)).toHaveBeenCalledWith(
+      'whisper fallback',
+      null,
+      expect.objectContaining({ finishReason: 'early', capturedChars: 16 }),
+    )
   })
 })

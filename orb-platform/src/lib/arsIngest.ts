@@ -78,8 +78,20 @@ function postJson(url: string, payload: unknown) {
   }).catch(() => null)
 }
 
+export type IntroDiagnostics = {
+  finishReason?: 'timer' | 'early'
+  speechChars?: number
+  whisperChars?: number
+  capturedChars?: number
+  recordingSeconds?: number
+}
+
 /** Persist the spoken intro and hand Station I/II + III to ARS. */
-export async function submitKioskInterview(intro: string, prepared?: KioskVisitContext | null) {
+export async function submitKioskInterview(
+  intro: string,
+  prepared?: KioskVisitContext | null,
+  diagnostics: IntroDiagnostics = {},
+) {
   const text = sanitizeSpokenIntro(intro)
   setVisitorIntro(text)
   const context = prepared ?? (await prepareKioskVisit())
@@ -103,6 +115,7 @@ export async function submitKioskInterview(intro: string, prepared?: KioskVisitC
     source: built.transcriptSource,
     personaVisitId: context?.visitId ?? persona?.visit_id ?? null,
     personaPrompt: Boolean(persona?.system_prompt),
+    ...diagnostics,
   })
   for (const url of ingestUrls()) {
     void postJson(url, built.payload)
