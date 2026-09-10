@@ -34,12 +34,14 @@ jobs:
       - name: Patch vite config for R2 bundle
         working-directory: orb-platform
         run: |
-          # vite.config.ts hardcodes outDir to ../../visualizer/public/orb.
-          # Override to dist/orb so the bundle is self-contained under dist/.
+          # vite.config.ts routes the non-Vercel build to the visualizer's
+          # public/orb. Override the whole outDir line to dist/orb so the
+          # bundle is self-contained under dist/ regardless of how the
+          # default is expressed (plain string or isVercel ternary).
           # Keep base: '/orb/' so the same bundle works both in the visualizer
           # (iframe at /orb/index.html) and on the RPi kiosk (served from
           # dist/orb/ by python3 http.server).
-          sed -i "s|outDir: '../../visualizer/public/orb'|outDir: 'dist/orb'|" vite.config.ts
+          sed -i -E "s|outDir:.*|outDir: 'dist/orb',|" vite.config.ts
 
       - name: Build
         working-directory: orb-platform
