@@ -96,6 +96,7 @@ describe('interviewStore', () => {
     expect(parseStationOneState(null)).toBeNull()
     expect(parseStationOneState({ phase: 'teleport', questionIndex: 0, answers: {} })).toBeNull()
     expect(parseStationOneState({ phase: 'intake', questionIndex: 0, answers: { age: 12 } })).toBeNull()
+    expect(parseStationOneState({ phase: 'intake', questionIndex: 10, answers: {} })).toBeNull()
   })
 
   it('rejects corrupt Station II payloads', () => {
@@ -112,6 +113,18 @@ describe('interviewStore', () => {
         previousRelationships: 'maybe',
       }),
     ).toMatchObject({ age: null, previousRelationships: null })
+    expect(
+      parseStationTwoState({
+        phase: 'question',
+        questionIndex: 99,
+        answers: {},
+        height: 0.5,
+        lightningIndex: 0,
+        lightningAnswers: {},
+        age: null,
+        previousRelationships: null,
+      }),
+    ).toBeNull()
   })
 
   it('clears only Station II on a station restart', () => {
