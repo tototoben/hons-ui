@@ -131,12 +131,7 @@ export function StationOne({ phaseDurationMs = 2200 }: { phaseDurationMs?: numbe
     if (state.phase !== 'intake') {
       return startKeyboardFocusHeartbeat(STATION_ID, 'hidden')
     }
-    if (question?.type !== 'text') {
-      return startKeyboardFocusHeartbeat(STATION_ID, keyboardFocusForQuestion(question), {
-        prompt: question?.prompt,
-      })
-    }
-    return startKeyboardFocusHeartbeat(STATION_ID, 'text', {
+    return startKeyboardFocusHeartbeat(STATION_ID, keyboardFocusForQuestion(question), {
       prompt: question.prompt,
     })
   }, [state.phase, state.questionIndex, question])

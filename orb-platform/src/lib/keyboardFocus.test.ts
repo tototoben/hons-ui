@@ -14,8 +14,8 @@ import {
 } from './keyboardFocus'
 
 describe('keyboardFocusForQuestion', () => {
-  it('uses the letter keyboard for numeric intake (age) as well as free text', () => {
-    expect(keyboardFocusForQuestion({ type: 'text', numeric: true })).toBe('text')
+  it('uses the numeric keyboard for numeric intake (age)', () => {
+    expect(keyboardFocusForQuestion({ type: 'text', numeric: true })).toBe('numeric')
   })
 
   it('uses the letter keyboard for free text', () => {
@@ -86,4 +86,3 @@ describe('startKeyboardFocusHeartbeat', () => {
     expect(publish).toHaveBeenCalledTimes(2)
   })
 })
-
