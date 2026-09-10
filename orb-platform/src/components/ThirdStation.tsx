@@ -30,6 +30,7 @@ import { notifyRevealReadyFromVisit } from '../lib/photobashTrigger'
 import { MirrorGuideOrb } from './MirrorGuideOrb'
 import { MirrorHeadline } from './MirrorHeadline'
 import { JourneyHeadline } from './JourneyHeadline'
+import { MirrorChoice } from './MirrorChoice'
 import { CodePanel, MiniBar } from './HudDebris'
 import { StationTurnWait } from './StationTurnWait'
 import './ThirdStation.css'
@@ -621,21 +622,11 @@ function ThirdStationSession() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase])
 
-  useEffect(() => {
-    if (!awaitingReady) return
-    const stopHeartbeat = startKeyboardFocusHeartbeat('station-3', 'yesno', {
-      prompt: 'Ready?',
-      left: 'Yes',
-      right: 'Skip',
-    })
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.repeat) return
-      const key = event.key.toLowerCase()
-      if (key !== 'y' && key !== 'n') return
-      event.preventDefault()
+  const handleReadyAnswer = useCallback(
+    (answer: 'yes' | 'no') => {
       setAwaitingReady(false)
       publishKeyboardFocus('station-3', 'hidden')
-      if (key === 'y') {
+      if (answer === 'yes') {
         readyAnswerRef.current = 'yes'
         startRecordingCountdown()
       } else {
@@ -643,13 +634,21 @@ function ThirdStationSession() {
         readyAnswerRef.current = 'skip'
         setPhase('loading')
       }
-    }
-    window.addEventListener('keydown', onKeyDown)
+    },
+    [startRecordingCountdown],
+  )
+
+  useEffect(() => {
+    if (!awaitingReady) return
+    const stopHeartbeat = startKeyboardFocusHeartbeat('station-3', 'yesno', {
+      prompt: 'Ready?',
+      left: 'Yes',
+      right: 'Skip',
+    })
     return () => {
-      window.removeEventListener('keydown', onKeyDown)
       stopHeartbeat()
     }
-  }, [awaitingReady, startRecordingCountdown])
+  }, [awaitingReady])
 
   // Second-by-second recording countdown display + smooth loading progress —
   // both derived from elapsed time against the same durations used above.
@@ -715,6 +714,7 @@ function ThirdStationSession() {
           <div className="mirror-screen mirror-screen-prompt">
             <GuideOrb variant="idle" />
             <MirrorHeadline lines={['Ready?']} className="mirror-headline" />
+            <MirrorChoice labels={['Yes', 'Skip']} onAnswer={handleReadyAnswer} />
           </div>
         ) : null}
 

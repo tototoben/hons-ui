@@ -274,4 +274,32 @@ describe('ThirdStation', () => {
       expect.objectContaining({ finishReason: 'early', capturedChars: 16 }),
     )
   })
+
+  it('skips introduction when Skip button is clicked', async () => {
+    act(() => root.render(<ThirdStation />))
+    await settle()
+    await act(async () => {
+      vi.advanceTimersByTime(1000) // intro
+      await Promise.resolve()
+    })
+    await act(async () => {
+      vi.advanceTimersByTime(1000) // prompt
+      await Promise.resolve()
+    })
+
+    const buttons = Array.from(container.querySelectorAll('button'))
+    const skipBtn = buttons.find((b) => b.textContent?.includes('Skip'))
+    expect(skipBtn).toBeDefined()
+
+    await act(async () => {
+      skipBtn?.click()
+      await Promise.resolve()
+    })
+    await settle()
+
+    expect(container.textContent).toContain('PROCESSING')
+    expect(notifyRevealReadyFromVisit).toHaveBeenCalledWith(
+      expect.objectContaining({ readyAnswer: 'skip' }),
+    )
+  })
 })

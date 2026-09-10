@@ -5,6 +5,7 @@ import type {
   StationTwoPhase,
   StationTwoState,
 } from './mirrorJourney'
+import { STATION_ONE_INTAKE, STATION_TWO_QUESTIONS } from './mirrorJourney'
 
 export const STATION_ONE_STORAGE_KEY = 'hons-station-1-state'
 export const STATION_TWO_STORAGE_KEY = 'hons-station-2-state'
@@ -61,11 +62,13 @@ export function parseStationOneState(value: unknown): StationOneState | null {
   if (typeof raw.questionIndex !== 'number' || !Number.isFinite(raw.questionIndex) || raw.questionIndex < 0) {
     return null
   }
+  const questionIndex = Math.floor(raw.questionIndex)
+  if (raw.phase === 'intake' && questionIndex >= STATION_ONE_INTAKE.length) return null
   const answers = asStringRecord(raw.answers)
   if (!answers) return null
   return {
     phase: raw.phase,
-    questionIndex: Math.floor(raw.questionIndex),
+    questionIndex,
     answers,
   }
 }
@@ -84,6 +87,8 @@ export function parseStationTwoState(value: unknown): StationTwoState | null {
   const answers = asStringRecord(raw.answers)
   const lightningAnswers = asStringRecord(raw.lightningAnswers)
   if (!answers || !lightningAnswers) return null
+  const questionIndex = Math.floor(raw.questionIndex)
+  if (raw.phase === 'question' && questionIndex >= STATION_TWO_QUESTIONS.length) return null
   const age =
     raw.age === null ? null : typeof raw.age === 'number' && Number.isFinite(raw.age) ? raw.age : null
   const previousRelationships =
@@ -92,7 +97,7 @@ export function parseStationTwoState(value: unknown): StationTwoState | null {
       : null
   return {
     phase: raw.phase,
-    questionIndex: Math.floor(raw.questionIndex),
+    questionIndex,
     answers,
     height: Math.min(1, Math.max(0, raw.height)),
     lightningIndex: Math.floor(raw.lightningIndex),
