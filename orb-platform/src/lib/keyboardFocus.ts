@@ -1,8 +1,6 @@
 import { publish } from './firehose'
 
-/** Layout the iPad station remote should show for the current kiosk prompt.
- *  `numeric` is accepted from older kiosks; the iPad maps it to the letter
- *  keyboard (which now has a 1–0 row). New publishes use `text` for age too. */
+/** Layout the iPad station remote should show for the current kiosk prompt. */
 export type KeyboardFocusMode = 'text' | 'numeric' | 'yesno' | 'choice' | 'scale' | 'hidden'
 
 export type KeyboardFocusLabels = {
@@ -24,7 +22,7 @@ export function keyboardFocusForQuestion(
 ): KeyboardFocusMode {
   if (!question) return 'hidden'
   if (question.type === 'yesno') return 'yesno'
-  if (question.type === 'text') return 'text'
+  if (question.type === 'text') return question.numeric ? 'numeric' : 'text'
   if (question.type === 'scale') return 'scale'
   return 'hidden'
 }
