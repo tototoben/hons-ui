@@ -1,6 +1,7 @@
 import {
   lazy,
   Suspense,
+  useCallback,
   useEffect,
   useRef,
   useState,
@@ -17,7 +18,7 @@ import { useWhisperDictation } from '../hooks/useWhisperDictation'
 import { useStationVibe } from '../hooks/useStationVibe'
 import { submitKioskInterview } from '../lib/arsIngest'
 import { captionLines } from '../lib/captionLines'
-import { isTranscriptHotkey } from '../lib/productionHotkey'
+import { isFinishIntroHotkey, isTranscriptHotkey } from '../lib/productionHotkey'
 import type { WallPhase } from '../lib/wallPhaseSync'
 import { publish } from '../lib/firehose'
 import { publishKeyboardFocus } from '../lib/keyboardFocus'
@@ -457,8 +458,13 @@ export function ThirdStation() {
   const caption = spokenIntro.trim() || whisper.text
   const spokenRef = useRef('')
   spokenRef.current = caption
+  const speechTextRef = useRef('')
+  speechTextRef.current = spokenIntro
+  const whisperTextRef = useRef('')
+  whisperTextRef.current = whisper.text
   const flushIntro = whisper.flush
   const [showCaption, setShowCaption] = useState(false)
+  const finishReasonRef = useRef<'timer' | 'early'>('timer')
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -469,6 +475,22 @@ export function ThirdStation() {
     window.addEventListener('keydown', onKeyDown, true)
     return () => window.removeEventListener('keydown', onKeyDown, true)
   }, [])
+
+  const finishIntroEarly = useCallback(() => {
+    if (phase !== 'recording') return
+    finishReasonRef.current = 'early'
+    setPhase('loading')
+  }, [phase])
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!isFinishIntroHotkey(event) || phase !== 'recording') return
+      event.preventDefault()
+      finishIntroEarly()
+    }
+    window.addEventListener('keydown', onKeyDown, true)
+    return () => window.removeEventListener('keydown', onKeyDown, true)
+  }, [finishIntroEarly, phase])
 
   useEffect(() => {
     publish('station-3', 'station_mounted', { phase: 'intro' })
@@ -485,7 +507,14 @@ export function ThirdStation() {
     if (phase === 'loading') {
       notifyRevealReady()
       void flushIntro().then((final) => {
-        submitKioskInterview(final.trim() || spokenRef.current)
+        const text = final.trim() || spokenRef.current
+        submitKioskInterview(text, {
+          finishReason: finishReasonRef.current,
+          speechChars: speechTextRef.current.trim().length,
+          whisperChars: whisperTextRef.current.trim().length,
+          capturedChars: text.length,
+          recordingSeconds: mirrorSettings.timing.recordingSeconds,
+        })
       })
     }
   }, [phase, flushIntro])
@@ -524,7 +553,12 @@ export function ThirdStation() {
       )
     } else if (phase === 'recording') {
       setRecordSecondsLeft(t.recordingSeconds)
-      timers.push(window.setTimeout(() => setPhase('loading'), t.recordingSeconds * 1000))
+      timers.push(
+        window.setTimeout(() => {
+          finishReasonRef.current = 'timer'
+          setPhase('loading')
+        }, t.recordingSeconds * 1000),
+      )
     } else if (phase === 'loading') {
       setLoadingProgress(0)
       timers.push(window.setTimeout(() => setPhase('intro'), t.loadingSeconds * 1000))

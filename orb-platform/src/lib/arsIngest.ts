@@ -25,14 +25,23 @@ function postJson(url: string, payload: KioskInterviewPayload) {
   }).catch(() => null)
 }
 
+export type IntroDiagnostics = {
+  finishReason?: 'timer' | 'early'
+  speechChars?: number
+  whisperChars?: number
+  capturedChars?: number
+  recordingSeconds?: number
+}
+
 /** Persist the spoken intro and hand Station I/II + III to ARS. */
-export function submitKioskInterview(intro: string) {
+export function submitKioskInterview(intro: string, diagnostics: IntroDiagnostics = {}) {
   const text = intro.trim()
   setVisitorIntro(text)
   const payload = buildKioskInterviewFromStores(text)
   publish('station-3', 'intro_transcript', {
     chars: text.length,
     preview: text.slice(0, 140),
+    ...diagnostics,
   })
   for (const url of ingestUrls()) {
     void postJson(url, payload)
