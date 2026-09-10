@@ -21,6 +21,7 @@ const STATUS_LABEL = {
   prompt: 'LISTENING',
   recording: 'RECORDING',
   loading: 'PROCESSING',
+  handoff: 'HANDOFF',
 } as const
 
 function Dots({ lit }: { lit: number }) {

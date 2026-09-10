@@ -46,6 +46,22 @@ function getImageLandmarker() {
   return landmarkerPromise
 }
 
+/** Detect face landmarks in a static image (single face); null when no
+ * face is found or MediaPipe fails. Normalized 0-1 coordinates. */
+export async function detectFaceLandmarks(
+  image: HTMLImageElement,
+): Promise<Point[] | null> {
+  try {
+    const landmarker = await getImageLandmarker()
+    const result = landmarker.detect(image)
+    const landmarks = result.faceLandmarks?.[0]
+    if (!landmarks || landmarks.length === 0) return null
+    return landmarks.map((p) => ({ x: p.x, y: p.y }))
+  } catch {
+    return null
+  }
+}
+
 /** Same crop-rect math as wallMatchPhotobash's coverDrawImage, but returning
  * the rect (in source pixels) instead of drawing — needed to map a raw
  * landmark position into "where it lands after the cover crop." */

@@ -71,7 +71,7 @@ async function recropToDataUrl(image: HTMLImageElement, outSize = 640): Promise<
   return canvas.toDataURL('image/jpeg', 0.92)
 }
 
-async function postCrop(file: string, dataUrl: string): Promise<boolean> {
+export async function postCrop(file: string, dataUrl: string): Promise<boolean> {
   const res = await fetch(dataUrl)
   const blob = await res.blob()
   const resp = await fetch(`http://b310-mac:8099/save?file=${encodeURIComponent(file)}`, {
@@ -120,7 +120,6 @@ function Card({ row }: { row: Row }) {
 export function FaceBankAudit() {
   const [rows, setRows] = useState<Row[] | null>(null)
   const [progress, setProgress] = useState(0)
-  const [recropLog, setRecropLog] = useState<string[]>([])
   const entriesRef = useRef<FaceBankEntry[]>([])
 
   useEffect(() => {
@@ -166,9 +165,6 @@ export function FaceBankAudit() {
         Face-bank alignment audit -- {progress}/{rows?.length ?? '?'} processed. Green crosshair = real
         detection, red border = fell back to default, amber border = scale far from 1 (loose/tight source crop).
       </h1>
-      {recropLog.length > 0 ? (
-        <pre style={{ fontFamily: 'monospace', fontSize: 11, color: '#9f9' }}>{recropLog.join('\n')}</pre>
-      ) : null}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
         {rows?.map((row) => <Card key={row.entry.face.file} row={row} />)}
       </div>

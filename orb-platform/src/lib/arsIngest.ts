@@ -113,7 +113,7 @@ export async function submitKioskInterview(
     chars: built.intro.length,
     preview: built.intro.slice(0, 140),
     source: built.transcriptSource,
-    personaVisitId: context?.visitId ?? persona?.visit_id ?? null,
+    personaVisitId: context?.visitId ?? (persona && 'visit_id' in persona ? persona.visit_id : null),
     personaPrompt: Boolean(persona?.system_prompt),
     ...diagnostics,
   })
