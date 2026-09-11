@@ -74,7 +74,31 @@
   overflow: hidden;
   transform: scale(var(--journey-focus-scale, 1));
   transform-origin: var(--journey-focus-x, 50%) var(--journey-focus-y, 45%);
-  transition: transform 1500ms cubic-bezier(0.19, 1, 0.22, 1), opacity 900ms ease;
+  transition: transform 1500ms cubic-bezier(0.19, 1, 0.22, 1), opacity 900ms ease,
+    inset 900ms cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+/* Fill light for the Station I webcam (2026-09-10/11): the screen doubles
+   as a light source on the visitor's face while a scan phase is reading
+   it. The full-bleed video/canvas/veil (all position:absolute; inset:0
+   relative to .journey-camera-stage) shrink automatically into the framed
+   box below; no canvas/tracking-overlay math needs to change, since it
+   reads the canvas element's own rendered size fresh every paint. Ink
+   flips dark so headline/HUD text stays legible on the near-white ground. */
+.journey-portrait[data-capture-lit='true'] {
+  background: #fbf8f1;
+  --mirror-ink: #1c130a;
+  --mirror-quiet: #4a3a28;
+}
+
+.journey-portrait[data-capture-lit='true']::after {
+  content: none;
+}
+
+.journey-portrait[data-capture-lit='true'] .journey-camera-stage {
+  inset: 13% 15%;
+  border-radius: 20px;
+  box-shadow: 0 0 0 1px rgba(20, 14, 8, 0.16), 0 20px 44px rgba(20, 14, 8, 0.18);
 }
 
 .journey-camera-video,
