@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { dialogueOwnsWall, useRevealDialogue, type RevealDialogueState } from '../lib/revealDialogue'
+import { parseWallCaptureParams } from '../lib/wallCapture'
 import { useWallSyncedPhase } from '../lib/wallPhaseSync'
 import { parseWallCalibrate, parseWallCollage, parseWallRole, type WallRole } from '../lib/wallRole'
 import { RevealShellChrome } from './RevealShellChrome'
@@ -408,7 +409,8 @@ export function ThirdStationWall({ role: roleProp }: { role?: WallRole }) {
   const role = roleProp ?? parseWallRole() ?? 'copy'
   const calibrate = parseWallCalibrate()
   const collage = parseWallCollage()
-  const isConductor = role === 'debra' && !calibrate
+  const capture = parseWallCaptureParams()
+  const isConductor = role === 'debra' && !calibrate && !capture
   const { phase, countdown, recordSecondsLeft, loadingProgress, photobashSeed, collageCue } =
     useWallSyncedPhase(isConductor)
   const dialogue = useRevealDialogue()
@@ -453,7 +455,9 @@ export function ThirdStationWall({ role: roleProp }: { role?: WallRole }) {
       ref={rootRef}
     >
       {calibrate ? <WallCalibrate role={role} /> : null}
-      {calibrate ? null : dialogueOwnsWall(dialogue.available, dialogue.state) ? (
+      {calibrate ? null : capture ? (
+        <WallCollageBlanket role={role} photobashSeed={capture.seed} collageCue={capture.cue} />
+      ) : dialogueOwnsWall(dialogue.available, dialogue.state) ? (
         <DialogueWallRoleContent role={role} state={dialogue.state} />
       ) : phase === 'loading' ? (
         loadingSurface === 'forming' ? (
