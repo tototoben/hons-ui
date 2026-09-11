@@ -28,9 +28,12 @@ import {
   type NormalizedLandmark,
 } from '../lib/mirrorLandmarks'
 import { MirrorScanOverlay } from './MirrorScanOverlay'
-import { captureVisitorFaceFrame, setVisitorFaceCapture } from '../lib/visitorFaceCapture'
+import {
+  captureVisitorFaceFrame,
+  getVisitorFaceCapture,
+  setVisitorFaceCapture,
+} from '../lib/visitorFaceCapture'
 
-const FACE_CAPTURE_MIN_LANDMARKS = 400
 const FACE_CAPTURE_INTERVAL_MS = 500
 
 const CameraDevPanel = lazy(() =>
@@ -114,11 +117,25 @@ export function MirrorCameraLayer({ mode }: { mode: MirrorOverlayMode }) {
         drawLandmarks(canvas, video, sample.landmarks, sample.signals, mode, trackingRgb)
       }
 
-      if (mode === 'face' && video && sample.landmarks.length >= FACE_CAPTURE_MIN_LANDMARKS) {
+      if (video) {
+        const hasExisting = Boolean(getVisitorFaceCapture())
+        const hasVideoFrame =
+          video.videoWidth > 0 &&
+          video.videoHeight > 0 &&
+          (video.readyState >= 2 || video.currentTime > 0)
+        const hasGoodLandmarks = sample.landmarks.length >= 100
         const now = performance.now()
-        if (now - lastCaptureAt.current >= FACE_CAPTURE_INTERVAL_MS) {
+
+        // Capture immediately if we don't have a capture yet and video has frames,
+        // or upgrade the capture at FACE_CAPTURE_INTERVAL_MS if we have good landmarks.
+        const shouldCapture =
+          hasVideoFrame &&
+          (!hasExisting ||
+            (hasGoodLandmarks && now - lastCaptureAt.current >= FACE_CAPTURE_INTERVAL_MS))
+
+        if (shouldCapture) {
           lastCaptureAt.current = now
-          const frame = captureVisitorFaceFrame(video)
+          const frame = captureVisitorFaceFrame(video, sample.landmarks)
           if (frame) setVisitorFaceCapture(frame)
         }
       }

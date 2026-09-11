@@ -11,7 +11,7 @@ import {
 } from '../lib/mirrorJourney'
 import { loadStationOneState, saveStationOneState } from '../lib/interviewStore'
 import { setVisitorProfile, visitorProfileFromAnswers } from '../lib/visitorProfile'
-import { getVisitorFaceCapture } from '../lib/visitorFaceCapture'
+import { getVisitorFaceCapture, resetVisitorFaceCapture } from '../lib/visitorFaceCapture'
 import { JourneyHeadline } from './JourneyHeadline'
 import { MirrorChoice } from './MirrorChoice'
 import { MirrorStationShell } from './MirrorStationShell'
@@ -86,9 +86,14 @@ export function StationOne({ phaseDurationMs = 2200 }: { phaseDurationMs?: numbe
     // When the station reaches 'complete', publish the interview_done event
     // that central listens for to advance the visit state machine.
     if (state.phase === 'complete') {
+      const faceCapture = getVisitorFaceCapture()
+      console.info(
+        '[StationOne] complete -> publishing interview_done with faceCapture:',
+        faceCapture ? `${faceCapture.slice(0, 30)}... (${faceCapture.length} chars)` : 'null',
+      )
       publish(STATION_ID, 'interview_done', {
         answers: state.answers,
-        faceCapture: getVisitorFaceCapture(),
+        faceCapture,
       })
     }
   }, [state.phase, state.answers])
@@ -109,6 +114,7 @@ export function StationOne({ phaseDurationMs = 2200 }: { phaseDurationMs?: numbe
     if (state.phase !== 'proceed') return
     const timer = window.setTimeout(() => {
       presenceFallbackFiredRef.current = false
+      resetVisitorFaceCapture()
       dispatch({ type: 'RESET' })
       publish(STATION_ID, 'station_mounted', { phase: 'name' })
     }, 10000)
@@ -124,6 +130,7 @@ export function StationOne({ phaseDurationMs = 2200 }: { phaseDurationMs?: numbe
 
   // Announce station readiness on mount.
   useEffect(() => {
+    resetVisitorFaceCapture()
     publish(STATION_ID, 'station_mounted', { phase: 'name' })
   }, [])
 
@@ -132,7 +139,7 @@ export function StationOne({ phaseDurationMs = 2200 }: { phaseDurationMs?: numbe
       return startKeyboardFocusHeartbeat(STATION_ID, 'hidden')
     }
     return startKeyboardFocusHeartbeat(STATION_ID, keyboardFocusForQuestion(question), {
-      prompt: question.prompt,
+      prompt: question?.prompt,
     })
   }, [state.phase, state.questionIndex, question])
 
@@ -156,7 +163,9 @@ export function StationOne({ phaseDurationMs = 2200 }: { phaseDurationMs?: numbe
   const cameraMode =
     state.phase === 'scan-eyes'
       ? 'eyes'
-      : state.phase === 'scan-face' || state.phase === 'scan-focus'
+      : state.phase === 'scan-face' ||
+        state.phase === 'scan-focus' ||
+        state.phase === 'analysis-intro'
         ? 'face'
         : 'none'
 

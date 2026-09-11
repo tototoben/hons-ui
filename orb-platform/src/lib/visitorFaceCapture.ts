@@ -29,7 +29,10 @@ export function resetVisitorFaceCapture() {
  * grid with no further scaling. Returns null if the video has no frame
  * data yet.
  */
-export function captureVisitorFaceFrame(video: HTMLVideoElement): string | null {
+export function captureVisitorFaceFrame(
+  video: HTMLVideoElement,
+  landmarks?: Array<{ x: number; y: number }>,
+): string | null {
   const sourceWidth = video.videoWidth
   const sourceHeight = video.videoHeight
   if (!sourceWidth || !sourceHeight) return null
@@ -49,11 +52,23 @@ export function captureVisitorFaceFrame(video: HTMLVideoElement): string | null 
   if (sourceRatio > targetRatio) {
     sh = sourceHeight
     sw = sh * targetRatio
-    sx = (sourceWidth - sw) / 2
+    if (landmarks && landmarks.length > 0) {
+      const anchor = landmarks[1] ?? landmarks[0]
+      const centerX = anchor.x * sourceWidth
+      sx = Math.max(0, Math.min(sourceWidth - sw, centerX - sw / 2))
+    } else {
+      sx = (sourceWidth - sw) / 2
+    }
   } else {
     sw = sourceWidth
     sh = sw / targetRatio
-    sy = Math.max(0, (sourceHeight - sh) * 0.38)
+    if (landmarks && landmarks.length > 0) {
+      const anchor = landmarks[1] ?? landmarks[0]
+      const centerY = anchor.y * sourceHeight
+      sy = Math.max(0, Math.min(sourceHeight - sh, centerY - sh * 0.42))
+    } else {
+      sy = Math.max(0, (sourceHeight - sh) * 0.38)
+    }
   }
 
   ctx.save()

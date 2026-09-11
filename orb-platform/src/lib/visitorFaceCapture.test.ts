@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import {
+  captureVisitorFaceFrame,
   getVisitorFaceCapture,
   resetVisitorFaceCapture,
   setVisitorFaceCapture,
@@ -25,5 +26,10 @@ describe('visitorFaceCapture', () => {
     setVisitorFaceCapture('data:image/jpeg;base64,abc')
     resetVisitorFaceCapture()
     expect(getVisitorFaceCapture()).toBeNull()
+  })
+
+  it('returns null if video has zero dimensions', () => {
+    const video = { videoWidth: 0, videoHeight: 0 } as HTMLVideoElement
+    expect(captureVisitorFaceFrame(video)).toBeNull()
   })
 })

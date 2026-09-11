@@ -94,20 +94,29 @@ export function WallCollageBlanket({
     }
   }, [seed, cueKey])
 
+  const loadedDataUrlRef = useRef<string | null>(null)
   useEffect(() => {
     let cancelled = false
     const loadFace = async () => {
       await refreshVisitCache(true)
       const dataUrl = peekVisitorFaceFromCentral() ?? getVisitorFaceCapture()
-      if (!dataUrl) return
+      if (!dataUrl || dataUrl === loadedDataUrlRef.current) return
+      loadedDataUrlRef.current = dataUrl
       loadImage(dataUrl)
         .then(async (image) => {
           if (cancelled) return
+          console.info(
+            '[WallCollage] Loaded visitor face capture image:',
+            image.naturalWidth,
+            'x',
+            image.naturalHeight,
+          )
           setVisitorImage(image)
           const align = await computeFaceAlign(image, PLATE_RATIO)
           if (!cancelled) setVisitorAlign(align)
         })
-        .catch(() => {
+        .catch((err) => {
+          console.warn('[WallCollage] Failed to load visitor face image:', err)
           if (!cancelled) setVisitorImage(null)
         })
     }
