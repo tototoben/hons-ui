@@ -244,6 +244,26 @@ export function visitorRevealOrder(seed: number, rectCount: number): number[] {
   return order
 }
 
+/** Identity-first reveal order for the visitor's pieces: both eyes, then
+ * brow, nose and mouth, then the periphery. The eyes are the most
+ * recognisable part of a face, so a short conversation still leaves the
+ * recognisable core on the wall (and leads the printed ticket's partial
+ * sweep). Deterministic -- no seed -- so all six wall windows agree with
+ * no cross-window coordination. Relies on collageRects' fixed order:
+ * right eye, left eye, nose, brow, cheeks, chin, temple, mouth last. */
+export function anatomicalRevealOrder(rectCount: number): number[] {
+  if (rectCount <= 0) return []
+  const preferred = [0, 1, 3, 2, rectCount - 1, 5, 4, 7, 6]
+  const order: number[] = []
+  for (const index of preferred) {
+    if (index >= 0 && index < rectCount && !order.includes(index)) order.push(index)
+  }
+  for (let index = 0; index < rectCount; index += 1) {
+    if (!order.includes(index)) order.push(index)
+  }
+  return order
+}
+
 /** Same shape as wallMatchPhotobash's photobashRevealAt — how many rects
  * (in reveal order) are now the visitor's, plus fade-in for the next one. */
 export function collageRevealAt(elapsedMs: number, totalMs: number, rectCount: number) {

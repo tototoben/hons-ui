@@ -135,6 +135,18 @@ export function dialogueOwnsWall(available: boolean, state: RevealDialogueState)
   return available && LIVE_PHASES.has(state.phase)
 }
 
+/** How many visitor face pieces the wall collage may show at this point
+ * in the dialogue: one per talk segment -- the opening (any live phase),
+ * each real reply (turn increments only for those), plus the cold close.
+ * Reprompts to a silent visitor add nothing: the less the visitor gives,
+ * the less of their face appears. Pure function of a single snapshot so
+ * every wall window computes the same count, even one that reloads
+ * mid-session. */
+export function dialogueRevealCount(state: RevealDialogueState): number {
+  if (state.phase === 'idle' || state.phase === 'error') return 0
+  return 1 + Math.max(0, state.turn) + (state.phase === 'closing' ? 1 : 0)
+}
+
 export function revealDialogueTarget(search = window.location.search): string | null {
   const explicit = new URLSearchParams(search).get('dialogue')
   if (explicit === '0' || explicit === 'false') return null

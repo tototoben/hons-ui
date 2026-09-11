@@ -109,7 +109,7 @@ export function ThirdStationWall({ role: roleProp }: { role?: WallRole }) {
     >
       {calibrate ? <WallCalibrate role={role} /> : null}
       {calibrate ? null : capture ? (
-        <WallCollageBlanket role={role} photobashSeed={capture.seed} collageCue={capture.cue} />
+        <WallCollageBlanket role={role} photobashSeed={capture.seed} collageCue={capture.cue} visitorReveal="sweep" />
       ) : dialogueOwnsWall(dialogue.available, dialogue.state) ? (
         // During the dialogue: the conversation shows on the bottom Lenovo
         // (copy); every other panel -- the TVs included -- shows the
@@ -122,6 +122,7 @@ export function ThirdStationWall({ role: roleProp }: { role?: WallRole }) {
             photobashSeed={seedFromVisitId(dialogue.state.visit_id) ?? (photobashSeed || 1)}
             collageCue={collageCue}
             dialogue={dialogue.state}
+            visitorReveal="dialogue"
           />
         )
       ) : phase === 'loading' ? (
@@ -132,7 +133,12 @@ export function ThirdStationWall({ role: roleProp }: { role?: WallRole }) {
             loadingProgress={loadingProgress}
           />
         ) : loadingSurface === 'collage' ? (
-          <WallCollageBlanket role={role} photobashSeed={photobashSeed} collageCue={collageCue} />
+          <WallCollageBlanket
+            role={role}
+            photobashSeed={photobashSeed}
+            collageCue={collageCue}
+            visitorReveal="off"
+          />
         ) : (
           <WallFaceBlanket role={role} photobashSeed={photobashSeed} />
         )
@@ -142,8 +148,14 @@ export function ThirdStationWall({ role: roleProp }: { role?: WallRole }) {
         // deliberately in f05eebc and 4613d4d and must not come back -- a
         // merge resurrected them once already. Anything that is not a
         // calibration, a headless capture or a live dialogue renders the
-        // photobash.
-        <WallCollageBlanket role={role} photobashSeed={photobashSeed} collageCue={collageCue} />
+        // photobash. No visitor pieces outside a live dialogue: the face
+        // appears talk by talk during the reveal and nowhere else.
+        <WallCollageBlanket
+          role={role}
+          photobashSeed={photobashSeed}
+          collageCue={collageCue}
+          visitorReveal="off"
+        />
       )}
       <RevealShellChrome />
     </section>
