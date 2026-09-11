@@ -6,8 +6,14 @@ import { DEFAULT_VISITOR_ALIGN, MATCH_FACE_SIZE, type VisitorAlign } from '../li
 import { ensureCollageBank, peekCollageBank } from '../lib/wallCollageBank'
 import { computeFaceAlign } from '../lib/faceBankAlign'
 import { getVisitorFaceCapture } from '../lib/visitorFaceCapture'
-import { peekVisitorFaceFromCentral, refreshVisitCache } from '../lib/visitCentral'
+import {
+  peekActiveVisits,
+  peekVisitorFaceFromCentral,
+  pickVisitForReveal,
+  refreshVisitCache,
+} from '../lib/visitCentral'
 import { useVisitCentralPoll } from '../hooks/useVisitCentral'
+import { postWallDiagnostic } from '../lib/wallDiagnostics'
 import { collageCueKey, type CollageCue } from '../lib/collageCue'
 import {
   collageRects,
@@ -75,6 +81,28 @@ export function WallCollageBlanket({
   )
   const revealOrder = useMemo(() => visitorRevealOrder(seed + 1, rects.length), [seed, rects.length])
 
+  // "How were the photos picked" (this session): each rect's face-bank
+  // assignment, once per assembled collage. All 6 wall windows render the
+  // same seed/cue independently -- log from one role only, or central.log
+  // would get 6 identical lines per collage. Fires once bankFaces actually
+  // has data (not the empty peekCollageBank() placeholder before the async
+  // load resolves).
+  useEffect(() => {
+    if (role !== 'debra' || bankFaces.length === 0) return
+    postWallDiagnostic(
+      'collage_assembled',
+      {
+        seed,
+        cue_presentations: collageCue.presentations ?? [],
+        cue_age_band: collageCue.ageBand ?? '',
+        cue_smile: collageCue.smile ?? '',
+        rect_count: rects.length,
+        fragments: strangerAssignments.map((index) => bankFaces[index]?.file ?? null),
+      },
+      pickVisitForReveal(peekActiveVisits())?.visit_id,
+    )
+  }, [role, bankFaces, seed, cueKey, collageCue, rects.length, strangerAssignments])
+
   useEffect(() => {
     const onResize = () => setViewport({ width: window.innerWidth, height: window.innerHeight })
     window.addEventListener('resize', onResize)
@@ -111,6 +139,19 @@ export function WallCollageBlanket({
             'x',
             image.naturalHeight,
           )
+          if (role === 'debra') {
+            postWallDiagnostic(
+              'collage_assembled',
+              {
+                event: 'visitor_photo_loaded',
+                width: image.naturalWidth,
+                height: image.naturalHeight,
+                bytes: dataUrl.length,
+                source: peekVisitorFaceFromCentral() ? 'central' : 'local',
+              },
+              pickVisitForReveal(peekActiveVisits())?.visit_id,
+            )
+          }
           setVisitorImage(image)
           const align = await computeFaceAlign(image, PLATE_RATIO)
           if (!cancelled) setVisitorAlign(align)
