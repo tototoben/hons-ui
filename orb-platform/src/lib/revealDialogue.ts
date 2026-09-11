@@ -29,6 +29,9 @@ export type RevealDialogueState = {
   archetypes: Record<string, string>
   mirror_intensity: number
   mic_level: number
+  /** Loudness of the wall's own TTS right now (0..1), ~10Hz while
+   * speaking. Drives the collage lip-sync. */
+  speech_level: number
   audio_input: string
   audio_output: string
   error: string
@@ -46,6 +49,7 @@ export const EMPTY_REVEAL_DIALOGUE: RevealDialogueState = {
   archetypes: {},
   mirror_intensity: 0,
   mic_level: 0,
+  speech_level: 0,
   audio_input: '',
   audio_output: '',
   error: '',
@@ -106,6 +110,7 @@ export function normalizeRevealDialogue(value: unknown): RevealDialogueState {
     archetypes,
     mirror_intensity: Math.max(0, Math.min(1, finite(raw.mirror_intensity))),
     mic_level: Math.max(0, Math.min(1, finite(raw.mic_level))),
+    speech_level: Math.max(0, Math.min(1, finite(raw.speech_level))),
     audio_input: text(raw.audio_input),
     audio_output: text(raw.audio_output),
     error: text(raw.error),

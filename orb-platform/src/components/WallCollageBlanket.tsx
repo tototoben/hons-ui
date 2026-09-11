@@ -23,7 +23,15 @@ import {
   pickTaggedStrangerAssignments,
   visitorRevealOrder,
 } from '../lib/wallCollagePhotobash'
-import { lipFrameRect, lipStateAt, LIP_SPRITE_SRC } from '../lib/wallLipClips'
+import {
+  LIP_FRAME_MS,
+  LIP_REST_FRAME,
+  LIP_SPRITE_FRAME_COUNT,
+  lipFrameRect,
+  lipStateAt,
+  LIP_SPRITE_SRC,
+} from '../lib/wallLipClips'
+import type { RevealDialogueState } from '../lib/revealDialogue'
 import './WallFaceBlanket.css'
 import './WallCollageBlanket.css'
 
@@ -50,10 +58,15 @@ export function WallCollageBlanket({
   role,
   photobashSeed = 1,
   collageCue = {},
+  dialogue,
 }: {
   role: WallRole
   photobashSeed?: number
   collageCue?: CollageCue
+  /** When the reveal dialogue is running, its live state: the lip
+   * flipbook then follows the actual speech (speech_level) instead of
+   * the ambient seeded rhythm. */
+  dialogue?: RevealDialogueState
 }) {
   const seed = photobashSeed || 1
   const cueKey = collageCueKey(collageCue)
@@ -70,6 +83,11 @@ export function WallCollageBlanket({
   const [visitorImage, setVisitorImage] = useState<HTMLImageElement | null>(null)
   const [visitorAlign, setVisitorAlign] = useState<VisitorAlign>(DEFAULT_VISITOR_ALIGN)
   const [lipSprite, setLipSprite] = useState<HTMLImageElement | null>(null)
+  // Ref bridge: speech_level streams at ~10Hz; the rAF tick reads the
+  // latest value here so the effect below never has to re-run for it.
+  const dialogueRef = useRef<RevealDialogueState | undefined>(dialogue)
+  dialogueRef.current = dialogue
+  const speechDriven = dialogue !== undefined
   useVisitCentralPoll()
 
   const rects = useMemo(() => collageRects(seed), [seed])
@@ -238,13 +256,36 @@ export function WallCollageBlanket({
     let raf = 0
     let cancelled = false
     const start = performance.now()
+    // Speech-driven flipbook: advance to a fresh non-rest frame every
+    // LIP_FRAME_MS while the dialogue is audibly speaking; rest (layer
+    // hidden, still collage mouth shows) whenever it is not.
+    let speechFrame = 1
+    let lastAdvance = 0
+    const speechLipState = (now: number) => {
+      const state = dialogueRef.current
+      const loud = state !== undefined && state.speech_level > 0.06
+      if (!loud) return { resting: true, frame: LIP_REST_FRAME }
+      if (now - lastAdvance >= LIP_FRAME_MS) {
+        lastAdvance = now
+        let next = 1 + Math.floor(Math.random() * (LIP_SPRITE_FRAME_COUNT - 1))
+        if (next === speechFrame || next === LIP_REST_FRAME) {
+          next = (next % (LIP_SPRITE_FRAME_COUNT - 1)) + 1
+        }
+        speechFrame = next
+      }
+      return { resting: false, frame: speechFrame }
+    }
 
     const tick = (now: number) => {
       if (cancelled) return
       const canvas = lipCanvasRef.current
       const ctx = canvas?.getContext('2d')
       if (canvas && ctx) {
-        const { resting, frame } = lipStateAt(now - start, seed)
+        // With a live dialogue: mouth opens with the wall's own speech.
+        // Without one: the ambient seeded talk/pause rhythm as before.
+        const { resting, frame } = speechDriven
+          ? speechLipState(now)
+          : lipStateAt(now - start, seed)
         ctx.clearRect(0, 0, canvas.width, canvas.height)
         if (!resting) {
           const rect = lipFrameRect(frame)
@@ -270,7 +311,7 @@ export function WallCollageBlanket({
       cancelled = true
       cancelAnimationFrame(raf)
     }
-  }, [lipSprite, seed])
+  }, [lipSprite, seed, speechDriven])
 
   const layout = useMemo(() => {
     if (!panel) return null
