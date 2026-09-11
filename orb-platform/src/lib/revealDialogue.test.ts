@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { normalizeRevealDialogue, revealDialogueTarget } from './revealDialogue'
+import {
+  dialogueOwnsWall,
+  EMPTY_REVEAL_DIALOGUE,
+  normalizeRevealDialogue,
+  revealDialogueTarget,
+} from './revealDialogue'
 
 describe('reveal dialogue transport', () => {
   it('normalizes an SSE snapshot and clamps live levels', () => {
@@ -21,6 +26,16 @@ describe('reveal dialogue transport', () => {
       mic_level: 0,
       archetypes: { ego: 'Hero' },
     })
+  })
+
+  it('owns the wall only while a session is live', () => {
+    const at = (phase: typeof EMPTY_REVEAL_DIALOGUE.phase) => ({ ...EMPTY_REVEAL_DIALOGUE, phase })
+    expect(dialogueOwnsWall(true, at('idle'))).toBe(false)
+    expect(dialogueOwnsWall(true, at('ended'))).toBe(false)
+    expect(dialogueOwnsWall(true, at('error'))).toBe(false)
+    expect(dialogueOwnsWall(true, at('intro'))).toBe(true)
+    expect(dialogueOwnsWall(true, at('closing'))).toBe(true)
+    expect(dialogueOwnsWall(false, at('speaking'))).toBe(false)
   })
 
   it('supports explicit service targets and a disable switch', () => {

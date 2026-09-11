@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react'
-import { useRevealDialogue, type RevealDialogueState } from '../lib/revealDialogue'
+import { dialogueOwnsWall, useRevealDialogue, type RevealDialogueState } from '../lib/revealDialogue'
 import { useWallSyncedPhase } from '../lib/wallPhaseSync'
 import { parseWallCalibrate, parseWallCollage, parseWallRole, type WallRole } from '../lib/wallRole'
 import { RevealShellChrome } from './RevealShellChrome'
@@ -453,7 +453,7 @@ export function ThirdStationWall({ role: roleProp }: { role?: WallRole }) {
       ref={rootRef}
     >
       {calibrate ? <WallCalibrate role={role} /> : null}
-      {calibrate ? null : dialogue.available ? (
+      {calibrate ? null : dialogueOwnsWall(dialogue.available, dialogue.state) ? (
         <DialogueWallRoleContent role={role} state={dialogue.state} />
       ) : phase === 'loading' ? (
         loadingSurface === 'forming' ? (

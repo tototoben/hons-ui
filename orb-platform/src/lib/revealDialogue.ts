@@ -112,6 +112,24 @@ export function normalizeRevealDialogue(value: unknown): RevealDialogueState {
   }
 }
 
+const LIVE_PHASES = new Set<RevealDialoguePhase>([
+  'intro',
+  'listening',
+  'thinking',
+  'speaking',
+  'mirroring',
+  'closing',
+])
+
+/**
+ * The dialogue takes over the wall only while a session is live.  The
+ * service being reachable is not enough: it runs all day, and an idle or
+ * finished session would otherwise hide the photobash wall indefinitely.
+ */
+export function dialogueOwnsWall(available: boolean, state: RevealDialogueState): boolean {
+  return available && LIVE_PHASES.has(state.phase)
+}
+
 export function revealDialogueTarget(search = window.location.search): string | null {
   const explicit = new URLSearchParams(search).get('dialogue')
   if (explicit === '0' || explicit === 'false') return null
