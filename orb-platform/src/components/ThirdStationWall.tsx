@@ -5,7 +5,6 @@ import { useWallSyncedPhase } from '../lib/wallPhaseSync'
 import { parseWallCalibrate, parseWallCollage, parseWallRole, type WallRole } from '../lib/wallRole'
 import { RevealShellChrome } from './RevealShellChrome'
 import { WallCalibrate } from './WallCalibrate'
-import { MirrorGuideOrb } from './MirrorGuideOrb'
 import { WallFaceBlanket } from './WallFaceBlanket'
 import { WallCollageBlanket } from './WallCollageBlanket'
 import { WallFormingBlanket } from './WallFormingBlanket'
@@ -40,21 +39,19 @@ function seedFromVisitId(visitId: string | null): number | null {
   return (h >>> 0) % 1_000_000_000 || 1
 }
 
-function DialogueWallRoleContent({ role, state }: { role: WallRole; state: RevealDialogueState }) {
-  // Only the dialogue monitor renders this; every other panel shows the
-  // visitor's photobash while the dialogue runs. The status-chrome variants
-  // this function used to carry for the other five roles (radar, particle
-  // fields, code ledger) read as loading screens and were removed.
-  void role
+function DialogueWallRoleContent({ state }: { state: RevealDialogueState }) {
+  // The dialogue monitor: the live conversation on the bottom Lenovo panel
+  // (role `copy`). No orb -- both TVs and every other panel carry the
+  // visitor's photobash while the dialogue runs (operator note 2026-09-11:
+  // the debra TV is part of the collage, the conversation reads from a low
+  // screen).
   return (
-    <div className={`wall-role wall-role-debra wall-dialogue-debra phase-${state.phase}`}>
-      <div
-        className="wall-debra-orb"
-        style={{ transform: `scale(${1 + state.mirror_intensity * 0.13})` }}
-      >
-        <MirrorGuideOrb className="wall-debra-canvas" />
-        <div className="wall-dialogue-orb-state">{DIALOGUE_STATUS[state.phase]}</div>
-      </div>
+    <div className={`wall-role wall-role-copy wall-dialogue-copy phase-${state.phase}`}>
+      <div className="wall-dialogue-kicker">{DIALOGUE_STATUS[state.phase]}</div>
+      <p>{state.assistant_text || '\u2026'}</p>
+      {state.visitor_text ? (
+        <div className="wall-dialogue-transcript">{state.visitor_text}</div>
+      ) : null}
     </div>
   )
 }
@@ -114,11 +111,11 @@ export function ThirdStationWall({ role: roleProp }: { role?: WallRole }) {
       {calibrate ? null : capture ? (
         <WallCollageBlanket role={role} photobashSeed={capture.seed} collageCue={capture.cue} />
       ) : dialogueOwnsWall(dialogue.available, dialogue.state) ? (
-        // During the dialogue: the dialogue monitor keeps the speaking
-        // presence; every other panel shows the visitor's photobash, its
-        // mouth driven by the live speech level. No status chrome.
-        role === 'debra' ? (
-          <DialogueWallRoleContent role={role} state={dialogue.state} />
+        // During the dialogue: the conversation shows on the bottom Lenovo
+        // (copy); every other panel -- the TVs included -- shows the
+        // visitor's photobash, its mouth driven by the live speech level.
+        role === 'copy' ? (
+          <DialogueWallRoleContent state={dialogue.state} />
         ) : (
           <WallCollageBlanket
             role={role}
