@@ -20,6 +20,7 @@ import {
 } from '../lib/mirrorFaceSignals'
 import type { NormalizedLandmark } from '../lib/mirrorLandmarks'
 import { readSelectedCameraId, writeSelectedCameraId } from '../lib/mirrorCameraDevice'
+import { postWallDiagnostic } from '../lib/wallDiagnostics'
 
 const MIN_APPEARANCE_LANDMARKS = 400
 
@@ -105,6 +106,71 @@ export function useMirrorCamera({
     let stream: MediaStream | null = null
     let permissionTimer: ReturnType<typeof setTimeout> | undefined
     let permissionTimedOut = false
+    // Recovery from a camera that vanishes mid-session (2026-09-12: the
+    // Brio re-enumerated on USB and the kiosk kept a dead stream for three
+    // hours, silently). See onTrackEnded / scheduleRetry below.
+    let retryTimer: ReturnType<typeof setTimeout> | undefined
+    let retryAttempt = 0
+    const RETRY_DELAYS_MS = [1_000, 2_000, 4_000, 8_000, 15_000]
+
+    const releaseStream = () => {
+      if (stream && stream !== (window.parent as any).__mirrorCameraStream) {
+        stream.getTracks().forEach((track) => track.stop())
+      }
+      stream = null
+    }
+
+    const scheduleRetry = (reason: string) => {
+      if (cancelled || retryTimer) return
+      const delay = RETRY_DELAYS_MS[Math.min(retryAttempt, RETRY_DELAYS_MS.length - 1)]
+      retryAttempt += 1
+      postWallDiagnostic('camera', { event: 'reacquire_scheduled', reason, attempt: retryAttempt, delay_ms: delay })
+      retryTimer = setTimeout(() => {
+        retryTimer = undefined
+        if (!cancelled) void start()
+      }, delay)
+    }
+
+    const onTrackEnded = () => {
+      if (cancelled) return
+      // The device went away underneath us. Drop the dead stream, show the
+      // visitor the 'starting' state rather than a frozen frame, and try
+      // again -- a re-enumerating device takes a moment to come back.
+      releaseStream()
+      const video = videoRef.current
+      if (video) video.srcObject = null
+      setStatus('starting')
+      postWallDiagnostic('camera', { event: 'track_ended' })
+      scheduleRetry('track_ended')
+    }
+
+    const onDeviceChange = () => {
+      // A device (re)appeared: if a retry is pending, take it now.
+      if (cancelled || !retryTimer) return
+      clearTimeout(retryTimer)
+      retryTimer = undefined
+      void start()
+    }
+    navigator.mediaDevices?.addEventListener?.('devicechange', onDeviceChange)
+
+    // getUserMedia with the pinned device first; if that device no longer
+    // exists (it was re-enumerated with a new id, or unplugged), fall back
+    // to the plain constraints rather than failing for the rest of the day.
+    const openStream = async (): Promise<MediaStream> => {
+      const base = { audio: false as const, video: { ...mirrorCameraConstraints() } }
+      if (!selectedDeviceId) return navigator.mediaDevices.getUserMedia(base)
+      try {
+        return await navigator.mediaDevices.getUserMedia({
+          ...base,
+          video: { ...base.video, deviceId: { exact: selectedDeviceId } },
+        })
+      } catch (error) {
+        const name = error instanceof DOMException ? error.name : ''
+        if (name !== 'OverconstrainedError' && name !== 'NotFoundError') throw error
+        postWallDiagnostic('camera', { event: 'pinned_device_missing', fallback: true })
+        return navigator.mediaDevices.getUserMedia(base)
+      }
+    }
 
     const isEmbedded =
       new URLSearchParams(window.location.search).get('embedded') === '1'
@@ -161,13 +227,7 @@ export function useMirrorCamera({
           permissionTimedOut = true
           if (!cancelled) setStatus('unavailable')
         }, 15_000)
-        stream = await navigator.mediaDevices.getUserMedia({
-          audio: false,
-          video: {
-            ...mirrorCameraConstraints(),
-            ...(selectedDeviceId ? { deviceId: { exact: selectedDeviceId } } : {}),
-          },
-        })
+        stream = await openStream()
         clearTimeout(permissionTimer)
         permissionTimer = undefined
         if (permissionTimedOut) {
@@ -188,6 +248,13 @@ export function useMirrorCamera({
         const activeTrack = stream.getVideoTracks?.()[0]
         if (!cancelled) {
           setActiveDeviceId(activeTrack?.getSettings?.().deviceId ?? null)
+        }
+        // The one signal a vanished camera gives us. Without this the hook
+        // sat at status 'active' over a frozen frame for hours.
+        activeTrack?.addEventListener?.('ended', onTrackEnded)
+        if (retryAttempt > 0) {
+          postWallDiagnostic('camera', { event: 'reacquired', attempts: retryAttempt })
+          retryAttempt = 0
         }
 
         // Device labels are only populated once permission has been
@@ -219,11 +286,17 @@ export function useMirrorCamera({
         permissionTimer = undefined
         if (cancelled) return
         console.error('[useMirrorCamera] getUserMedia failed:', error)
-        setStatus(
-          error instanceof DOMException && error.name === 'NotAllowedError'
-            ? 'denied'
-            : 'unavailable',
-        )
+        const denied = error instanceof DOMException && error.name === 'NotAllowedError'
+        setStatus(denied ? 'denied' : 'unavailable')
+        // A denial is final; anything else (device busy, not found, a
+        // re-enumeration still in progress) is worth another try.
+        if (!denied) {
+          postWallDiagnostic('camera', {
+            event: 'acquire_failed',
+            name: error instanceof DOMException ? error.name : 'Error',
+          })
+          scheduleRetry('acquire_failed')
+        }
       }
     }
 
@@ -232,10 +305,10 @@ export function useMirrorCamera({
     return () => {
       cancelled = true
       clearTimeout(permissionTimer)
+      clearTimeout(retryTimer)
+      navigator.mediaDevices?.removeEventListener?.('devicechange', onDeviceChange)
       // Only stop tracks we own — not the parent's shared stream.
-      if (stream && stream !== (window.parent as any).__mirrorCameraStream) {
-        stream.getTracks().forEach((track) => track.stop())
-      }
+      releaseStream()
       const video = videoRef.current
       if (video) {
         video.pause()
