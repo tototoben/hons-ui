@@ -8,8 +8,8 @@ import { computeFaceAlign } from '../lib/faceBankAlign'
 import { getVisitorFaceCapture } from '../lib/visitorFaceCapture'
 import {
   peekActiveVisits,
-  peekVisitorFaceFromCentral,
-  pickVisitForReveal,
+  peekRevealVisitorFace,
+  pickRevealVisit,
   refreshVisitCache,
 } from '../lib/visitCentral'
 import { useVisitCentralPoll } from '../hooks/useVisitCentral'
@@ -133,7 +133,7 @@ export function WallCollageBlanket({
         rect_count: rects.length,
         fragments: strangerAssignments.map((index) => bankFaces[index]?.file ?? null),
       },
-      pickVisitForReveal(peekActiveVisits())?.visit_id,
+      pickRevealVisit(peekActiveVisits())?.visit_id,
     )
   }, [role, bankFaces, seed, cueKey, collageCue, rects.length, strangerAssignments])
 
@@ -161,8 +161,21 @@ export function WallCollageBlanket({
     let cancelled = false
     const loadFace = async () => {
       await refreshVisitCache(true)
-      const dataUrl = peekVisitorFaceFromCentral() ?? getVisitorFaceCapture()
-      if (!dataUrl || dataUrl === loadedDataUrlRef.current) return
+      // Strictly the reveal visit's own photo (or the same-browser dev
+      // fallback). Never a stand-in from Station 3/2: that put the NEXT
+      // visitor's face on the wall during a no-photo reveal (2026-09-12).
+      const dataUrl = peekRevealVisitorFace() ?? getVisitorFaceCapture()
+      if (!dataUrl) {
+        // No visitor at the wall, or one without a photo: drop whatever
+        // face was loaded before, so it cannot be drawn for this visitor.
+        if (loadedDataUrlRef.current !== null) {
+          loadedDataUrlRef.current = null
+          setVisitorImage(null)
+          setVisitorAlign(DEFAULT_VISITOR_ALIGN)
+        }
+        return
+      }
+      if (dataUrl === loadedDataUrlRef.current) return
       loadedDataUrlRef.current = dataUrl
       loadImage(dataUrl)
         .then(async (image) => {
@@ -181,9 +194,9 @@ export function WallCollageBlanket({
                 width: image.naturalWidth,
                 height: image.naturalHeight,
                 bytes: dataUrl.length,
-                source: peekVisitorFaceFromCentral() ? 'central' : 'local',
+                source: peekRevealVisitorFace() ? 'central' : 'local',
               },
-              pickVisitForReveal(peekActiveVisits())?.visit_id,
+              pickRevealVisit(peekActiveVisits())?.visit_id,
             )
           }
           setVisitorImage(image)

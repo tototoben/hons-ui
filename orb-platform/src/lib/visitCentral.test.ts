@@ -6,6 +6,8 @@ import {
   isStationTurnActive,
   peekStationOneForStation,
   pickVisitAtStation,
+  peekRevealVisitorFace,
+  pickRevealVisit,
   pickVisitForReveal,
   pickVisitForStationThree,
   refreshVisitCache,
@@ -177,5 +179,34 @@ describe('visitCentral', () => {
     expect(pickVisitForStationThree()).toBeTruthy()
     expect(persona?.visit_id).toBe('v-3')
     expect(persona?.system_prompt).toContain('Ego type')
+  })
+})
+
+
+describe('pickRevealVisit (strict)', () => {
+  const at = (visit_id: string, state: string, last_activity_at: number, faceCapture?: string) =>
+    ({
+      visit_id,
+      state,
+      active_station: null,
+      last_activity_at,
+      station_data: faceCapture ? { '1': { answers: {}, faceCapture } } : {},
+    }) as unknown as Parameters<typeof pickRevealVisit>[0][number]
+
+  it('never falls back to a visitor still at Station 3 or 2', () => {
+    // 2026-09-12: the loose pick loaded the next visitor's photo during a
+    // no-photo reveal. The wall must wear nobody else's face.
+    const visits = [at('v-s2', 'station_2', 5, 'data:next-person'), at('v-s3', 'station_3', 4)]
+    expect(pickVisitForReveal(visits)?.visit_id).toBe('v-s3') // the loose one still does
+    expect(pickRevealVisit(visits)).toBeNull() // the strict one does not
+  })
+
+  it('picks the most recently active visit in reveal', () => {
+    const visits = [at('v-old', 'reveal', 1, 'data:old'), at('v-new', 'reveal', 9, 'data:new')]
+    expect(pickRevealVisit(visits)?.visit_id).toBe('v-new')
+  })
+
+  it('peekRevealVisitorFace is null with no reveal visit, even if others have photos', () => {
+    expect(peekRevealVisitorFace()).toBeNull()
   })
 })

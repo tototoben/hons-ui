@@ -129,6 +129,21 @@ export function peekStationTwoForStation(station: 3 | 'reveal'): StationTwoVisit
   return stationTwoPayload(visit)
 }
 
+/** The visit at the wall RIGHT NOW -- state 'reveal' only, no falling
+ * back to whoever is still at Station 3 or 2. The wall photobash and the
+ * ticket capture must never wear somebody else's face (2026-09-12: the
+ * looser pick loaded the next visitor's photo during a no-photo reveal). */
+export function pickRevealVisit(visits: ActiveVisit[] = cachedVisits): ActiveVisit | null {
+  const reveal = visits.filter((visit) => visit.state === 'reveal')
+  if (!reveal.length) return null
+  return reveal.sort((a, b) => (b.last_activity_at ?? 0) - (a.last_activity_at ?? 0))[0] ?? null
+}
+
+/** Station 1 photo of the visit in reveal, or null -- never a stand-in. */
+export function peekRevealVisitorFace(): string | null {
+  return stationOnePayload(pickRevealVisit())?.faceCapture ?? null
+}
+
 export function peekVisitorFaceFromCentral(): string | null {
   const payload = peekStationOneForStation('reveal')
   return payload?.faceCapture ?? null
