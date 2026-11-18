@@ -51,6 +51,16 @@ describe('MirrorChoice', () => {
     expect(onAnswer.mock.calls).toEqual([['yes'], ['no']])
   })
 
+  it('can leave the buttons to the iPad and still answer from y/n keys', () => {
+    const onAnswer = vi.fn()
+    act(() => root.render(<MirrorChoice onAnswer={onAnswer} onScreenButtons={false} />))
+
+    expect(container.querySelectorAll('button')).toHaveLength(0)
+    expect(container.querySelector('p')?.textContent).toMatch(/press yes or no/i)
+    act(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'y' })))
+    expect(onAnswer).toHaveBeenCalledWith('yes')
+  })
+
   it('shows pair labels instead of yes/no hint for lightning choices', () => {
     const onAnswer = vi.fn()
     act(() => root.render(<MirrorChoice onAnswer={onAnswer} labels={['Beauty', 'Money']} />))

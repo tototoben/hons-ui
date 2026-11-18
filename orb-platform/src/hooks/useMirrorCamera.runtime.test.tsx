@@ -23,6 +23,7 @@ vi.mock('@mediapipe/tasks-vision', () => ({
 }))
 
 import { useMirrorCamera, type MirrorCameraHandle } from './useMirrorCamera'
+import { stopSharedCameraStream } from '../lib/sharedCameraStream'
 
 function Harness({
   onStatus,
@@ -70,6 +71,7 @@ describe('useMirrorCamera', () => {
 
   afterEach(() => {
     act(() => root.unmount())
+    stopSharedCameraStream()
     vi.restoreAllMocks()
     vi.clearAllMocks()
     container.remove()
@@ -81,9 +83,10 @@ describe('useMirrorCamera', () => {
       getTracks: () => [{ stop }],
       getVideoTracks: () => [{}],
     } as unknown as MediaStream
+    const getUserMedia = vi.fn().mockResolvedValue(stream)
     Object.defineProperty(navigator, 'mediaDevices', {
       configurable: true,
-      value: { getUserMedia: vi.fn().mockResolvedValue(stream) },
+      value: { getUserMedia },
     })
     const statuses: string[] = []
 
@@ -110,8 +113,22 @@ describe('useMirrorCamera', () => {
 
     act(() => root.unmount())
     root = createRoot(container)
-    expect(stop).toHaveBeenCalledOnce()
+    // The stream outlives the scan so the next visitor's scan doesn't
+    // trigger another permission prompt; MediaPipe is still torn down.
+    expect(stop).not.toHaveBeenCalled()
     expect(vision.close).toHaveBeenCalledOnce()
+
+    await act(async () => {
+      root.render(<Harness onStatus={(status) => statuses.push(status)} />)
+      for (let i = 0; i < 5; i += 1) await Promise.resolve()
+    })
+    expect(container.querySelector('video')!.srcObject).toBe(stream)
+    expect(getUserMedia).toHaveBeenCalledOnce()
+
+    act(() => root.unmount())
+    root = createRoot(container)
+    stopSharedCameraStream()
+    expect(stop).toHaveBeenCalledOnce()
   })
 
   it('publishes blendshape and transformation signals from a detected face', async () => {

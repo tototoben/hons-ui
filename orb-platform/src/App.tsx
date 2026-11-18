@@ -39,11 +39,8 @@ import './index.css'
 
 const DevPanel = lazy(() => import('./dev/DevPanel').then((m) => ({ default: m.DevPanel })))
 const LevaRoot = lazy(() => import('./dev/LevaRoot').then((m) => ({ default: m.LevaRoot })))
-const StationOne = lazy(() =>
-  import('./components/StationOne').then((m) => ({ default: m.StationOne })),
-)
-const StationTwo = lazy(() =>
-  import('./components/StationTwo').then((m) => ({ default: m.StationTwo })),
+const JourneyStation = lazy(() =>
+  import('./components/JourneyStation').then((m) => ({ default: m.JourneyStation })),
 )
 const ThirdStation = lazy(() =>
   import('./components/ThirdStation').then((m) => ({ default: m.ThirdStation })),
@@ -297,26 +294,17 @@ export default function App() {
           <PhotobashScreen />
         ) : !isStationSimFrame && lock && lockedStation === 'photobash' ? (
           <PhotobashScreen />
-        ) : !isStationSimFrame && lock && lockedStation === 'station-1' ? (
+        ) : (!isStationSimFrame && lock) ||
+          station === 'station-1' ||
+          station === 'station-2' ||
+          station === 'station-3' ||
+          (station === 'mirror' && !wallRole && !wallCropMode) ? (
+          // One interactive screen now. Kiosks still holding a retired
+          // station-2 / station-3 lock, and the old station hashes, all run
+          // the same single journey instead of a screen waiting on Central.
           <MirrorPreviewFrame>
-            <StationOne key={stationSession} />
+            <JourneyStation key={stationSession} />
           </MirrorPreviewFrame>
-        ) : !isStationSimFrame && lock && lockedStation === 'station-2' ? (
-          <MirrorPreviewFrame>
-            <StationTwo key={stationSession} />
-          </MirrorPreviewFrame>
-        ) : !isStationSimFrame && lock ? (
-          <ThirdStation key={stationSession} />
-        ) : station === 'station-1' ? (
-          <MirrorPreviewFrame>
-            <StationOne key={stationSession} />
-          </MirrorPreviewFrame>
-        ) : station === 'station-2' ? (
-          <MirrorPreviewFrame>
-            <StationTwo key={stationSession} />
-          </MirrorPreviewFrame>
-        ) : station === 'station-3' ? (
-          <ThirdStation key={stationSession} />
         ) : station === 'orb' ? (
           <OrbStation />
         ) : station === 'cards' ? (
@@ -328,14 +316,10 @@ export default function App() {
         ) : station === 'mirror' ? (
           wallRole ? (
             <ThirdStationWall role={wallRole} />
-          ) : wallCropMode ? (
+          ) : (
             <WallModeViewport>
               <ThirdStation key={stationSession} />
             </WallModeViewport>
-          ) : (
-            <MirrorPreviewFrame>
-              <ThirdStation key={stationSession} />
-            </MirrorPreviewFrame>
           )
         ) : station === 'photobash' ? (
           <PhotobashScreen />

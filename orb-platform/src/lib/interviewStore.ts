@@ -27,7 +27,6 @@ const STATION_TWO_PHASES: readonly StationTwoPhase[] = [
   'companion-intro',
   'debra-brief',
   'question',
-  'height',
   'lightning-intro',
   'lightning',
   'complete',

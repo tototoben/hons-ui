@@ -469,6 +469,43 @@ function RecordingStage({
   )
 }
 
+/** "Creating match" ring + percentage readout. Shared with the single-screen
+ * journey, which renders it inside its own `.third-station` frame. */
+export function MatchLoadingScreen({ warm, progress }: { warm: boolean; progress: number }) {
+  return (
+    <div className="mirror-screen mirror-screen-loading">
+      <MirrorHeadline
+        lines={warm ? ['Finding', 'your match'] : ['Creating', 'match']}
+        className="mirror-headline"
+      />
+      <GuideOrb variant="loading" progress={progress} />
+      <div className="mirror-loading-readout">
+        {warm
+          ? `Putting it together, ${Math.round(progress * 100)}%`
+          : `COMPILING MATCH DATA — ${Math.round(progress * 100)}%`}
+      </div>
+    </div>
+  )
+}
+
+export function MatchHandoffScreen({ warm }: { warm: boolean }) {
+  return (
+    <div className="mirror-screen mirror-screen-handoff">
+      <JourneyHeadline
+        lines={[warm ? 'Go meet your match' : 'Meet your match']}
+        className="mirror-headline"
+        fontPx={88}
+      >
+        {warm ? 'Go meet your match' : 'Meet your match'}
+      </JourneyHeadline>
+      <GuideOrb variant="idle" />
+      <div className="mirror-handoff-readout">
+        {warm ? 'Turn to the wall — they are waiting for you.' : 'PROCEED TO THE REVEAL WALL'}
+      </div>
+    </div>
+  )
+}
+
 export function ThirdStation() {
   const visits = useVisitCentralPoll()
   if (!isStationTurnActive(3, visits)) {
@@ -727,36 +764,9 @@ function ThirdStationSession() {
           />
         ) : null}
 
-        {phase === 'loading' ? (
-          <div className="mirror-screen mirror-screen-loading">
-            <MirrorHeadline
-              lines={warm ? ['Finding', 'your match'] : ['Creating', 'match']}
-              className="mirror-headline"
-            />
-            <GuideOrb variant="loading" progress={loadingProgress} />
-            <div className="mirror-loading-readout">
-              {warm
-                ? `Putting it together, ${Math.round(loadingProgress * 100)}%`
-                : `COMPILING MATCH DATA — ${Math.round(loadingProgress * 100)}%`}
-            </div>
-          </div>
-        ) : null}
+        {phase === 'loading' ? <MatchLoadingScreen warm={warm} progress={loadingProgress} /> : null}
 
-        {phase === 'handoff' ? (
-          <div className="mirror-screen mirror-screen-handoff">
-            <JourneyHeadline
-              lines={[warm ? 'Go meet your match' : 'Meet your match']}
-              className="mirror-headline"
-              fontPx={88}
-            >
-              {warm ? 'Go meet your match' : 'Meet your match'}
-            </JourneyHeadline>
-            <GuideOrb variant="idle" />
-            <div className="mirror-handoff-readout">
-              {warm ? 'Turn to the wall — they are waiting for you.' : 'PROCEED TO THE REVEAL WALL'}
-            </div>
-          </div>
-        ) : null}
+        {phase === 'handoff' ? <MatchHandoffScreen warm={warm} /> : null}
       </div>
 
       {showTuningPanel() && !readDeviceLock() ? (

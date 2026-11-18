@@ -30,14 +30,16 @@ afterEach(() => {
 describe('stationSession', () => {
   it('maps locked stations onto firehose ids', () => {
     expect(stationFirehoseId('station-1')).toBe('station-1')
-    expect(stationFirehoseId('station-2')).toBe('station-2')
-    expect(stationFirehoseId('mirror')).toBe('station-3')
+    expect(stationFirehoseId('station-2')).toBe('station-1')
+    expect(stationFirehoseId('station-3')).toBe('station-1')
+    expect(stationFirehoseId('mirror')).toBe('station-1')
     expect(stationFirehoseId('photobash')).toBeNull()
     expect(stationFirehoseId('orb')).toBeNull()
   })
 
-  it('wipes Station I answers, profile, and face', () => {
+  it('wipes the journey answers, profile, and face', () => {
     saveStationOneState(createStationOneState({ answers: { callName: 'Ada' } }))
+    saveStationTwoState(createStationTwoState({ answers: { attractiveness: 'yes' } }))
     setVisitorProfile({
       ...getVisitorProfile(),
       callName: 'Ada',
@@ -48,38 +50,19 @@ describe('stationSession', () => {
     expect(resetCurrentStationMemory('station-1')).toBe(true)
 
     expect(loadStationOneState()).toBeNull()
+    expect(loadStationTwoState()).toBeNull()
     expect(getVisitorProfile().callName).toBe('')
     expect(getVisitorFaceCapture()).toBeNull()
   })
 
-  it('wipes only Station II answers so a restart does not resume or duplicate them', () => {
-    saveStationTwoState(
-      createStationTwoState({
-        phase: 'question',
-        questionIndex: 4,
-        answers: { attractiveness: 'yes' },
-      }),
-    )
-    setVisitorProfile({
-      ...getVisitorProfile(),
-      callName: 'Ada',
-      age: 34,
-    })
-
-    expect(resetCurrentStationMemory('station-2')).toBe(true)
-
-    expect(loadStationTwoState()).toBeNull()
-    expect(getVisitorProfile().callName).toBe('Ada')
-  })
-
-  it('clears the in-memory face on Station III without touching other interviews', () => {
+  it('treats the old Station III route as the journey', () => {
     saveStationTwoState(createStationTwoState({ answers: { attractiveness: 'yes' } }))
     setVisitorFaceCapture('data:image/jpeg;base64,face')
 
     expect(resetCurrentStationMemory('mirror')).toBe(true)
 
     expect(getVisitorFaceCapture()).toBeNull()
-    expect(loadStationTwoState()?.answers.attractiveness).toBe('yes')
+    expect(loadStationTwoState()).toBeNull()
   })
 
   it('leaves wall and picker routes alone', () => {

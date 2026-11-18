@@ -20,6 +20,7 @@ import {
 } from '../lib/mirrorFaceSignals'
 import type { NormalizedLandmark } from '../lib/mirrorLandmarks'
 import { readSelectedCameraId, writeSelectedCameraId } from '../lib/mirrorCameraDevice'
+import { acquireCameraStream, isSharedCameraStream } from '../lib/sharedCameraStream'
 
 const MIN_APPEARANCE_LANDMARKS = 400
 
@@ -92,10 +93,9 @@ export function useMirrorCamera({
   }
 
   useEffect(() => {
-    // Camera hardware should only be requested while something actually
-    // needs it (the scan phases) -- not for the whole time the station is
-    // mounted, which would leave the camera indicator light on during
-    // intake / complete / etc. `tracking` mirrors that intent.
+    // The camera is first requested when a scan phase needs it, not on
+    // mount. Once granted, the stream is kept for the page's lifetime and
+    // reused (sharedCameraStream.ts) so later visits don't re-prompt.
     if (!tracking) {
       setStatus('starting')
       return
@@ -161,22 +161,14 @@ export function useMirrorCamera({
           permissionTimedOut = true
           if (!cancelled) setStatus('unavailable')
         }, 15_000)
-        stream = await navigator.mediaDevices.getUserMedia({
-          audio: false,
-          video: {
-            ...mirrorCameraConstraints(),
-            ...(selectedDeviceId ? { deviceId: { exact: selectedDeviceId } } : {}),
-          },
-        })
+        // Shared for the page's lifetime (see sharedCameraStream.ts), so a
+        // late or cancelled mount leaves it running for the next scan
+        // instead of stopping it and prompting for permission again.
+        stream = await acquireCameraStream(mirrorCameraConstraints(), selectedDeviceId)
         clearTimeout(permissionTimer)
         permissionTimer = undefined
-        if (permissionTimedOut) {
-          stream.getTracks().forEach((track) => track.stop())
+        if (permissionTimedOut || cancelled) {
           stream = null
-          return
-        }
-        if (cancelled) {
-          stream.getTracks().forEach((track) => track.stop())
           return
         }
 
@@ -232,8 +224,13 @@ export function useMirrorCamera({
     return () => {
       cancelled = true
       clearTimeout(permissionTimer)
-      // Only stop tracks we own — not the parent's shared stream.
-      if (stream && stream !== (window.parent as any).__mirrorCameraStream) {
+      // Never stop the page-wide camera stream (it carries the next scan
+      // without a new permission prompt) or the parent's embedded stream.
+      if (
+        stream &&
+        !isSharedCameraStream(stream) &&
+        stream !== (window.parent as any).__mirrorCameraStream
+      ) {
         stream.getTracks().forEach((track) => track.stop())
       }
       const video = videoRef.current

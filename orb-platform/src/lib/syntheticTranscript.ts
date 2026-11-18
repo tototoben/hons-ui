@@ -1,6 +1,7 @@
 import { buildKioskInterview, type KioskInterviewPayload } from './kioskInterview'
 import {
   STATION_TWO_LIGHTNING,
+  valuesSmartPartner,
   type StationTwoState,
 } from './mirrorJourney'
 
@@ -58,7 +59,7 @@ export function generateSyntheticIntro(input: {
       ? 'attractiveness matters more than I admit'
       : 'I try not to make attraction the whole story'
   const partnerSmart =
-    two?.answers.partnerSmart === 'yes'
+    two && valuesSmartPartner(two.answers)
       ? 'I want a partner who can keep up intellectually'
       : 'I care less about brilliance than steadiness'
   const lightning = STATION_TWO_LIGHTNING

@@ -73,15 +73,9 @@ const PICKER_DIGIT_LOCKS: Record<string, DeviceLock> = {
   '1': 'station-1',
   Digit1: 'station-1',
   Numpad1: 'station-1',
-  '2': 'station-2',
-  Digit2: 'station-2',
-  Numpad2: 'station-2',
-  '3': 'station-3',
-  Digit3: 'station-3',
-  Numpad3: 'station-3',
 }
 
-/** 1 / 2 / 3 lock Station I / II / III while the production picker is open. */
+/** 1 locks the station while the production picker is open. */
 export function pickerLockFromKey(
   event: Pick<KeyboardEvent, 'key' | 'code' | 'repeat' | 'altKey' | 'metaKey' | 'ctrlKey'>,
 ): DeviceLock | null {

@@ -11,8 +11,7 @@ import cardSwapSource from './CardSwap.jsx?raw'
 import cardSwapStyles from './CardSwap.css?raw'
 import appSource from '../App.tsx?raw'
 import photobashSource from './PhotobashScreen.tsx?raw'
-import stationOneSource from './StationOne.tsx?raw'
-import stationTwoSource from './StationTwo.tsx?raw'
+import journeyStationSource from './JourneyStation.tsx?raw'
 import thirdStationSource from './ThirdStation.tsx?raw'
 import debraGuideSource from './DebraGuide.tsx?raw'
 import mirrorGuideOrbSource from './MirrorGuideOrb.tsx?raw'
@@ -139,7 +138,7 @@ describe('station composition', () => {
   })
 
   it('plays the recorded Debra loop on Stations II and III', () => {
-    expect(stationTwoSource).toContain('DebraGuide')
+    expect(journeyStationSource).toContain('DebraGuide')
     expect(debraGuideSource).toContain('MirrorGuideOrb')
     expect(thirdStationSource).toContain('MirrorGuideOrb')
     expect(mirrorGuideOrbSource).toContain('debra-orb.webp')
@@ -164,13 +163,12 @@ describe('station composition', () => {
     expect(photobashSource).not.toContain('PhotobashVoice')
   })
 
-  it('lets Station I yes/no be tapped and persists both station interviews', () => {
-    expect(stationOneSource).not.toContain('hideButtons')
-    expect(stationOneSource).toContain('saveStationOneState')
-    expect(stationTwoSource).toContain('firehoseReducer')
-    expect(stationTwoSource).toContain('saveStationTwoState')
-    expect(stationOneSource).toContain('prompt: question?.prompt')
-    expect(stationTwoSource).toContain('prompt: question.prompt')
+  it('leaves yes/no input to the iPad and persists both interview halves', () => {
+    expect(journeyStationSource).toContain('onScreenButtons={false}')
+    expect(journeyStationSource).toContain('saveStationOneState')
+    expect(journeyStationSource).toContain('firehoseReducer')
+    expect(journeyStationSource).toContain('saveStationTwoState')
+    expect(journeyStationSource).toContain('prompt: question.prompt')
   })
 
   it('keeps grainy headlines and the icy camera grade on kiosk quality', () => {

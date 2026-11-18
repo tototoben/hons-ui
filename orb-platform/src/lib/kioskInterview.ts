@@ -1,6 +1,7 @@
 import {
   STATION_ONE_INTAKE,
   STATION_TWO_LIGHTNING,
+  valuesSmartPartner,
   STATION_TWO_QUESTIONS,
   type StationTwoState,
 } from './mirrorJourney'
@@ -53,11 +54,6 @@ export function buildKioskInterview(input: {
     for (const question of STATION_TWO_QUESTIONS) {
       pushQa(conversation, question.prompt, two.answers[question.id] ?? '')
     }
-    pushQa(
-      conversation,
-      'How tall should your partner be, from short to tall?',
-      Number.isFinite(two.height) ? `${Math.round(two.height * 100)}% toward tall` : '',
-    )
     for (const pair of STATION_TWO_LIGHTNING) {
       pushQa(conversation, `${pair.left} or ${pair.right}?`, two.lightningAnswers[pair.id] ?? '')
     }
@@ -76,10 +72,10 @@ export function buildKioskInterview(input: {
   const users: Record<string, unknown> = {
     name: one.callName || 'visitor',
     age: Number.isFinite(ageValue) && ageValue > 0 ? ageValue : 0,
-    hobbies: [one.origin, one.washFrequency].filter(Boolean).join(' · '),
+    hobbies: [one.origin, two?.answers.washFrequency ?? one.washFrequency].filter(Boolean).join(' · '),
     ideal_weekend: Object.values(two?.lightningAnswers ?? {}).filter(Boolean).join(', '),
     partner_qualities: [
-      two?.answers.partnerSmart === 'yes' ? 'values a smart partner' : '',
+      two && valuesSmartPartner(two.answers) ? 'values a smart partner' : '',
       two?.answers.traditional === 'yes' ? 'wants a traditional relationship' : '',
       two?.answers.attractiveness === 'yes' ? 'attractiveness matters' : '',
     ]

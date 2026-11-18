@@ -6,22 +6,31 @@ export type StationOneQuestion = {
   id: string
   prompt: string
   type: StationOneQuestionType
+  /** Line breaks for the on-screen headline (uppercased in the original vibe). */
+  lines: string[]
   /** Renders a number input with the existing 1–120 bounds — only the age
    * question needs this instead of a plain text field. */
   numeric?: boolean
 }
 
 export const STATION_ONE_INTAKE: StationOneQuestion[] = [
-  { id: 'callName', prompt: 'What do you want us to call you?', type: 'text' },
-  { id: 'age', prompt: 'What is your age?', type: 'text', numeric: true },
-  { id: 'identity', prompt: 'What do you identify as?', type: 'text' },
-  { id: 'orientation', prompt: 'What is your orientation?', type: 'text' },
-  { id: 'doubtedOrientation', prompt: 'Have you ever doubted your orientation?', type: 'yesno' },
-  { id: 'previousRelationships', prompt: 'Have you ever had previous relationships?', type: 'yesno' },
-  { id: 'origin', prompt: 'Where are you from?', type: 'text' },
-  { id: 'livesWhereBorn', prompt: 'Do you live where you were born?', type: 'yesno' },
-  { id: 'washFrequency', prompt: 'How often do you wash yourself?', type: 'text' },
-  { id: 'lastInsecure', prompt: 'When was the last time you felt insecure?', type: 'text' },
+  { id: 'callName', prompt: 'What do you want us to call you?', type: 'text', lines: ['What do you want', 'us to call you?'] },
+  { id: 'identity', prompt: 'What do you identify as?', type: 'text', lines: ['What do you', 'identify as?'] },
+  { id: 'orientation', prompt: 'What is your orientation?', type: 'text', lines: ['What is your', 'orientation?'] },
+  {
+    id: 'doubtedOrientation',
+    prompt: 'Have you ever doubted your orientation?',
+    type: 'yesno',
+    lines: ['Have you ever doubted', 'your orientation?'],
+  },
+  { id: 'age', prompt: 'What is your age?', type: 'text', numeric: true, lines: ['What is your', 'age?'] },
+  { id: 'origin', prompt: 'Where are you from?', type: 'text', lines: ['Where are', 'you from?'] },
+  {
+    id: 'previousRelationships',
+    prompt: 'Have you ever had previous relationships?',
+    type: 'yesno',
+    lines: ['Have you ever had', 'previous relationships?'],
+  },
 ]
 
 export type StationOnePhase =
@@ -113,9 +122,11 @@ export type StationTwoQuestion = {
   id: string
   prompt: string
   type: StationTwoQuestionType
+  /** Line breaks for the on-screen headline (uppercased in the original vibe). */
+  lines: string[]
   /** Some questions only make sense given an earlier answer, or should be
-   * skipped for visitors who told Station I they're under 18 — evaluated
-   * against the answers gathered so far plus the visitor's age. */
+   * skipped for visitors who said they're under 18 — evaluated against the
+   * answers gathered so far plus the visitor's age. */
   visibleIf?: (ctx: StationTwoQuestionContext) => boolean
 }
 
@@ -124,66 +135,67 @@ function isAdult(age: number | null): boolean {
 }
 
 export const STATION_TWO_QUESTIONS: StationTwoQuestion[] = [
-  { id: 'attractiveness', prompt: 'Is attractiveness important to you?', type: 'yesno' },
-  { id: 'selfSmart', prompt: "Do you think you're a smart person?", type: 'yesno' },
-  { id: 'partnerSmart', prompt: 'Should your partner be smart?', type: 'yesno' },
+  {
+    id: 'washFrequency',
+    prompt: 'How often do you wash yourself?',
+    type: 'text',
+    lines: ['How often do you', 'wash yourself?'],
+  },
+  {
+    id: 'attractiveness',
+    prompt: 'Is attractiveness important to you?',
+    type: 'yesno',
+    lines: ['Is attractiveness', 'important to you?'],
+  },
   {
     id: 'howSmart',
-    prompt: 'How smart?',
+    prompt: 'How smart should your partner be?',
     type: 'scale',
-    visibleIf: (ctx) => ctx.answers.partnerSmart === 'yes',
+    lines: ['How smart should', 'your partner be?'],
   },
-  { id: 'traditional', prompt: 'Do you want a traditional relationship?', type: 'yesno' },
   {
-    id: 'pornography',
-    prompt: 'Have you ever watched pornography?',
+    id: 'traditional',
+    prompt: 'Do you want a traditional relationship?',
     type: 'yesno',
-    visibleIf: (ctx) => isAdult(ctx.age),
+    lines: ['Do you want a', 'traditional relationship?'],
   },
   {
     id: 'aiPornography',
     prompt: 'Have you knowingly watched AI pornography?',
     type: 'yesno',
-    visibleIf: (ctx) => isAdult(ctx.age) && ctx.answers.pornography === 'yes',
-  },
-  {
-    id: 'libido',
-    prompt: 'Do you have a high libido?',
-    type: 'yesno',
+    lines: ['Have you knowingly', 'watched AI pornography?'],
     visibleIf: (ctx) => isAdult(ctx.age),
   },
   {
     id: 'cheating',
     prompt: 'Have you ever thought about cheating?',
     type: 'yesno',
+    lines: ['Have you ever thought', 'about cheating?'],
     visibleIf: (ctx) => isAdult(ctx.age) && ctx.previousRelationships === 'yes',
   },
-  { id: 'higherPower', prompt: 'Do you believe in a higher power?', type: 'yesno' },
   {
-    id: 'god',
-    prompt: 'God?',
+    id: 'higherPower',
+    prompt: 'Do you believe in a higher power?',
     type: 'yesno',
-    visibleIf: (ctx) => ctx.answers.higherPower === 'yes',
+    lines: ['Do you believe in', 'a higher power?'],
   },
-  {
-    id: 'somethingElse',
-    prompt: 'Something else?',
-    type: 'yesno',
-    visibleIf: (ctx) => ctx.answers.higherPower === 'yes' && ctx.answers.god === 'no',
-  },
-  { id: 'escapism', prompt: 'Do you practice escapism?', type: 'yesno' },
+  { id: 'escapism', prompt: 'Do you practice escapism?', type: 'yesno', lines: ['Do you practice', 'escapism?'] },
 ]
+
+/** "How smart should your partner be?" slider answer (0–1) read as a yes/no
+ * for downstream summaries that only care whether smarts matter. */
+export function valuesSmartPartner(answers: Record<string, string>): boolean {
+  const value = Number(answers.howSmart)
+  return Number.isFinite(value) && value >= 0.5
+}
 
 export type ThisOrThatPair = { id: string; left: string; right: string }
 
 export const STATION_TWO_LIGHTNING: ThisOrThatPair[] = [
-  { id: 'beautyMoney', left: 'Beauty', right: 'Money' },
-  { id: 'insideOutside', left: 'Inside', right: 'Outside' },
-  { id: 'processResult', left: 'Process', right: 'Result' },
-  { id: 'calmExcitement', left: 'Calm', right: 'Excitement' },
   { id: 'natureComfort', left: 'Nature', right: 'Comfort' },
+  { id: 'insideOutside', left: 'Inside', right: 'Outside' },
   { id: 'rebellionSimplicity', left: 'Rebellion', right: 'Simplicity' },
-  { id: 'sexLove', left: 'Love', right: 'Sex' },
+  { id: 'sexLove', left: 'Sex', right: 'Love' },
 ]
 
 export type StationTwoPhase =
@@ -191,7 +203,6 @@ export type StationTwoPhase =
   | 'companion-intro'
   | 'debra-brief'
   | 'question'
-  | 'height'
   | 'lightning-intro'
   | 'lightning'
   | 'complete'
@@ -212,7 +223,6 @@ export type StationTwoAction =
   | { type: 'ANSWER'; value: BinaryAnswer }
   | { type: 'SUBMIT_TEXT'; value: string }
   | { type: 'SET_SCALE'; value: number }
-  | { type: 'SET_HEIGHT'; value: number }
   | {
       type: 'SYNC_VISITOR_PROFILE'
       age: number | null
@@ -257,7 +267,7 @@ function advanceQuestion(state: StationTwoState, id: string, value: string): Sta
   const answers = { ...state.answers, [id]: value }
   const ctx = { answers, age: state.age, previousRelationships: state.previousRelationships }
   const questionIndex = nextVisibleQuestionIndex(state.questionIndex + 1, ctx)
-  const phase = questionIndex >= STATION_TWO_QUESTIONS.length ? 'height' : 'question'
+  const phase = questionIndex >= STATION_TWO_QUESTIONS.length ? 'lightning-intro' : 'question'
   return { ...state, answers, questionIndex, phase }
 }
 
@@ -273,14 +283,13 @@ export function stationTwoReducer(
     if (state.phase === 'debra-brief') {
       const questionIndex = nextVisibleQuestionIndex(0, questionContext(state))
       return questionIndex >= STATION_TWO_QUESTIONS.length
-        ? { ...state, phase: 'height' }
+        ? { ...state, phase: 'lightning-intro' }
         : { ...state, phase: 'question', questionIndex }
     }
     if (state.phase === 'question' && currentQuestion?.type === 'scale') {
       const value = state.answers[currentQuestion.id] ?? '0.5'
       return advanceQuestion(state, currentQuestion.id, value)
     }
-    if (state.phase === 'height') return { ...state, phase: 'lightning-intro' }
     if (state.phase === 'lightning-intro') return { ...state, phase: 'lightning' }
     return state
   }
@@ -307,10 +316,6 @@ export function stationTwoReducer(
   if (action.type === 'SET_SCALE' && state.phase === 'question' && currentQuestion?.type === 'scale') {
     const value = String(Math.min(1, Math.max(0, action.value)))
     return { ...state, answers: { ...state.answers, [currentQuestion.id]: value } }
-  }
-
-  if (action.type === 'SET_HEIGHT' && state.phase === 'height') {
-    return { ...state, height: Math.min(1, Math.max(0, action.value)) }
   }
 
   if (action.type === 'SYNC_VISITOR_PROFILE') {

@@ -120,16 +120,12 @@ describe('productionHotkey', () => {
     ).toBe(false)
   })
 
-  it('maps 1 / 2 / 3 onto Station I / II / III', () => {
+  it('maps 1 onto the station and ignores the retired 2 / 3', () => {
     expect(pickerLockFromKey({ key: '1', code: 'Digit1', repeat: false, altKey: false, metaKey: false, ctrlKey: false })).toBe(
       'station-1',
     )
-    expect(pickerLockFromKey({ key: '2', code: 'Digit2', repeat: false, altKey: false, metaKey: false, ctrlKey: false })).toBe(
-      'station-2',
-    )
-    expect(pickerLockFromKey({ key: '3', code: 'Numpad3', repeat: false, altKey: false, metaKey: false, ctrlKey: false })).toBe(
-      'station-3',
-    )
+    expect(pickerLockFromKey({ key: '2', code: 'Digit2', repeat: false, altKey: false, metaKey: false, ctrlKey: false })).toBeNull()
+    expect(pickerLockFromKey({ key: '3', code: 'Numpad3', repeat: false, altKey: false, metaKey: false, ctrlKey: false })).toBeNull()
     expect(pickerLockFromKey({ key: '4', code: 'Digit4', repeat: false, altKey: false, metaKey: false, ctrlKey: false })).toBeNull()
     expect(
       pickerLockFromKey({ key: '1', code: 'Digit1', repeat: true, altKey: false, metaKey: false, ctrlKey: false }),

@@ -6,12 +6,16 @@ import { JourneyButton } from './JourneyButton'
 export function MirrorChoice({
   onAnswer,
   labels,
+  onScreenButtons = true,
 }: {
   onAnswer: (answer: BinaryAnswer) => void
   /** Overrides the Yes/No button text — used by Station II's "this or
    * that" lightning round, where the two options are literal words
    * rather than a real yes/no. Keyboard y/n still picks them in order. */
   labels?: [string, string]
+  /** false when the iPad is the only input: the kiosk shows just the hint,
+   * and answers arrive as the same y/n key events the remote sends. */
+  onScreenButtons?: boolean
 }) {
   const [vibe] = useStationVibe()
   const [yesLabel, noLabel] = labels ?? ['Yes', 'No']
@@ -37,12 +41,16 @@ export function MirrorChoice({
       role="group"
       aria-label={labels ? `Choose ${yesLabel} or ${noLabel}` : 'Answer yes or no'}
     >
-      <JourneyButton type="button" onClick={() => onAnswer('yes')}>
-        {yesLabel}
-      </JourneyButton>
-      <JourneyButton type="button" onClick={() => onAnswer('no')}>
-        {noLabel}
-      </JourneyButton>
+      {onScreenButtons ? (
+        <>
+          <JourneyButton type="button" onClick={() => onAnswer('yes')}>
+            {yesLabel}
+          </JourneyButton>
+          <JourneyButton type="button" onClick={() => onAnswer('no')}>
+            {noLabel}
+          </JourneyButton>
+        </>
+      ) : null}
       <p>
         {labels
           ? vibe === 'warm'

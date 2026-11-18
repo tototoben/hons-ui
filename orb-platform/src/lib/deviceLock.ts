@@ -12,14 +12,17 @@ export const UNLOCK_CORNER_PX = 64
 export const UNLOCK_KEY = '~'
 
 export const DEVICE_LOCK_LABELS: Record<DeviceLock, string> = {
-  'station-1': 'Station I',
+  'station-1': 'Station',
   'station-2': 'Station II',
   'station-3': 'Station III',
   photobash: 'Photobash',
 }
 
-const KIOSK_CHOICES: DeviceLock[] = ['station-1', 'station-2', 'station-3']
-const FULL_CHOICES: DeviceLock[] = ['station-1', 'station-2', 'station-3', 'photobash']
+// One interactive screen now (the old Stations I–III in a single journey);
+// station-2 / station-3 stay valid locks so already-locked legacy kiosks
+// keep booting, but are no longer offered.
+const KIOSK_CHOICES: DeviceLock[] = ['station-1']
+const FULL_CHOICES: DeviceLock[] = ['station-1', 'photobash']
 
 export function readDeviceLock(
   storage: Pick<Storage, 'getItem'> | undefined = defaultStorage(),

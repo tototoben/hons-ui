@@ -7,6 +7,30 @@ import { mirrorSettings } from '../dev/mirrorSettingsStore'
 const REDRAW_INTERVAL_MS = 1000 / 8
 const FADE_IN_MS = 900
 
+export const HEADLINE_CANVAS_WIDTH = 1000
+export const HEADLINE_CANVAS_HEIGHT = 340
+const LINE_HEIGHT_EM = 1.08
+
+/** Canvas height for `lineCount` lines: at least `minHeight`, growing when
+ * the lines need it (four-line copy at the default size overflows 340px),
+ * with room left for the smudge blur. */
+export function headlineCanvasHeight(
+  lineCount: number,
+  fontPx: number = mirrorSettings.text.fontPx,
+  minHeight: number = HEADLINE_CANVAS_HEIGHT,
+): number {
+  return Math.max(minHeight, Math.ceil(fontPx * (LINE_HEIGHT_EM * lineCount + 0.9)))
+}
+
+/** Canvas px from the bottom edge up to the top of the first line — the
+ * text block is centred vertically in the canvas. */
+export function headlineFirstLineFromBottom(
+  lineCount: number,
+  fontPx: number = mirrorSettings.text.fontPx,
+): number {
+  return (headlineCanvasHeight(lineCount, fontPx) + fontPx * LINE_HEIGHT_EM * lineCount) / 2
+}
+
 /**
  * DOM-canvas headline text using the same drawGrainyText treatment as the
  * Orb station's QuestionPrompt (crisp base + drifting smudge layer) — the
@@ -21,8 +45,8 @@ export function MirrorHeadline({
   lines,
   className,
   fontPx,
-  width = 1000,
-  height = 340,
+  width = HEADLINE_CANVAS_WIDTH,
+  height = HEADLINE_CANVAS_HEIGHT,
   fade = true,
   align = 'center',
 }: {
@@ -35,6 +59,7 @@ export function MirrorHeadline({
   align?: CanvasTextAlign
 }) {
   const [vibe] = useStationVibe()
+  const canvasHeight = headlineCanvasHeight(lines.length, fontPx, height)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const text = useMemo(
     () => (vibe === 'original' ? lines.join('\n').toUpperCase() : lines.join('\n')),
@@ -58,10 +83,10 @@ export function MirrorHeadline({
     const kiosk = isKioskQuality()
 
     const paint = (t: number) => {
-      ctx.clearRect(0, 0, width, height)
-      const lineHeight = size * 1.08
+      ctx.clearRect(0, 0, width, canvasHeight)
+      const lineHeight = size * LINE_HEIGHT_EM
       const totalHeight = lineHeight * parts.length
-      const startY = height / 2 - totalHeight / 2 + lineHeight / 2
+      const startY = canvasHeight / 2 - totalHeight / 2 + lineHeight / 2
       parts.forEach((line, i) => {
         const lineCanvas = document.createElement('canvas')
         lineCanvas.width = width
@@ -70,7 +95,9 @@ export function MirrorHeadline({
         drawGrainyText(lctx, lineCanvas, line, {
           fontPx: size,
           weight: 350,
-          maxWidthPx: width * 0.94,
+          // Leave ~7% each side for the smudge haze; at 0.94 the longest
+          // lines ("UNASSISTED PAIRING.") had their haze cut at the edges.
+          maxWidthPx: width * 0.86,
           textAlign: align,
           shade: 200,
           shadeVariance: 40,
@@ -121,14 +148,14 @@ export function MirrorHeadline({
     }
     raf = requestAnimationFrame(draw)
     return () => cancelAnimationFrame(raf)
-  }, [align, fade, fontPx, height, text, width])
+  }, [align, canvasHeight, fade, fontPx, text, width])
 
   return (
     <canvas
       ref={canvasRef}
       className={className}
       width={width}
-      height={height}
+      height={canvasHeight}
       style={{ transition: fade ? 'opacity 0.2s linear' : 'none' }}
     />
   )

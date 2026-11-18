@@ -49,8 +49,8 @@ describe('deviceLock', () => {
   })
 
   it('omits Photobash on kiosk pickers and includes it on full quality', () => {
-    expect(pickerChoices('kiosk')).toEqual(['station-1', 'station-2', 'station-3'])
-    expect(pickerChoices('full')).toEqual(['station-1', 'station-2', 'station-3', 'photobash'])
+    expect(pickerChoices('kiosk')).toEqual(['station-1'])
+    expect(pickerChoices('full')).toEqual(['station-1', 'photobash'])
   })
 
   it('maps locks to production hrefs and station routes', () => {

@@ -74,11 +74,17 @@ function broadcastRevealReady(message: RevealReadyMessage, storage?: Pick<Storag
   }
 }
 
+/** Firehose station the reveal_ready event is sent as. The station bridge
+ * only relays events for the station it hosts, so the single-screen journey
+ * sends it as station-1; the legacy Station III kiosk keeps station-3. */
+export type RevealSourceStation = 'station-1' | 'station-3'
+
 function publishRevealReadyEvent(
   job: PhotowallJob,
   readyAnswer?: 'yes' | 'skip',
+  station: RevealSourceStation = 'station-3',
 ) {
-  publish('station-3', 'reveal_ready', {
+  publish(station, 'reveal_ready', {
     photobashSeed: job.photobashSeed,
     collageCue: job.collageCue,
     transcript: job.transcript,
@@ -93,6 +99,7 @@ export function dispatchPhotowallJob(
   job: PhotowallJob,
   readyAnswer?: 'yes' | 'skip',
   storage: Pick<Storage, 'setItem'> | undefined = defaultStorage(),
+  station?: RevealSourceStation,
 ): number {
   const message: RevealReadyMessage = {
     type: 'reveal-ready',
@@ -105,17 +112,18 @@ export function dispatchPhotowallJob(
     jobId: job.id,
   }
   broadcastRevealReady(message, storage)
-  publishRevealReadyEvent(job, readyAnswer)
+  publishRevealReadyEvent(job, readyAnswer, station)
   return job.photobashSeed
 }
 
 export function tryActivatePhotowallQueue(
   readyAnswer?: 'yes' | 'skip',
   storage: Pick<Storage, 'getItem' | 'setItem'> | undefined = defaultStorage(),
+  station?: RevealSourceStation,
 ): number | null {
   const job = activateNextPhotowallJob(storage)
   if (!job) return null
-  return dispatchPhotowallJob(job, readyAnswer, storage)
+  return dispatchPhotowallJob(job, readyAnswer, storage, station)
 }
 
 export function completeActivePhotowallJob(
@@ -134,6 +142,7 @@ export type NotifyRevealReadyInput = {
   visitId?: string | null
   transcript?: string
   transcriptSource?: 'spoken' | 'synthetic'
+  station?: RevealSourceStation
 }
 
 export function notifyRevealReady(
@@ -153,7 +162,7 @@ export function notifyRevealReady(
     },
     storage,
   )
-  const activated = tryActivatePhotowallQueue(input.readyAnswer, storage)
+  const activated = tryActivatePhotowallQueue(input.readyAnswer, storage, input.station)
   if (activated !== null) return activated
   const snapshot = readPhotowallQueue(storage)
   const pending = snapshot.jobs.find((job) => job.status === 'pending')

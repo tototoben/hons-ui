@@ -91,6 +91,7 @@ export async function submitKioskInterview(
   intro: string,
   prepared?: KioskVisitContext | null,
   diagnostics: IntroDiagnostics = {},
+  station: 'station-1' | 'station-3' = 'station-3',
 ) {
   const text = sanitizeSpokenIntro(intro)
   setVisitorIntro(text)
@@ -109,7 +110,7 @@ export async function submitKioskInterview(
       : null,
     systemPrompt: persona?.system_prompt,
   })
-  publish('station-3', 'intro_transcript', {
+  publish(station, 'intro_transcript', {
     chars: built.intro.length,
     preview: built.intro.slice(0, 140),
     source: built.transcriptSource,

@@ -5,8 +5,7 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('./components/OrbStation', () => ({ OrbStation: () => <div data-testid="orb-station" /> }))
-vi.mock('./components/StationOne', () => ({ StationOne: () => <div data-testid="station-one" /> }))
-vi.mock('./components/StationTwo', () => ({ StationTwo: () => <div data-testid="station-two" /> }))
+vi.mock('./components/JourneyStation', () => ({ JourneyStation: () => <div data-testid="journey-station" /> }))
 vi.mock('./components/ThirdStation', () => ({ ThirdStation: () => <div data-testid="third-station" /> }))
 vi.mock('./components/PhotobashScreen', () => ({ PhotobashScreen: () => <div data-testid="photobash" /> }))
 vi.mock('./components/SecondStation', () => ({ SecondStation: () => null }))
@@ -109,12 +108,23 @@ describe('App production overlay', () => {
     expect(container.querySelector('[data-testid="orb-station"]')).toBeNull()
   })
 
-  it('letterboxes unlocked Station III without station-switcher chrome', async () => {
-    window.location.hash = '#/mirror'
+  it('runs the single journey on the old Station III hashes instead of a Central wait screen', async () => {
+    for (const hash of ['#/mirror', '#/station-3']) {
+      window.location.hash = hash
+      await renderApp()
+      expect(container.querySelector('[data-testid="journey-station"]')).not.toBeNull()
+      expect(container.querySelector('[data-testid="third-station"]')).toBeNull()
+      expect(container.querySelector('.experience-mirror-preview-portrait')).not.toBeNull()
+      act(() => root.unmount())
+      root = createRoot(container)
+    }
+  })
+
+  it('runs the single journey on a kiosk still locked to the retired Station III', async () => {
+    window.localStorage.setItem(STORAGE_KEY, 'station-3')
     await renderApp()
-    expect(container.querySelector('[data-testid="third-station"]')).not.toBeNull()
-    expect(container.querySelector('.experience-mirror-preview-portrait')).not.toBeNull()
-    expect(container.querySelector('.station-switcher')).toBeNull()
+    expect(container.querySelector('[data-testid="journey-station"]')).not.toBeNull()
+    expect(container.querySelector('[data-testid="third-station"]')).toBeNull()
   })
 
   it('opens the picker on kiosk quality instead of mounting the orb', async () => {
@@ -159,7 +169,7 @@ describe('App production overlay', () => {
       window.dispatchEvent(chordEvent())
       await Promise.resolve()
     })
-    const stationI = [...container.querySelectorAll('button')].find((button) => button.textContent === 'Station I')
+    const stationI = [...container.querySelectorAll('button')].find((button) => button.textContent === 'Station')
     await act(async () => {
       stationI!.click()
       await Promise.resolve()
@@ -168,7 +178,7 @@ describe('App production overlay', () => {
     expect(window.location.hash).toBe('#/station-1')
     expect(container.querySelector('.station-switcher')).toBeNull()
     expect(container.querySelector('[aria-label="Production lock"]')).toBeNull()
-    expect(container.querySelector('[data-testid="station-one"]')).not.toBeNull()
+    expect(container.querySelector('[data-testid="journey-station"]')).not.toBeNull()
     expect(container.querySelector('[data-unlock-corner]')).not.toBeNull()
   })
 
@@ -179,7 +189,7 @@ describe('App production overlay', () => {
       window.dispatchEvent(chordEvent())
       await Promise.resolve()
     })
-    const stationI = [...container.querySelectorAll('button')].find((button) => button.textContent === 'Station I')
+    const stationI = [...container.querySelectorAll('button')].find((button) => button.textContent === 'Station')
     await act(async () => {
       stationI!.click()
       await Promise.resolve()
@@ -192,7 +202,7 @@ describe('App production overlay', () => {
     await renderApp()
     expect(container.querySelector('.station-switcher')).toBeNull()
     expect(container.querySelector('[aria-label="Production lock"]')).toBeNull()
-    expect(container.querySelector('[data-testid="station-one"]')).not.toBeNull()
+    expect(container.querySelector('[data-testid="journey-station"]')).not.toBeNull()
     expect(container.querySelector('[data-unlock-corner]')).not.toBeNull()
   })
 
@@ -207,7 +217,7 @@ describe('App production overlay', () => {
     expect(window.localStorage.getItem(STORAGE_KEY)).toBeNull()
     expect(window.location.hash).toBe('#/station-1')
     expect(container.querySelector('.station-switcher')).toBeNull()
-    expect(container.querySelector('[data-testid="station-one"]')).not.toBeNull()
+    expect(container.querySelector('[data-testid="journey-station"]')).not.toBeNull()
   })
 
   it('re-opens the picker while locked and a second chord keeps the lock', async () => {
@@ -226,7 +236,7 @@ describe('App production overlay', () => {
     })
     expect(container.querySelector('[aria-label="Production lock"]')).toBeNull()
     expect(window.localStorage.getItem(STORAGE_KEY)).toBe('station-1')
-    expect(container.querySelector('[data-testid="station-one"]')).not.toBeNull()
+    expect(container.querySelector('[data-testid="journey-station"]')).not.toBeNull()
   })
 
   it('shows unlock corner on wall-sim with a stored lock and tilde clears it', async () => {
@@ -255,7 +265,7 @@ describe('App production overlay', () => {
     window.localStorage.setItem(STORAGE_KEY, 'station-1')
     window.history.replaceState(null, '', '/?stationSimFrame=1#/station-2')
     await renderApp()
-    expect(container.querySelector('[data-testid="station-two"]')).not.toBeNull()
+    expect(container.querySelector('[data-testid="journey-station"]')).not.toBeNull()
     expect(window.location.hash).toBe('#/station-2')
   })
 
@@ -291,7 +301,7 @@ describe('App production overlay', () => {
     expect(container.querySelector('.station-switcher')).toBeNull()
   })
 
-  it('restarts a locked Station II from the first question and wipes its answers', async () => {
+  it('restarts the locked journey from the first question and wipes its answers', async () => {
     const publish = vi.spyOn(firehose, 'publish')
     saveStationTwoState(
       createStationTwoState({
@@ -300,8 +310,8 @@ describe('App production overlay', () => {
         answers: { attractiveness: 'yes' },
       }),
     )
-    window.localStorage.setItem(STORAGE_KEY, 'station-2')
-    window.location.hash = '#/station-2'
+    window.localStorage.setItem(STORAGE_KEY, 'station-1')
+    window.location.hash = '#/station-1'
     await renderApp()
     expect(window.localStorage.getItem(STATION_TWO_STORAGE_KEY)).toContain('attractiveness')
     publish.mockClear()
@@ -310,10 +320,10 @@ describe('App production overlay', () => {
       await Promise.resolve()
     })
     expect(window.localStorage.getItem(STATION_TWO_STORAGE_KEY)).toBeNull()
-    expect(window.localStorage.getItem(STORAGE_KEY)).toBe('station-2')
-    expect(container.querySelector('[data-testid="station-two"]')).not.toBeNull()
+    expect(window.localStorage.getItem(STORAGE_KEY)).toBe('station-1')
+    expect(container.querySelector('[data-testid="journey-station"]')).not.toBeNull()
     expect(publish).toHaveBeenCalledWith(
-      'station-2',
+      'station-1',
       'keyboard_focus',
       expect.objectContaining({ mode: 'hidden' }),
     )
@@ -322,8 +332,8 @@ describe('App production overlay', () => {
 
   it('shows the iPad letter keyboard when the production picker opens over a locked station', async () => {
     const publish = vi.spyOn(firehose, 'publish')
-    window.localStorage.setItem(STORAGE_KEY, 'station-2')
-    window.location.hash = '#/station-2'
+    window.localStorage.setItem(STORAGE_KEY, 'station-1')
+    window.location.hash = '#/station-1'
     await renderApp()
     publish.mockClear()
     await act(async () => {
@@ -332,7 +342,7 @@ describe('App production overlay', () => {
     })
     expect(container.querySelector('[aria-label="Production lock"]')).not.toBeNull()
     expect(publish).toHaveBeenCalledWith(
-      'station-2',
+      'station-1',
       'keyboard_focus',
       expect.objectContaining({ mode: 'text' }),
     )
@@ -343,7 +353,7 @@ describe('App production overlay', () => {
     publish.mockRestore()
   })
 
-  it('locks Station II from the picker on the 2 key', async () => {
+  it('ignores the retired 2 key in the picker', async () => {
     await renderApp()
     await act(async () => {
       window.dispatchEvent(chordEvent())
@@ -353,10 +363,15 @@ describe('App production overlay', () => {
       window.dispatchEvent(new KeyboardEvent('keydown', { key: '2', code: 'Digit2', bubbles: true, cancelable: true }))
       await Promise.resolve()
     })
-    expect(window.localStorage.getItem(STORAGE_KEY)).toBe('station-2')
-    expect(window.location.hash).toBe('#/station-2')
-    expect(container.querySelector('[aria-label="Production lock"]')).toBeNull()
-    expect(container.querySelector('[data-testid="station-two"]')).not.toBeNull()
+    expect(window.localStorage.getItem(STORAGE_KEY)).toBeNull()
+    expect(container.querySelector('[aria-label="Production lock"]')).not.toBeNull()
+  })
+
+  it('runs the single journey on a kiosk still locked to the retired Station II', async () => {
+    window.localStorage.setItem(STORAGE_KEY, 'station-2')
+    window.location.hash = '#/station-2'
+    await renderApp()
+    expect(container.querySelector('[data-testid="journey-station"]')).not.toBeNull()
   })
 
   it('locks Station I from an already-locked kiosk when 1 is pressed in the picker', async () => {
@@ -375,6 +390,6 @@ describe('App production overlay', () => {
     expect(window.localStorage.getItem(STORAGE_KEY)).toBe('station-1')
     expect(window.location.hash).toBe('#/station-1')
     expect(container.querySelector('[aria-label="Production lock"]')).toBeNull()
-    expect(container.querySelector('[data-testid="station-one"]')).not.toBeNull()
+    expect(container.querySelector('[data-testid="journey-station"]')).not.toBeNull()
   })
 })
