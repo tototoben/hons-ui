@@ -13,25 +13,33 @@
   overflow: hidden;
 }
 
-.wall-role-code .mirror-code-panel {
+.third-station-wall .wall-role-code .mirror-code-panel {
   position: absolute;
+  width: auto;
+  color: #eef1f0;
+  font-weight: 500;
 }
 
 .wall-role-code .mirror-mini-bar {
   position: absolute;
+  height: 4px;
+  background: rgba(238, 241, 240, 0.35);
 }
 
 /* Blow up the scrolling code so it reads across the room. */
 .wall-role-code .mirror-code-panel.is-big {
-  font-size: 13px;
+  width: auto;
+  font-size: clamp(18px, 2.2vw, 28px);
   line-height: 1.35;
 }
 
 .wall-role-code .mirror-code-panel.is-big.is-lg {
-  font-size: 15px;
+  width: auto;
+  font-size: clamp(20px, 2.4vw, 32px);
 }
 
 .wall-role-code .mirror-code-header {
+  color: #e4b67a;
   font-size: 0.95em;
   letter-spacing: 0.08em;
   margin-bottom: 0.6em;
