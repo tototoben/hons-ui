@@ -9,6 +9,7 @@ import {
   collageRevealAt,
   drawWallCollage,
   mouthRectIndex,
+  anatomicalRevealOrder,
   pickStrangerAssignments,
   pickTaggedStrangerAssignments,
   visitorRevealOrder,
@@ -234,5 +235,30 @@ describe('wallCollagePhotobash', () => {
     })
 
     expect(drawImageCalls).toBe(rects.length)
+  })
+})
+
+describe('anatomicalRevealOrder', () => {
+  it('leads with both eyes, then brow, nose and mouth', () => {
+    const rects = collageRects(7)
+    const order = anatomicalRevealOrder(rects.length)
+    // collageRects' fixed order: right eye, left eye, nose, brow, cheeks,
+    // chin, temple, mouth last -- the identity core comes first.
+    expect(order.slice(0, 5)).toEqual([0, 1, 3, 2, mouthRectIndex(rects)])
+  })
+
+  it('is a complete permutation of the rect indices', () => {
+    const order = anatomicalRevealOrder(9)
+    expect([...order].sort((a, b) => a - b)).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8])
+  })
+
+  it('stays a permutation for other counts and empty input', () => {
+    expect(anatomicalRevealOrder(0)).toEqual([])
+    for (const count of [1, 2, 5, 12]) {
+      const order = anatomicalRevealOrder(count)
+      expect([...order].sort((a, b) => a - b)).toEqual(
+        Array.from({ length: count }, (_, index) => index),
+      )
+    }
   })
 })

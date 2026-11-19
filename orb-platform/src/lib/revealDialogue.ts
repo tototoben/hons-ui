@@ -29,6 +29,9 @@ export type RevealDialogueState = {
   archetypes: Record<string, string>
   mirror_intensity: number
   mic_level: number
+  /** Loudness of the wall's own TTS right now (0..1), ~10Hz while
+   * speaking. Drives the collage lip-sync. */
+  speech_level: number
   audio_input: string
   audio_output: string
   error: string
@@ -46,6 +49,7 @@ export const EMPTY_REVEAL_DIALOGUE: RevealDialogueState = {
   archetypes: {},
   mirror_intensity: 0,
   mic_level: 0,
+  speech_level: 0,
   audio_input: '',
   audio_output: '',
   error: '',
@@ -106,6 +110,7 @@ export function normalizeRevealDialogue(value: unknown): RevealDialogueState {
     archetypes,
     mirror_intensity: Math.max(0, Math.min(1, finite(raw.mirror_intensity))),
     mic_level: Math.max(0, Math.min(1, finite(raw.mic_level))),
+    speech_level: Math.max(0, Math.min(1, finite(raw.speech_level))),
     audio_input: text(raw.audio_input),
     audio_output: text(raw.audio_output),
     error: text(raw.error),
@@ -128,6 +133,18 @@ const LIVE_PHASES = new Set<RevealDialoguePhase>([
  */
 export function dialogueOwnsWall(available: boolean, state: RevealDialogueState): boolean {
   return available && LIVE_PHASES.has(state.phase)
+}
+
+/** How many visitor face pieces the wall collage may show at this point
+ * in the dialogue: one per talk segment -- the opening (any live phase),
+ * each real reply (turn increments only for those), plus the cold close.
+ * Reprompts to a silent visitor add nothing: the less the visitor gives,
+ * the less of their face appears. Pure function of a single snapshot so
+ * every wall window computes the same count, even one that reloads
+ * mid-session. */
+export function dialogueRevealCount(state: RevealDialogueState): number {
+  if (state.phase === 'idle' || state.phase === 'error') return 0
+  return 1 + Math.max(0, state.turn) + (state.phase === 'closing' ? 1 : 0)
 }
 
 export function revealDialogueTarget(search = window.location.search): string | null {

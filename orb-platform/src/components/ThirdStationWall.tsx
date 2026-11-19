@@ -1,13 +1,10 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { dialogueOwnsWall, useRevealDialogue, type RevealDialogueState } from '../lib/revealDialogue'
 import { parseWallCaptureParams } from '../lib/wallCapture'
 import { useWallSyncedPhase } from '../lib/wallPhaseSync'
 import { parseWallCalibrate, parseWallCollage, parseWallRole, type WallRole } from '../lib/wallRole'
 import { RevealShellChrome } from './RevealShellChrome'
 import { WallCalibrate } from './WallCalibrate'
-import { CodePanel, MiniBar } from './HudDebris'
-import { MirrorGuideOrb } from './MirrorGuideOrb'
-import { MirrorHeadline } from './MirrorHeadline'
 import { WallFaceBlanket } from './WallFaceBlanket'
 import { WallCollageBlanket } from './WallCollageBlanket'
 import { WallFormingBlanket } from './WallFormingBlanket'
@@ -16,265 +13,6 @@ import { pickWallLoadingSurface, shouldShowForming } from '../lib/wallForming'
 import { mirrorSettings } from '../dev/mirrorSettingsStore'
 import './ThirdStation.css'
 import './ThirdStationWall.css'
-
-const STATUS_LABEL = {
-  intro: 'STANDBY',
-  prompt: 'LISTENING',
-  recording: 'RECORDING',
-  loading: 'PROCESSING',
-  handoff: 'HANDOFF',
-} as const
-
-function Dots({ lit }: { lit: number }) {
-  return (
-    <div className="mirror-dots" aria-hidden="true">
-      {[0, 1, 2].map((i) => (
-        <span key={i} className={i < lit ? 'mirror-dot is-lit' : 'mirror-dot'} />
-      ))}
-    </div>
-  )
-}
-
-function WallCodePanel() {
-  return (
-    <div className="wall-role wall-role-code" aria-hidden="true">
-      <CodePanel
-        seed={1}
-        blockCount={6}
-        visibleRows={22}
-        large
-        big
-        hasAlert
-        duration={8}
-        style={{ top: '3%', left: '3%', right: '3%', bottom: '22%' }}
-      />
-      <CodePanel
-        seed={7}
-        blockCount={4}
-        visibleRows={12}
-        ghost
-        big
-        duration={11}
-        style={{ top: '62%', left: '5%', right: '5%', opacity: 0.55 }}
-      />
-      <MiniBar style={{ bottom: '5%', left: '5%', width: '42%' }} fill={72} />
-      <MiniBar style={{ bottom: '5%', right: '5%', width: '34%' }} fill={44} />
-    </div>
-  )
-}
-
-function WallDebraPanel({
-  phase,
-  loadingProgress,
-}: {
-  phase: keyof typeof STATUS_LABEL
-  loadingProgress: number
-}) {
-  return (
-    <div className="wall-role wall-role-debra">
-      <div className="wall-debra-orb">
-        <MirrorGuideOrb className="wall-debra-canvas" />
-        {phase === 'loading' ? (
-          <div className="wall-debra-progress" aria-hidden="true">
-            {Math.round(loadingProgress * 100)}%
-          </div>
-        ) : null}
-      </div>
-    </div>
-  )
-}
-
-function WallCopyPanel({
-  phase,
-  countdown,
-}: {
-  phase: keyof typeof STATUS_LABEL
-  countdown: number | null
-}) {
-  const lines =
-    phase === 'intro'
-      ? ['Now is your chance']
-      : phase === 'prompt'
-        ? ['Introduce yourself to', 'your future partner']
-        : phase === 'recording'
-          ? ['Speak clearly', 'into the room']
-          : ['Creating', 'match']
-
-  return (
-    <div className="wall-role wall-role-copy">
-      <MirrorHeadline lines={lines} className="mirror-headline wall-copy-headline" />
-      {phase === 'prompt' ? <Dots lit={countdown === null ? 0 : 4 - countdown} /> : null}
-    </div>
-  )
-}
-
-function WallParticleField({ count = 48, active = false }: { count?: number; active?: boolean }) {
-  const particles = useMemo(
-    () =>
-      Array.from({ length: count }, (_, i) => ({
-        id: i,
-        left: ((i * 47) % 100) + (i % 7) * 0.3,
-        top: ((i * 31) % 100) + (i % 5) * 0.4,
-        size: 2 + (i % 5) * 1.4,
-        delay: (i % 12) * 0.22,
-        duration: 3.2 + (i % 8) * 0.45,
-      })),
-    [count],
-  )
-
-  return (
-    <div className={`wall-particles${active ? ' is-active' : ''}`} aria-hidden="true">
-      {particles.map((p) => (
-        <span
-          key={p.id}
-          className="wall-particle"
-          style={{
-            left: `${p.left}%`,
-            top: `${p.top}%`,
-            width: p.size,
-            height: p.size,
-            animationDelay: `${p.delay}s`,
-            animationDuration: `${p.duration}s`,
-          }}
-        />
-      ))}
-      <div className="wall-particle-veils">
-        <span />
-        <span />
-        <span />
-      </div>
-    </div>
-  )
-}
-
-function WallGuidePanel({ phase }: { phase: keyof typeof STATUS_LABEL }) {
-  const active = phase === 'recording' || phase === 'prompt'
-  return (
-    <div className={`wall-role wall-role-guide${active ? ' is-active' : ''}`}>
-      <WallParticleField count={64} active={active} />
-    </div>
-  )
-}
-
-function WallAvatarPanel({ phase }: { phase: keyof typeof STATUS_LABEL }) {
-  return (
-    <div className="wall-role wall-role-avatar">
-      <WallParticleField count={36} active={phase === 'recording'} />
-      <div className="wall-avatar-wait">
-        <span className="wall-avatar-wait-mark" />
-        {phase === 'recording' ? 'CAPTURING VOICEPRINT' : 'AWAITING MATCH'}
-      </div>
-    </div>
-  )
-}
-
-function WallWaveform({ active, level }: { active: boolean; level?: number }) {
-  const bars = useMemo(() => Array.from({ length: 28 }, (_, i) => i), [])
-  const isMeter = typeof level === 'number'
-  return (
-    <div className={`wall-waveform${active ? ' is-live' : ''}`} aria-hidden="true">
-      {bars.map((i) => (
-        <span
-          key={i}
-          style={{
-            animationDelay: `${(i % 9) * 0.08}s`,
-            height: isMeter
-              ? `${Math.max(8, Math.min(100, level * 110 * (0.45 + ((i * 7) % 11) / 16)))}%`
-              : undefined,
-          }}
-        />
-      ))}
-    </div>
-  )
-}
-
-function WallRadar({ active }: { active: boolean }) {
-  return (
-    <div className={`wall-radar${active ? ' is-live' : ''}`} aria-hidden="true">
-      <span className="wall-radar-ring" />
-      <span className="wall-radar-ring" />
-      <span className="wall-radar-ring" />
-      <span className="wall-radar-sweep" />
-      <span className="wall-radar-core" />
-    </div>
-  )
-}
-
-function WallStatusPanel({
-  phase,
-  recordSecondsLeft,
-}: {
-  phase: keyof typeof STATUS_LABEL
-  recordSecondsLeft: number
-  loadingProgress: number
-}) {
-  const listening = phase === 'prompt' || phase === 'intro'
-  const recording = phase === 'recording'
-
-  return (
-    <div className="wall-role wall-role-status">
-      <WallParticleField count={28} active={listening || recording} />
-      <div className="wall-status-stack">
-        <WallRadar active={listening || recording} />
-        <div className="wall-status-label">
-          <span className="mirror-status-marker" />
-          {STATUS_LABEL[phase]}
-        </div>
-        {recording ? (
-          <div className="wall-status-timer">
-            <div className="mirror-rec-indicator">
-              <span className="mirror-rec-dot" />
-              REC
-            </div>
-            <div className="wall-status-seconds">{Math.ceil(recordSecondsLeft)}</div>
-          </div>
-        ) : (
-          <WallWaveform active={listening} />
-        )}
-        <div className="wall-status-tele">
-          <span>MIC ARRAY · 4ch</span>
-          <span>SNR 41.2 dB</span>
-          <span>{listening ? 'VOICE GATE OPEN' : recording ? 'BUFFER WRITE' : 'IDLE'}</span>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function WallRoleContent({
-  role,
-  phase,
-  countdown,
-  recordSecondsLeft,
-  loadingProgress,
-}: {
-  role: WallRole
-  phase: keyof typeof STATUS_LABEL
-  countdown: number | null
-  recordSecondsLeft: number
-  loadingProgress: number
-}) {
-  switch (role) {
-    case 'code':
-      return <WallCodePanel />
-    case 'debra':
-      return <WallDebraPanel phase={phase} loadingProgress={loadingProgress} />
-    case 'copy':
-      return <WallCopyPanel phase={phase} countdown={countdown} />
-    case 'guide':
-      return <WallGuidePanel phase={phase} />
-    case 'avatar':
-      return <WallAvatarPanel phase={phase} />
-    case 'status':
-      return (
-        <WallStatusPanel
-          phase={phase}
-          recordSecondsLeft={recordSecondsLeft}
-          loadingProgress={loadingProgress}
-        />
-      )
-  }
-}
 
 const DIALOGUE_STATUS: Record<RevealDialogueState['phase'], string> = {
   idle: 'AWAITING APPOINTMENT',
@@ -288,119 +26,32 @@ const DIALOGUE_STATUS: Record<RevealDialogueState['phase'], string> = {
   error: 'VOICE LINK UNAVAILABLE',
 }
 
-function dialogueCopy(state: RevealDialogueState) {
-  if (state.phase === 'idle') return 'Your appointment is being prepared.'
-  if (state.phase === 'listening') return 'Speak. I am listening.'
-  if (state.phase === 'thinking') return state.visitor_text || 'Comparing your answer.'
-  if (state.phase === 'ended') return state.assistant_text || 'I will see you again soon.'
-  if (state.phase === 'error') return 'The voice channel is unavailable.'
-  return state.assistant_text || 'I have been waiting to meet you.'
+/** Stable collage seed for a reveal visit: every panel hashes the same
+ * visit_id from the shared SSE state, so all six derive the same collage for
+ * the same visitor without any cross-window coordination. */
+function seedFromVisitId(visitId: string | null): number | null {
+  if (!visitId) return null
+  let h = 2166136261
+  for (let i = 0; i < visitId.length; i++) {
+    h ^= visitId.charCodeAt(i)
+    h = Math.imul(h, 16777619)
+  }
+  return (h >>> 0) % 1_000_000_000 || 1
 }
 
-function DialogueWallRoleContent({ role, state }: { role: WallRole; state: RevealDialogueState }) {
-  const active = state.phase === 'listening' || state.phase === 'thinking'
-  const mirroring =
-    state.phase === 'mirroring' || state.phase === 'closing' || state.phase === 'ended'
-  const archetypes = Object.entries(state.archetypes)
-
-  if (role === 'copy') {
-    return (
-      <div className={`wall-role wall-role-copy wall-dialogue-copy phase-${state.phase}`}>
-        <div className="wall-dialogue-kicker">{DIALOGUE_STATUS[state.phase]}</div>
-        <p>{dialogueCopy(state)}</p>
-        {state.phase === 'thinking' && state.visitor_text ? (
-          <div className="wall-dialogue-transcript">VOICEPRINT: “{state.visitor_text}”</div>
-        ) : null}
-      </div>
-    )
-  }
-
-  if (role === 'debra') {
-    return (
-      <div className={`wall-role wall-role-debra wall-dialogue-debra phase-${state.phase}`}>
-        <div
-          className="wall-debra-orb"
-          style={{ transform: `scale(${1 + state.mirror_intensity * 0.13})` }}
-        >
-          <MirrorGuideOrb className="wall-debra-canvas" />
-          <div className="wall-dialogue-orb-state">{DIALOGUE_STATUS[state.phase]}</div>
-        </div>
-      </div>
-    )
-  }
-
-  if (role === 'status') {
-    return (
-      <div className="wall-role wall-role-status wall-dialogue-status">
-        <WallParticleField count={28} active={active || mirroring} />
-        <div className="wall-status-stack">
-          <WallRadar active={active} />
-          <div className="wall-status-label">
-            <span className="mirror-status-marker" />
-            {DIALOGUE_STATUS[state.phase]}
-          </div>
-          <WallWaveform active={state.phase === 'listening'} level={state.mic_level} />
-          <div className="wall-status-tele">
-            <span>INPUT · {state.audio_input || 'VOCAT USB ARRAY'}</span>
-            <span>DETAILS ACQUIRED · {state.detail_count}</span>
-            <span>CONVERGENCE · {Math.round(state.mirror_intensity * 100)}%</span>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  if (role === 'code') {
-    return (
-      <div className="wall-role wall-role-code wall-dialogue-code">
-        <CodePanel
-          seed={state.turn + 1}
-          blockCount={5}
-          visibleRows={18}
-          large
-          big
-          hasAlert={mirroring}
-          duration={mirroring ? 4 : 8}
-          style={{ inset: '3% 3% 24%' }}
-        />
-        <div className="wall-dialogue-ledger">
-          <div>SUBJECT / {state.visit_id || 'PENDING'}</div>
-          {state.details.slice(-5).map((detail) => (
-            <div key={`${detail.key}-${detail.learned_turn}`}>
-              <span>{detail.key}</span>
-              {detail.value}
-            </div>
-          ))}
-        </div>
-      </div>
-    )
-  }
-
-  if (role === 'avatar') {
-    return (
-      <div className="wall-role wall-role-avatar wall-dialogue-avatar">
-        <WallParticleField count={44} active={mirroring} />
-        <div className="wall-avatar-wait">
-          <span className="wall-avatar-wait-mark" />
-          {mirroring ? 'DUPLICATE FORMING' : 'AWAITING SUFFICIENT SIGNAL'}
-          <strong>{Math.round(state.mirror_intensity * 100)}%</strong>
-        </div>
-      </div>
-    )
-  }
-
+function DialogueWallRoleContent({ state }: { state: RevealDialogueState }) {
+  // The dialogue monitor: the live conversation on the bottom Lenovo panel
+  // (role `copy`). No orb -- both TVs and every other panel carry the
+  // visitor's photobash while the dialogue runs (operator note 2026-09-11:
+  // the debra TV is part of the collage, the conversation reads from a low
+  // screen).
   return (
-    <div className={`wall-role wall-role-guide${active || mirroring ? ' is-active' : ''}`}>
-      <WallParticleField count={64} active={active || mirroring} />
-      <div className="wall-dialogue-archetypes">
-        <span>PERSONALITY COMPOSITE</span>
-        {archetypes.map(([category, archetype]) => (
-          <div key={category}>
-            <small>{category}</small>
-            {archetype}
-          </div>
-        ))}
-      </div>
+    <div className={`wall-role wall-role-copy wall-dialogue-copy phase-${state.phase}`}>
+      <div className="wall-dialogue-kicker">{DIALOGUE_STATUS[state.phase]}</div>
+      <p>{state.assistant_text || '\u2026'}</p>
+      {state.visitor_text ? (
+        <div className="wall-dialogue-transcript">{state.visitor_text}</div>
+      ) : null}
     </div>
   )
 }
@@ -411,7 +62,9 @@ export function ThirdStationWall({ role: roleProp }: { role?: WallRole }) {
   const collage = parseWallCollage()
   const capture = parseWallCaptureParams()
   const isConductor = role === 'debra' && !calibrate && !capture
-  const { phase, countdown, recordSecondsLeft, loadingProgress, photobashSeed, collageCue } =
+  // countdown / recordSecondsLeft existed only for the removed narrative
+  // panels; the wall renders the collage instead.
+  const { phase, loadingProgress, photobashSeed, collageCue } =
     useWallSyncedPhase(isConductor)
   const dialogue = useRevealDialogue()
   const collageReady = useCollageBankReady(
@@ -456,9 +109,22 @@ export function ThirdStationWall({ role: roleProp }: { role?: WallRole }) {
     >
       {calibrate ? <WallCalibrate role={role} /> : null}
       {calibrate ? null : capture ? (
-        <WallCollageBlanket role={role} photobashSeed={capture.seed} collageCue={capture.cue} />
+        <WallCollageBlanket role={role} photobashSeed={capture.seed} collageCue={capture.cue} visitorReveal="sweep" />
       ) : dialogueOwnsWall(dialogue.available, dialogue.state) ? (
-        <DialogueWallRoleContent role={role} state={dialogue.state} />
+        // During the dialogue: the conversation shows on the bottom Lenovo
+        // (copy); every other panel -- the TVs included -- shows the
+        // visitor's photobash, its mouth driven by the live speech level.
+        role === 'copy' ? (
+          <DialogueWallRoleContent state={dialogue.state} />
+        ) : (
+          <WallCollageBlanket
+            role={role}
+            photobashSeed={seedFromVisitId(dialogue.state.visit_id) ?? (photobashSeed || 1)}
+            collageCue={collageCue}
+            dialogue={dialogue.state}
+            visitorReveal="dialogue"
+          />
+        )
       ) : phase === 'loading' ? (
         loadingSurface === 'forming' ? (
           <WallFormingBlanket
@@ -467,17 +133,28 @@ export function ThirdStationWall({ role: roleProp }: { role?: WallRole }) {
             loadingProgress={loadingProgress}
           />
         ) : loadingSurface === 'collage' ? (
-          <WallCollageBlanket role={role} photobashSeed={photobashSeed} collageCue={collageCue} />
+          <WallCollageBlanket
+            role={role}
+            photobashSeed={photobashSeed}
+            collageCue={collageCue}
+            visitorReveal="off"
+          />
         ) : (
           <WallFaceBlanket role={role} photobashSeed={photobashSeed} />
         )
       ) : (
-        <WallRoleContent
+        // The wall always shows the collage. The intro/prompt/recording
+        // narrative panels (STANDBY / LISTENING / RECORDING) were removed
+        // deliberately in f05eebc and 4613d4d and must not come back -- a
+        // merge resurrected them once already. Anything that is not a
+        // calibration, a headless capture or a live dialogue renders the
+        // photobash. No visitor pieces outside a live dialogue: the face
+        // appears talk by talk during the reveal and nowhere else.
+        <WallCollageBlanket
           role={role}
-          phase={phase}
-          countdown={countdown}
-          recordSecondsLeft={recordSecondsLeft}
-          loadingProgress={loadingProgress}
+          photobashSeed={photobashSeed}
+          collageCue={collageCue}
+          visitorReveal="off"
         />
       )}
       <RevealShellChrome />

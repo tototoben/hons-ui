@@ -12,7 +12,7 @@ import { centralApiBase } from './visitCentral'
  * backstop, but the caller should not rely on that.
  */
 export function postWallDiagnostic(
-  kind: 'face_capture' | 'collage_assembled',
+  kind: 'face_capture' | 'collage_assembled' | 'camera',
   fields: Record<string, string | number | boolean | null | Array<string | number | boolean | null>>,
   visitId?: string | null,
 ): void {

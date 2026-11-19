@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   dialogueOwnsWall,
+  dialogueRevealCount,
   EMPTY_REVEAL_DIALOGUE,
   normalizeRevealDialogue,
   revealDialogueTarget,
@@ -42,5 +43,39 @@ describe('reveal dialogue transport', () => {
     expect(revealDialogueTarget('?dialogue=http://studio:9000/')).toBe('http://studio:9000')
     expect(revealDialogueTarget('?dialogue=0')).toBeNull()
     expect(revealDialogueTarget('')).toBe('http://127.0.0.1:8191')
+  })
+})
+
+describe('dialogueRevealCount', () => {
+  const at = (phase: (typeof EMPTY_REVEAL_DIALOGUE)['phase'], turn: number) => ({
+    ...EMPTY_REVEAL_DIALOGUE,
+    phase,
+    turn,
+  })
+
+  it('shows nothing outside a session', () => {
+    expect(dialogueRevealCount(at('idle', 0))).toBe(0)
+    expect(dialogueRevealCount(at('error', 3))).toBe(0)
+  })
+
+  it('reveals the first piece with the opening and one more per real reply', () => {
+    expect(dialogueRevealCount(at('intro', 0))).toBe(1)
+    expect(dialogueRevealCount(at('speaking', 1))).toBe(2)
+    expect(dialogueRevealCount(at('mirroring', 3))).toBe(4)
+  })
+
+  it('holds steady while listening or thinking -- pieces never retreat', () => {
+    expect(dialogueRevealCount(at('listening', 2))).toBe(3)
+    expect(dialogueRevealCount(at('thinking', 2))).toBe(3)
+  })
+
+  it('gives a silent visitor nothing beyond the opening (reprompts do not count)', () => {
+    // The reprompt path re-enters speaking without incrementing turn.
+    expect(dialogueRevealCount(at('speaking', 0))).toBe(1)
+  })
+
+  it('adds one final piece for the cold close', () => {
+    expect(dialogueRevealCount(at('closing', 2))).toBe(4)
+    expect(dialogueRevealCount(at('closing', 0))).toBe(2)
   })
 })

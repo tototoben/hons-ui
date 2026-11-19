@@ -21,6 +21,7 @@ import {
 import type { NormalizedLandmark } from '../lib/mirrorLandmarks'
 import { readSelectedCameraId, writeSelectedCameraId } from '../lib/mirrorCameraDevice'
 import { acquireCameraStream, isSharedCameraStream } from '../lib/sharedCameraStream'
+import { postWallDiagnostic } from '../lib/wallDiagnostics'
 
 const MIN_APPEARANCE_LANDMARKS = 400
 
@@ -105,6 +106,83 @@ export function useMirrorCamera({
     let stream: MediaStream | null = null
     let permissionTimer: ReturnType<typeof setTimeout> | undefined
     let permissionTimedOut = false
+    // Recovery from a camera that vanishes mid-session (2026-09-12: the
+    // Brio re-enumerated on USB and the kiosk kept a dead stream for three
+    // hours, silently). See onTrackEnded / scheduleRetry below.
+    let retryTimer: ReturnType<typeof setTimeout> | undefined
+    let retryAttempt = 0
+    const RETRY_DELAYS_MS = [1_000, 2_000, 4_000, 8_000, 15_000]
+
+    // The track whose 'ended' event we listen to; the shared stream outlives
+    // this mount, so the listener has to come off in cleanup.
+    let watchedTrack: MediaStreamTrack | null = null
+
+    const releaseStream = () => {
+      watchedTrack?.removeEventListener?.('ended', onTrackEnded)
+      watchedTrack = null
+      // Never stop the page-wide camera stream (it carries the next scan
+      // without a new permission prompt) or the parent's embedded stream.
+      // A dead shared stream is reopened by acquireCameraStream on retry.
+      if (
+        stream &&
+        !isSharedCameraStream(stream) &&
+        stream !== (window.parent as any).__mirrorCameraStream
+      ) {
+        stream.getTracks().forEach((track) => track.stop())
+      }
+      stream = null
+    }
+
+    const scheduleRetry = (reason: string) => {
+      if (cancelled || retryTimer) return
+      const delay = RETRY_DELAYS_MS[Math.min(retryAttempt, RETRY_DELAYS_MS.length - 1)]
+      retryAttempt += 1
+      postWallDiagnostic('camera', { event: 'reacquire_scheduled', reason, attempt: retryAttempt, delay_ms: delay })
+      retryTimer = setTimeout(() => {
+        retryTimer = undefined
+        if (!cancelled) void start()
+      }, delay)
+    }
+
+    const onTrackEnded = () => {
+      if (cancelled) return
+      // The device went away underneath us. Drop the dead stream, show the
+      // visitor the 'starting' state rather than a frozen frame, and try
+      // again -- a re-enumerating device takes a moment to come back.
+      releaseStream()
+      const video = videoRef.current
+      if (video) video.srcObject = null
+      setStatus('starting')
+      postWallDiagnostic('camera', { event: 'track_ended' })
+      scheduleRetry('track_ended')
+    }
+
+    const onDeviceChange = () => {
+      // A device (re)appeared: if a retry is pending, take it now.
+      if (cancelled || !retryTimer) return
+      clearTimeout(retryTimer)
+      retryTimer = undefined
+      void start()
+    }
+    navigator.mediaDevices?.addEventListener?.('devicechange', onDeviceChange)
+
+    // getUserMedia with the pinned device first; if that device no longer
+    // exists (it was re-enumerated with a new id, or unplugged), fall back
+    // to the plain constraints rather than failing for the rest of the day.
+    // Both paths go through the page-wide shared stream (sharedCameraStream.ts)
+    // so permission is asked once per page load.
+    const openStream = async (): Promise<MediaStream> => {
+      const constraints = mirrorCameraConstraints()
+      if (!selectedDeviceId) return acquireCameraStream(constraints, null)
+      try {
+        return await acquireCameraStream(constraints, selectedDeviceId)
+      } catch (error) {
+        const name = error instanceof DOMException ? error.name : ''
+        if (name !== 'OverconstrainedError' && name !== 'NotFoundError') throw error
+        postWallDiagnostic('camera', { event: 'pinned_device_missing', fallback: true })
+        return acquireCameraStream(constraints, null)
+      }
+    }
 
     const isEmbedded =
       new URLSearchParams(window.location.search).get('embedded') === '1'
@@ -161,10 +239,10 @@ export function useMirrorCamera({
           permissionTimedOut = true
           if (!cancelled) setStatus('unavailable')
         }, 15_000)
-        // Shared for the page's lifetime (see sharedCameraStream.ts), so a
-        // late or cancelled mount leaves it running for the next scan
-        // instead of stopping it and prompting for permission again.
-        stream = await acquireCameraStream(mirrorCameraConstraints(), selectedDeviceId)
+        // Shared for the page's lifetime, so a late or cancelled mount leaves
+        // it running for the next scan instead of stopping it and prompting
+        // for permission again.
+        stream = await openStream()
         clearTimeout(permissionTimer)
         permissionTimer = undefined
         if (permissionTimedOut || cancelled) {
@@ -180,6 +258,14 @@ export function useMirrorCamera({
         const activeTrack = stream.getVideoTracks?.()[0]
         if (!cancelled) {
           setActiveDeviceId(activeTrack?.getSettings?.().deviceId ?? null)
+        }
+        // The one signal a vanished camera gives us. Without this the hook
+        // sat at status 'active' over a frozen frame for hours.
+        activeTrack?.addEventListener?.('ended', onTrackEnded)
+        watchedTrack = activeTrack ?? null
+        if (retryAttempt > 0) {
+          postWallDiagnostic('camera', { event: 'reacquired', attempts: retryAttempt })
+          retryAttempt = 0
         }
 
         // Device labels are only populated once permission has been
@@ -211,11 +297,17 @@ export function useMirrorCamera({
         permissionTimer = undefined
         if (cancelled) return
         console.error('[useMirrorCamera] getUserMedia failed:', error)
-        setStatus(
-          error instanceof DOMException && error.name === 'NotAllowedError'
-            ? 'denied'
-            : 'unavailable',
-        )
+        const denied = error instanceof DOMException && error.name === 'NotAllowedError'
+        setStatus(denied ? 'denied' : 'unavailable')
+        // A denial is final; anything else (device busy, not found, a
+        // re-enumeration still in progress) is worth another try.
+        if (!denied) {
+          postWallDiagnostic('camera', {
+            event: 'acquire_failed',
+            name: error instanceof DOMException ? error.name : 'Error',
+          })
+          scheduleRetry('acquire_failed')
+        }
       }
     }
 
@@ -224,15 +316,9 @@ export function useMirrorCamera({
     return () => {
       cancelled = true
       clearTimeout(permissionTimer)
-      // Never stop the page-wide camera stream (it carries the next scan
-      // without a new permission prompt) or the parent's embedded stream.
-      if (
-        stream &&
-        !isSharedCameraStream(stream) &&
-        stream !== (window.parent as any).__mirrorCameraStream
-      ) {
-        stream.getTracks().forEach((track) => track.stop())
-      }
+      clearTimeout(retryTimer)
+      navigator.mediaDevices?.removeEventListener?.('devicechange', onDeviceChange)
+      releaseStream()
       const video = videoRef.current
       if (video) {
         video.pause()
