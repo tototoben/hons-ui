@@ -75,7 +75,7 @@ function getRelayTarget(): string | null {
   return relayTarget
 }
 
-function postToStation(msg: FirehoseMessage): void {
+async function postToStation(msg: FirehoseMessage): Promise<void> {
   const target = getRelayTarget()
   if (!target) return
   // Most telemetry is intentionally fire-and-forget. Terminal events are
@@ -87,28 +87,27 @@ function postToStation(msg: FirehoseMessage): void {
     msg.event === 'interview_done' || msg.event === 'reveal_ready' || msg.event === 'phase:loading'
   const attempts = retryable ? 3 : 1
   const body = JSON.stringify(msg)
-  void (async () => {
-    for (let attempt = 0; attempt < attempts; attempt += 1) {
-      try {
-        const response = await fetch(`${target}/api/firehose`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body,
-        })
-        if (response.ok || attempt === attempts - 1) return
-      } catch {
-        if (attempt === attempts - 1) return
-      }
-      await new Promise((resolve) => window.setTimeout(resolve, 150 * (attempt + 1)))
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      const response = await fetch(`${target}/api/firehose`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body,
+        ...(retryable ? { signal: AbortSignal.timeout(2000) } : {}),
+      })
+      if (response.ok || attempt === attempts - 1) return
+    } catch {
+      if (attempt === attempts - 1) return
     }
-  })()
+    await new Promise((resolve) => window.setTimeout(resolve, 150 * (attempt + 1)))
+  }
 }
 
 /**
  * Publish a firehose event. Safe to call at module scope — checks for
  * `window.parent` existence and only fetches when a relay target is set.
  */
-export function publish(station: string, event: string, data?: unknown): void {
+export function publish(station: string, event: string, data?: unknown): Promise<void> {
   const msg: FirehoseMessage = {
     source: SOURCE,
     station,
@@ -117,31 +116,33 @@ export function publish(station: string, event: string, data?: unknown): void {
     ts: Date.now(),
   }
 
-  postFirehose(msg)
+  const delivery = postFirehose(msg)
 
   const cue = lightingCueFor(station, event)
-  if (!cue) return
+  if (!cue) return delivery
   postLightingCue(cue, station, event)
-  postFirehose({
+  void postFirehose({
     source: SOURCE,
     station: 'lighting',
     event: 'cue',
     data: { cue, from: { station, event } },
     ts: Date.now(),
   })
+  return delivery
 }
 
 function postFirehose(msg: FirehoseMessage) {
   if (isEmbedded() && window.parent) {
     window.parent.postMessage(msg, '*')
   }
-  postToStation(msg)
+  const delivery = postToStation(msg)
   postToIpadSimLink(msg)
 
   // Always log in dev so standalone `pnpm dev` shows the event stream.
   if (import.meta.env.DEV) {
     console.log('[firehose]', msg.station, msg.event, msg.data ?? '')
   }
+  return delivery
 }
 
 function postToIpadSimLink(msg: FirehoseMessage) {

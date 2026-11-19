@@ -130,3 +130,10 @@ body::-webkit-scrollbar,
   color: #000;
   outline-color: #000;
 }
+.live-reveal-wall {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: #000;
+  cursor: none;
+}

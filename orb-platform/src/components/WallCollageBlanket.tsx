@@ -7,10 +7,13 @@ import { ensureCollageBank, peekCollageBank } from '../lib/wallCollageBank'
 import { computeFaceAlign } from '../lib/faceBankAlign'
 import { getVisitorFaceCapture } from '../lib/visitorFaceCapture'
 import {
+  centralApiBase,
   peekActiveVisits,
   peekVisitorFaceFromCentral,
   pickVisitForReveal,
   refreshVisitCache,
+  stationOnePayload,
+  type ActiveVisit,
 } from '../lib/visitCentral'
 import { useVisitCentralPoll } from '../hooks/useVisitCentral'
 import { postWallDiagnostic } from '../lib/wallDiagnostics'
@@ -35,7 +38,7 @@ function loadImage(src: string) {
     const image = new Image()
     image.decoding = 'async'
     image.onload = () => resolve(image)
-    image.onerror = () => reject(new Error(`Failed to load ${src}`))
+    image.onerror = () => reject(new Error('Failed to load collage image'))
     image.src = src
   })
 }
@@ -50,10 +53,12 @@ export function WallCollageBlanket({
   role,
   photobashSeed = 1,
   collageCue = {},
+  liveReveal,
 }: {
   role: WallRole
   photobashSeed?: number
   collageCue?: CollageCue
+  liveReveal?: { visitId: string; startTime: number }
 }) {
   const seed = photobashSeed || 1
   const cueKey = collageCueKey(collageCue)
@@ -70,7 +75,7 @@ export function WallCollageBlanket({
   const [visitorImage, setVisitorImage] = useState<HTMLImageElement | null>(null)
   const [visitorAlign, setVisitorAlign] = useState<VisitorAlign>(DEFAULT_VISITOR_ALIGN)
   const [lipSprite, setLipSprite] = useState<HTMLImageElement | null>(null)
-  useVisitCentralPoll()
+  useVisitCentralPoll(!liveReveal)
 
   const rects = useMemo(() => collageRects(seed), [seed])
   const physicalLayout = physicalCollageLayout(role, rects[mouthRectIndex(rects)])
@@ -88,7 +93,7 @@ export function WallCollageBlanket({
   // has data (not the empty peekCollageBank() placeholder before the async
   // load resolves).
   useEffect(() => {
-    if (role !== 'debra' || bankFaces.length === 0) return
+    if (liveReveal || role !== 'debra' || bankFaces.length === 0) return
     postWallDiagnostic(
       'collage_assembled',
       {
@@ -101,7 +106,7 @@ export function WallCollageBlanket({
       },
       pickVisitForReveal(peekActiveVisits())?.visit_id,
     )
-  }, [role, bankFaces, seed, cueKey, collageCue, rects.length, strangerAssignments])
+  }, [role, bankFaces, seed, cueKey, collageCue, rects.length, strangerAssignments, liveReveal])
 
   useEffect(() => {
     const onResize = () => setViewport({ width: window.innerWidth, height: window.innerHeight })
@@ -126,6 +131,31 @@ export function WallCollageBlanket({
   useEffect(() => {
     let cancelled = false
     const loadFace = async () => {
+      if (liveReveal) {
+        if (loadedDataUrlRef.current !== null) return
+        try {
+          const response = await fetch(
+            `${centralApiBase()}/api/visits/${encodeURIComponent(liveReveal.visitId)}`,
+            { cache: 'no-store', signal: AbortSignal.timeout(2000) },
+          )
+          if (!response.ok || cancelled) return
+          const { visit } = (await response.json()) as { visit?: ActiveVisit }
+          if (cancelled || visit?.state !== 'reveal' || visit.visit_id !== liveReveal.visitId) return
+          const dataUrl = stationOnePayload(visit)?.faceCapture ?? ''
+          if (!dataUrl) return
+          loadedDataUrlRef.current = dataUrl
+          const image = await loadImage(dataUrl)
+          const align = await computeFaceAlign(image, PLATE_RATIO)
+          if (!cancelled) {
+            setVisitorAlign(align)
+            setVisitorImage(image)
+          }
+        } catch {
+          // Retry a failed request on the next poll. A bad image leaves
+          // the synthetic fragments visible on the wall.
+        }
+        return
+      }
       await refreshVisitCache(true)
       const dataUrl = peekVisitorFaceFromCentral() ?? getVisitorFaceCapture()
       if (!dataUrl || dataUrl === loadedDataUrlRef.current) return
@@ -169,9 +199,10 @@ export function WallCollageBlanket({
       cancelled = true
       window.clearInterval(timer)
     }
-  }, [])
+  }, [liveReveal])
 
   useEffect(() => {
+    if (liveReveal) return
     let cancelled = false
     loadImage(LIP_SPRITE_SRC)
       .then((image) => {
@@ -183,21 +214,21 @@ export function WallCollageBlanket({
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [liveReveal])
 
   // Redraw loop: sweeps revealed cells from stranger pieces to the
   // visitor's own, in the seeded reveal order, over COLLAGE_REVEAL_MS.
   useEffect(() => {
     let raf = 0
     let cancelled = false
-    const start = performance.now()
+    const start = liveReveal?.startTime ?? performance.now()
 
     const tick = (now: number) => {
       if (cancelled) return
       const canvas = canvasRef.current
       const ctx = canvas?.getContext('2d')
       if (canvas && ctx) {
-        const elapsed = now - start
+        const elapsed = Math.max(0, now - start)
         const { revealedCount, nextOpacity } = collageRevealAt(
           elapsed,
           COLLAGE_REVEAL_MS,
@@ -219,6 +250,7 @@ export function WallCollageBlanket({
           revealingCell,
           revealingOpacity: nextOpacity,
         })
+        if (liveReveal && elapsed >= COLLAGE_REVEAL_MS) return
       }
       raf = requestAnimationFrame(tick)
     }
@@ -228,7 +260,7 @@ export function WallCollageBlanket({
       cancelled = true
       cancelAnimationFrame(raf)
     }
-  }, [bankAligns, bankImages, rects, revealOrder, strangerAssignments, visitorAlign, visitorImage])
+  }, [bankAligns, bankImages, rects, revealOrder, strangerAssignments, visitorAlign, visitorImage, liveReveal])
 
   // Sprite flipbook: steps through cropped mouth-shape frames during
   // talking bursts, hides the layer during pauses so the still collage

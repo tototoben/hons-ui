@@ -187,7 +187,7 @@ function JourneyScreen() {
     if (state.stage !== 'one') saveStationTwoState(state.two)
   }, [state.stage, state.two])
 
-  // Questions done: report the whole visit once, then queue the reveal.
+  // Send the answers and photo before asking Central to start the reveal.
   const revealSentRef = useRef(false)
   useEffect(() => {
     if (state.stage !== 'loading' || revealSentRef.current) return
@@ -197,12 +197,11 @@ function JourneyScreen() {
       lightningAnswers: state.two.lightningAnswers,
       height: state.two.height,
     }
-    publish(STATION_ID, 'interview_done', {
+    void publish(STATION_ID, 'interview_done', {
       answers: state.one.answers,
       faceCapture: getVisitorFaceCapture(),
       stationTwo,
-    })
-    void revealFromSingleJourney({ stationOneAnswers: state.one.answers, stationTwo })
+    }).then(() => revealFromSingleJourney({ stationOneAnswers: state.one.answers, stationTwo }))
   }, [state.stage, state.one.answers, state.two])
 
   useEffect(() => {

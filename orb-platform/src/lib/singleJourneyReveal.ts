@@ -1,7 +1,8 @@
 import { submitKioskInterview } from './arsIngest'
 import { collageCueFromAnswers } from './collageCue'
 import type { StationTwoState } from './mirrorJourney'
-import { notifyRevealReady } from './photobashTrigger'
+import { publish } from './firehose'
+import { mintPhotobashSeed } from './photobashLoop'
 import {
   fetchVisitPersona,
   pickVisitAtStation,
@@ -19,8 +20,8 @@ function pickVisitForSingleJourney(): ActiveVisit | null {
 /**
  * End of the single-screen journey: hand the typed answers to ARS (with a
  * synthetic intro, since there is no spoken one any more) and queue the
- * reveal on the wall. The answers on this kiosk are canonical — central is
- * only consulted for the visit id and persona.
+ * reveal through Central. The kiosk supplies the answers for ARS and the
+ * collage; Central owns the reveal lifecycle for both wall hosts.
  */
 export async function revealFromSingleJourney(input: {
   stationOneAnswers: Record<string, string>
@@ -41,8 +42,10 @@ export async function revealFromSingleJourney(input: {
     'station-1',
   )
   const age = Number(input.stationOneAnswers.age)
-  return notifyRevealReady({
-    cue: collageCueFromAnswers({
+  const seed = mintPhotobashSeed()
+  await publish('station-1', 'reveal_ready', {
+    photobashSeed: seed,
+    collageCue: collageCueFromAnswers({
       identity: input.stationOneAnswers.identity,
       age: Number.isFinite(age) && age > 0 ? age : null,
       orientation: input.stationOneAnswers.orientation,
@@ -53,6 +56,6 @@ export async function revealFromSingleJourney(input: {
     visitId: visit?.visit_id ?? null,
     transcript: built.intro,
     transcriptSource: built.transcriptSource,
-    station: 'station-1',
   })
+  return seed
 }

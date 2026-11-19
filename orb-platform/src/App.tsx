@@ -68,7 +68,23 @@ const DebraCapture = lazy(() =>
   import('./components/DebraCapture').then((m) => ({ default: m.DebraCapture })),
 )
 
+const LiveRevealWall = lazy(() =>
+  import('./components/LiveRevealWall').then((m) => ({ default: m.LiveRevealWall })),
+)
+
 export default function App() {
+  const role = parseWallRole()
+  if (role && new URLSearchParams(window.location.search).get('wallLive') === '1') {
+    return (
+      <main className="live-reveal-wall" aria-label="Reveal wall">
+        <Suspense fallback={null}><LiveRevealWall role={role} /></Suspense>
+      </main>
+    )
+  }
+  return <StationApp />
+}
+
+function StationApp() {
   const [lock, setLock] = useState<DeviceLock | null>(() => readDeviceLock())
   const [quality] = useState(() => getDeviceQuality())
   const [pickerOpen, setPickerOpen] = useState(false)

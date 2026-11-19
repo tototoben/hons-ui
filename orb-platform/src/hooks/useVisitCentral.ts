@@ -7,10 +7,11 @@ import {
 
 const POLL_MS = 2000
 
-export function useVisitCentralPoll() {
+export function useVisitCentralPoll(enabled = true) {
   const [visits, setVisits] = useState<ActiveVisit[]>(() => peekActiveVisits())
 
   useEffect(() => {
+    if (!enabled) return
     let cancelled = false
     const poll = async () => {
       const next = await refreshVisitCache()
@@ -24,7 +25,7 @@ export function useVisitCentralPoll() {
       cancelled = true
       window.clearInterval(timer)
     }
-  }, [])
+  }, [enabled])
 
   return visits
 }
