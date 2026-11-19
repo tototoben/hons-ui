@@ -184,6 +184,46 @@ describe('useMirrorCamera', () => {
     expect(sample.signals.headYaw).toBeCloseTo(0.5)
   })
 
+  it('gives MediaPipe a document canvas and survives a throwing detect tick', async () => {
+    const stream = { getTracks: () => [{ stop: vi.fn() }] } as unknown as MediaStream
+    Object.defineProperty(navigator, 'mediaDevices', {
+      configurable: true,
+      value: { getUserMedia: vi.fn().mockResolvedValue(stream) },
+    })
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    vision.detectForVideo
+      .mockImplementationOnce(() => {
+        throw new TypeError("undefined is not an object (evaluating 'GLctx.activeTexture')")
+      })
+      .mockReturnValue({ faceLandmarks: [[{ x: 0.5, y: 0.5, z: 0 }]] })
+    const handleRef: { current: MirrorCameraHandle | null } = { current: null }
+
+    await act(async () => {
+      root.render(<Harness handleRef={handleRef} onStatus={() => undefined} />)
+      for (let i = 0; i < 5; i += 1) await Promise.resolve()
+    })
+    // jsdom has no OffscreenCanvas, like WPE WebKit has no WebGL on one.
+    expect(vision.create).toHaveBeenCalledWith(
+      {},
+      expect.objectContaining({ canvas: expect.any(HTMLCanvasElement) }),
+    )
+    const video = container.querySelector('video')!
+    Object.defineProperty(video, 'readyState', {
+      configurable: true,
+      value: HTMLMediaElement.HAVE_CURRENT_DATA,
+    })
+
+    await act(async () => {
+      animationFrames.at(-1)?.(1000)
+    })
+    await act(async () => {
+      animationFrames.at(-1)?.(2000)
+    })
+
+    expect(vision.detectForVideo).toHaveBeenCalledTimes(2)
+    expect(handleRef.current!.sampleRef.current.landmarks).toHaveLength(1)
+  })
+
   it('does not re-render on each MediaPipe detect tick', async () => {
     const stream = { getTracks: () => [{ stop: vi.fn() }] } as unknown as MediaStream
     Object.defineProperty(navigator, 'mediaDevices', {

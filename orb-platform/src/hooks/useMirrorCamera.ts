@@ -26,6 +26,24 @@ import { postWallDiagnostic } from '../lib/wallDiagnostics'
 
 const MIN_APPEARANCE_LANDMARKS = 400
 
+// MediaPipe uploads every frame through WebGL, even on the CPU delegate,
+// and defaults to an OffscreenCanvas. WPE WebKit has OffscreenCanvas but
+// no WebGL on it, so detectForVideo throws on the first frame there; a
+// document canvas does get WebGL.
+let offscreenWebGl: boolean | null = null
+function landmarkerCanvas(): { canvas?: HTMLCanvasElement } {
+  if (offscreenWebGl === null) {
+    try {
+      offscreenWebGl =
+        typeof OffscreenCanvas !== 'undefined' &&
+        Boolean(new OffscreenCanvas(1, 1).getContext('webgl2'))
+    } catch {
+      offscreenWebGl = false
+    }
+  }
+  return offscreenWebGl ? {} : { canvas: document.createElement('canvas') }
+}
+
 export type MirrorCameraStatus =
   | 'starting'
   | 'active'
@@ -360,6 +378,7 @@ export function useMirrorCamera({
     let raf = 0
     let lastDetection = 0
     let missedFaces = 0
+    let detectFailed = false
     const interval = detectIntervalMs()
     const quality = getDeviceQuality()
 
@@ -373,7 +392,23 @@ export function useMirrorCamera({
         now - lastDetection >= interval
       ) {
         lastDetection = now
-        const result = landmarker.detectForVideo(video, now)
+        let result: ReturnType<FaceLandmarker['detectForVideo']>
+        try {
+          result = landmarker.detectForVideo(video, now)
+        } catch (error) {
+          // Uncaught, this ended the rAF loop and left the scan without
+          // landmarks for the rest of the page's life.
+          if (!detectFailed) {
+            detectFailed = true
+            console.error('[useMirrorCamera] face detection failed:', error)
+            postWallDiagnostic('camera', {
+              event: 'detect_failed',
+              name: error instanceof Error ? error.name : 'Error',
+            })
+          }
+          raf = requestAnimationFrame(detect)
+          return
+        }
         const detectedLandmarks =
           (result.faceLandmarks?.[0] as NormalizedLandmark[] | undefined) ?? []
         const nextSignals =
@@ -419,17 +454,20 @@ export function useMirrorCamera({
       if (quality === 'kiosk') {
         return FaceLandmarker.createFromOptions(vision, {
           baseOptions: { modelAssetPath: PARALLAX.modelUrl, delegate: 'CPU' },
+          ...landmarkerCanvas(),
           ...options,
         })
       }
       try {
         return await FaceLandmarker.createFromOptions(vision, {
           baseOptions: { modelAssetPath: PARALLAX.modelUrl, delegate: 'GPU' },
+          ...landmarkerCanvas(),
           ...options,
         })
       } catch {
         return FaceLandmarker.createFromOptions(vision, {
           baseOptions: { modelAssetPath: PARALLAX.modelUrl, delegate: 'CPU' },
+          ...landmarkerCanvas(),
           ...options,
         })
       }
