@@ -14,6 +14,10 @@ type Shared = { stream: MediaStream; deviceId: string | null }
 
 let shared: Shared | null = null
 let pending: { promise: Promise<MediaStream>; deviceId: string | null } | null = null
+// Bumped whenever a request starts or the camera is released. A getUserMedia
+// call that finishes under an older number was superseded while it was in
+// flight and must not install its stream (it would replace a newer one).
+let generation = 0
 
 function isLive(stream: MediaStream): boolean {
   if (stream.active === false) return false
@@ -41,13 +45,23 @@ export function acquireCameraStream(
     shared = null
   }
 
-  const promise = navigator.mediaDevices
+  const mine = ++generation
+  const promise: Promise<MediaStream> = navigator.mediaDevices
     .getUserMedia({
       audio: false,
       video: { ...constraints, ...(deviceId ? { deviceId: { exact: deviceId } } : {}) },
     })
     .then((stream) => {
-      if (pending?.promise === promise) pending = null
+      if (mine !== generation) {
+        // Superseded (device switched, or the camera released) while this
+        // request was open: drop its stream rather than overwrite the newer
+        // one, and hand the caller whatever won.
+        stopStream(stream)
+        if (pending) return pending.promise
+        if (shared && isLive(shared.stream)) return shared.stream
+        throw new DOMException('Camera request superseded', 'AbortError')
+      }
+      pending = null
       shared = { stream, deviceId }
       return stream
     })
@@ -68,4 +82,5 @@ export function stopSharedCameraStream() {
   if (shared) stopStream(shared.stream)
   shared = null
   pending = null
+  generation += 1
 }
