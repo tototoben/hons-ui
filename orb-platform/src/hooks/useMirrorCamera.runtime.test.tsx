@@ -24,6 +24,12 @@ vi.mock('@mediapipe/tasks-vision', () => ({
 
 import { useMirrorCamera, type MirrorCameraHandle } from './useMirrorCamera'
 import { stopSharedCameraStream } from '../lib/sharedCameraStream'
+import {
+  QUALITY_STORAGE_KEY,
+  applyDeviceQuality,
+  mirrorCameraConstraints,
+  mirrorCameraFallbackConstraints,
+} from '../lib/deviceQuality'
 
 function Harness({
   onStatus,
@@ -218,6 +224,39 @@ describe('useMirrorCamera', () => {
 
     expect(vision.detectForVideo).toHaveBeenCalled()
     expect(renders).toBe(afterActive)
+  })
+
+  it('relaxes the kiosk constraints for a camera without an MJPEG-only mode', async () => {
+    applyDeviceQuality('kiosk')
+    const stream = {
+      getTracks: () => [{ stop: vi.fn() }],
+      getVideoTracks: () => [{}],
+    } as unknown as MediaStream
+    const overconstrained = Object.assign(new Error('width'), { name: 'OverconstrainedError' })
+    const getUserMedia = vi.fn()
+      .mockRejectedValueOnce(overconstrained)
+      .mockResolvedValueOnce(stream)
+    Object.defineProperty(navigator, 'mediaDevices', {
+      configurable: true,
+      value: { getUserMedia },
+    })
+
+    try {
+      await act(async () => {
+        root.render(<Harness onStatus={() => undefined} />)
+        for (let i = 0; i < 8; i += 1) await Promise.resolve()
+      })
+    } finally {
+      applyDeviceQuality('full')
+      window.localStorage.removeItem(QUALITY_STORAGE_KEY)
+    }
+
+    expect(getUserMedia).toHaveBeenCalledTimes(2)
+    expect(getUserMedia.mock.calls[0][0].video).toMatchObject(mirrorCameraConstraints('kiosk'))
+    expect(getUserMedia.mock.calls[1][0].video).toMatchObject(
+      mirrorCameraFallbackConstraints('kiosk'),
+    )
+    expect(container.querySelector('video')!.srcObject).toBe(stream)
   })
 
   it('keeps the journey usable when camera permission is denied', async () => {

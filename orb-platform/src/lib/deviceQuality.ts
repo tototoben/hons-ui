@@ -63,10 +63,34 @@ export function applyDeviceQuality(quality: DeviceQuality = getDeviceQuality()) 
   return quality
 }
 
-export function mirrorCameraConstraints(quality: DeviceQuality = getDeviceQuality()) {
+export function mirrorCameraConstraints(
+  quality: DeviceQuality = getDeviceQuality(),
+): MediaTrackConstraints {
+  if (quality === 'kiosk') {
+    // On WPE WebKit any raw (YUYV) camera mode fails with "not-negotiated"
+    // (see mirrorCameraFallbackConstraints), so ask for a mode only MJPEG
+    // can deliver. The Logitech StreamCam does raw YUYV at 30 fps up to
+    // 848x480 but only 15 fps from 960x540 up, while its MJPEG does 30 fps
+    // at every size: a 960-wide floor plus a 20 fps floor rules raw out.
+    return {
+      facingMode: 'user',
+      width: { min: 960, ideal: 960, max: 1280 },
+      height: { ideal: 540, max: 720 },
+      frameRate: { min: 20, ideal: 30 },
+    }
+  }
+  return mirrorCameraFallbackConstraints(quality)
+}
+
+/** Looser constraints for cameras that reject mirrorCameraConstraints
+ * (OverconstrainedError), so a kiosk with a different webcam still gets a
+ * picture. */
+export function mirrorCameraFallbackConstraints(
+  quality: DeviceQuality = getDeviceQuality(),
+): MediaTrackConstraints {
   if (quality === 'kiosk') {
     return {
-      facingMode: 'user' as const,
+      facingMode: 'user',
       // Landscape on purpose. A portrait 480×640 ask makes laptop / USB
       // webcams center-crop their 16:9 sensor, which reads as a tight
       // face zoom. mapLandmarkToMirror already cover-crops the live
@@ -81,9 +105,9 @@ export function mirrorCameraConstraints(quality: DeviceQuality = getDeviceQualit
       // raw YUYV triggers a DMA_DRM caps negotiation mismatch ("streaming
       // stopped, reason not-negotiated (-4)") because v4l2src expects the
       // memory:DMABuf feature while WebKit's downstream capsfilter lacks it.
-      // Specifying `{ ideal: 30, min: 15 }` makes GStreamer select the
-      // camera's native MJPEG stream, which completely avoids the DMA_DRM
-      // memory feature bug and streams frames reliably.
+      // On the Brio, `{ ideal: 30, min: 15 }` makes GStreamer select the
+      // native MJPEG stream and avoids the DMA_DRM bug; cameras whose raw
+      // YUYV reaches 15 fps at these sizes (the StreamCam) still hit it.
       width: { ideal: 640, max: 960 },
       height: { ideal: 480, max: 720 },
       frameRate: { ideal: 30, min: 15 },
@@ -98,7 +122,7 @@ export function mirrorCameraConstraints(quality: DeviceQuality = getDeviceQualit
   // smaller, landscape, universally-supported mode with an explicit
   // frameRate floor fixes the lag without touching display or tracking.
   return {
-    facingMode: 'user' as const,
+    facingMode: 'user',
     width: { ideal: 1280 },
     height: { ideal: 720 },
     frameRate: { ideal: 30, min: 15 },

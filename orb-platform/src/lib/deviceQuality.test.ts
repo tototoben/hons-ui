@@ -7,6 +7,7 @@ import {
   detectDeviceQuality,
   kioskOrbCounts,
   mirrorCameraConstraints,
+  mirrorCameraFallbackConstraints,
 } from './deviceQuality'
 
 describe('device quality', () => {
@@ -144,8 +145,16 @@ describe('device quality', () => {
     ).toBe('kiosk')
   })
 
-  it('caps the mirror camera and guide-orb budget on kiosk', () => {
+  it('asks the kiosk camera for a mode only MJPEG can deliver', () => {
+    // Logitech StreamCam raw YUYV: 30 fps up to 848x480, 15 fps at 960x540.
     expect(mirrorCameraConstraints('kiosk')).toMatchObject({
+      width: { min: 960 },
+      frameRate: { min: 20 },
+    })
+  })
+
+  it('caps the mirror camera and guide-orb budget on kiosk', () => {
+    expect(mirrorCameraFallbackConstraints('kiosk')).toMatchObject({
       width: { ideal: 640, max: 960 },
       height: { ideal: 480, max: 720 },
       frameRate: { ideal: 30, min: 15 },

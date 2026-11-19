@@ -5,6 +5,7 @@ import {
   detectIntervalMs,
   getDeviceQuality,
   mirrorCameraConstraints,
+  mirrorCameraFallbackConstraints,
 } from '../lib/deviceQuality'
 import {
   deriveFaceAppearance,
@@ -171,16 +172,34 @@ export function useMirrorCamera({
     // to the plain constraints rather than failing for the rest of the day.
     // Both paths go through the page-wide shared stream (sharedCameraStream.ts)
     // so permission is asked once per page load.
-    const openStream = async (): Promise<MediaStream> => {
-      const constraints = mirrorCameraConstraints()
-      if (!selectedDeviceId) return acquireCameraStream(constraints, null)
+    // WebKit's OverconstrainedError is not always a DOMException, so match
+    // on the name alone.
+    const errorName = (error: unknown) =>
+      typeof error === 'object' && error !== null && 'name' in error
+        ? String((error as { name: unknown }).name)
+        : ''
+
+    // The preferred constraints rule out modes some cameras lack; relax
+    // them rather than leave such a camera dark.
+    const openWithConstraints = async (deviceId: string | null) => {
       try {
-        return await acquireCameraStream(constraints, selectedDeviceId)
+        return await acquireCameraStream(mirrorCameraConstraints(), deviceId)
       } catch (error) {
-        const name = error instanceof DOMException ? error.name : ''
+        if (errorName(error) !== 'OverconstrainedError') throw error
+        postWallDiagnostic('camera', { event: 'constraints_relaxed' })
+        return acquireCameraStream(mirrorCameraFallbackConstraints(), deviceId)
+      }
+    }
+
+    const openStream = async (): Promise<MediaStream> => {
+      if (!selectedDeviceId) return openWithConstraints(null)
+      try {
+        return await openWithConstraints(selectedDeviceId)
+      } catch (error) {
+        const name = errorName(error)
         if (name !== 'OverconstrainedError' && name !== 'NotFoundError') throw error
         postWallDiagnostic('camera', { event: 'pinned_device_missing', fallback: true })
-        return acquireCameraStream(constraints, null)
+        return openWithConstraints(null)
       }
     }
 
