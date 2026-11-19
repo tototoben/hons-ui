@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { dialogueOwnsWall, useRevealDialogue, type RevealDialogueState } from '../lib/revealDialogue'
 import { parseWallCaptureParams } from '../lib/wallCapture'
 import { useWallSyncedPhase } from '../lib/wallPhaseSync'
+import { useCentralRevealSweep } from '../lib/wallRevealSweep'
 import { parseWallCalibrate, parseWallCollage, parseWallRole, type WallRole } from '../lib/wallRole'
 import { RevealShellChrome } from './RevealShellChrome'
 import { WallCalibrate } from './WallCalibrate'
@@ -100,6 +101,9 @@ export function ThirdStationWall({ role: roleProp }: { role?: WallRole }) {
   }, [])
 
   const loadingSurface = pickWallLoadingSurface(collage, loadingProgress, collageReady)
+  const dialogueLive = dialogueOwnsWall(dialogue.available, dialogue.state)
+  // No conversation running: sweep the reveal visitor's face in instead.
+  const revealSweep = useCentralRevealSweep(!calibrate && !capture && !dialogueLive)
 
   return (
     <section
@@ -110,7 +114,7 @@ export function ThirdStationWall({ role: roleProp }: { role?: WallRole }) {
       {calibrate ? <WallCalibrate role={role} /> : null}
       {calibrate ? null : capture ? (
         <WallCollageBlanket role={role} photobashSeed={capture.seed} collageCue={capture.cue} visitorReveal="sweep" />
-      ) : dialogueOwnsWall(dialogue.available, dialogue.state) ? (
+      ) : dialogueLive ? (
         // During the dialogue: the conversation shows on the bottom Lenovo
         // (copy); every other panel -- the TVs included -- shows the
         // visitor's photobash, its mouth driven by the live speech level.
@@ -125,6 +129,17 @@ export function ThirdStationWall({ role: roleProp }: { role?: WallRole }) {
             visitorReveal="dialogue"
           />
         )
+      ) : revealSweep ? (
+        // November, no live dialogue: a visit reached reveal, so every
+        // panel -- copy included -- sweeps that visitor's face into the
+        // collage, then the wall returns to ambient after the hold.
+        <WallCollageBlanket
+          key={`sweep-${revealSweep.visitId}`}
+          role={role}
+          photobashSeed={seedFromVisitId(revealSweep.visitId) ?? (photobashSeed || 1)}
+          collageCue={revealSweep.cue ?? collageCue}
+          visitorReveal="sweep"
+        />
       ) : phase === 'loading' ? (
         loadingSurface === 'forming' ? (
           <WallFormingBlanket
@@ -148,8 +163,8 @@ export function ThirdStationWall({ role: roleProp }: { role?: WallRole }) {
         // deliberately in f05eebc and 4613d4d and must not come back -- a
         // merge resurrected them once already. Anything that is not a
         // calibration, a headless capture or a live dialogue renders the
-        // photobash. No visitor pieces outside a live dialogue: the face
-        // appears talk by talk during the reveal and nowhere else.
+        // photobash. Visitor pieces appear only during a live dialogue
+        // (talk by talk) or, when none runs, in the reveal sweep above.
         <WallCollageBlanket
           role={role}
           photobashSeed={photobashSeed}

@@ -215,6 +215,10 @@ export function WallCollageBlanket({
     return () => {
       cancelled = true
       window.clearInterval(timer)
+      // A load cancelled here never reached setVisitorImage; forget its URL
+      // so the next mount loads it again instead of skipping it as done
+      // (React StrictMode mounts twice in dev, which hid the visitor face).
+      loadedDataUrlRef.current = null
     }
   }, [])
 
