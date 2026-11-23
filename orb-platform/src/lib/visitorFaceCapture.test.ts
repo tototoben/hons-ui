@@ -79,6 +79,21 @@ describe('visitorFaceCapture', () => {
     expect(toDataURL).not.toHaveBeenCalled() // rejected before the expensive encode
   })
 
+  it('accepts a dim behind-mirror frame when face landmarks are detected', () => {
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(
+      mockCanvasContext(fillLuminance(16, 8)) as unknown as CanvasRenderingContext2D,
+    )
+    vi.spyOn(HTMLCanvasElement.prototype, 'toDataURL').mockReturnValue(
+      'data:image/jpeg;base64,dim-face',
+    )
+    const video = { videoWidth: 640, videoHeight: 480 } as HTMLVideoElement
+
+    expect(captureVisitorFaceFrame(video)).toBeNull()
+    expect(captureVisitorFaceFrame(video, [{ x: 0.5, y: 0.5 }])).toBe(
+      'data:image/jpeg;base64,dim-face',
+    )
+  })
+
   it('accepts a normally-lit frame', () => {
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(
       mockCanvasContext(fillLuminance(16, 140)) as unknown as CanvasRenderingContext2D,

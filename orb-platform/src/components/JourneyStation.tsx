@@ -2,6 +2,8 @@ import { lazy, Suspense, useCallback, useEffect, useReducer, useRef, useState, t
 import { journeySettings } from '../dev/journeySettingsStore'
 import { useStationVibe } from '../hooks/useStationVibe'
 import { readDeviceLock } from '../lib/deviceLock'
+import { getDeviceQuality } from '../lib/deviceQuality'
+import { centralApiBase, refreshVisitCache } from '../lib/visitCentral'
 import { firehoseReducer, publish } from '../lib/firehose'
 import { saveStationOneState, saveStationTwoState } from '../lib/interviewStore'
 import {
@@ -71,6 +73,40 @@ const STATION_ID = 'station-1'
 const SCAN_PHASE_MS = 2200
 /** How long "Meet your match" stays up before the kiosk resets. */
 const HANDOFF_HOLD_MS = 10000
+const REVEAL_POLL_MS = 2000
+
+function shouldGateForReveal(): boolean {
+  const base = centralApiBase()
+  if (!base || typeof window === 'undefined') return false
+  const explicit = new URLSearchParams(window.location.search).get('central')
+  if (explicit && explicit !== '0' && explicit !== 'false') return true
+  return getDeviceQuality() === 'kiosk'
+}
+
+function useRevealInProgress(pollKey: string): boolean {
+  const [active, setActive] = useState(false)
+  useEffect(() => {
+    if (!shouldGateForReveal()) {
+      setActive(false)
+      return
+    }
+    let cancelled = false
+    const check = async () => {
+      const visits = await refreshVisitCache(true)
+      if (cancelled) return
+      setActive(visits.some((v) => v.state === 'reveal'))
+    }
+    void check()
+    const id = window.setInterval(() => {
+      void check()
+    }, REVEAL_POLL_MS)
+    return () => {
+      cancelled = true
+      window.clearInterval(id)
+    }
+  }, [pollKey])
+  return active
+}
 
 const HOW_SMART_SCALE = { left: 'Not very', right: 'Extremely' }
 
@@ -153,6 +189,12 @@ function JourneyScreen() {
   const lightningPair =
     phase === 'lightning' ? STATION_TWO_LIGHTNING[state.two.lightningIndex] : undefined
   const callName = state.one.answers.callName ?? ''
+  const revealInProgress = useRevealInProgress(phase === 'handoff' ? 'handoff' : 'idle')
+  const waitingForReveal =
+    revealInProgress &&
+    state.stage === 'one' &&
+    phase === 'intake' &&
+    Object.keys(state.one.answers).length === 0
 
   // The proximity sensor is the normal presence source; a visitor typing is
   // the fallback that opens a visit at central if it never fired.
@@ -229,8 +271,21 @@ function JourneyScreen() {
   const liveScaleRef = useRef({ value: scaleValue, prompt: '' })
   liveScaleRef.current = { value: scaleValue, prompt: stageTwoQuestion?.prompt ?? '' }
 
+  const prevWaitingRef = useRef(false)
+  useEffect(() => {
+    if (waitingForReveal && !prevWaitingRef.current) {
+      publish(STATION_ID, 'station_waiting', { reason: 'reveal_in_progress' })
+    } else if (!waitingForReveal && prevWaitingRef.current) {
+      publish(STATION_ID, 'station_mounted', { phase: 'name' })
+    }
+    prevWaitingRef.current = waitingForReveal
+  }, [waitingForReveal])
+
   // Tells the iPad remote which control to show for the current screen.
   useEffect(() => {
+    if (waitingForReveal) {
+      return startKeyboardFocusHeartbeat(STATION_ID, 'hidden')
+    }
     if (question?.type === 'scale') {
       const resolve = () => ({ ...HOW_SMART_SCALE, ...liveScaleRef.current })
       return startKeyboardFocusHeartbeat(STATION_ID, 'scale', resolve(), undefined, resolve)
@@ -248,7 +303,7 @@ function JourneyScreen() {
       })
     }
     return startKeyboardFocusHeartbeat(STATION_ID, 'hidden')
-  }, [question, lightningPair])
+  }, [waitingForReveal, question, lightningPair])
 
   const answer = useCallback(
     (value: BinaryAnswer) => {
@@ -264,6 +319,25 @@ function JourneyScreen() {
     },
     [announcePresence],
   )
+
+  if (waitingForReveal) {
+    return (
+      <MirrorStationShell station="I" cameraMode="none">
+        <div className="journey-message" aria-live="polite">
+          <JourneyHeadline
+            lines={
+              warm
+                ? ['Visit in progress.', 'Please wait a moment.']
+                : ['VISIT IN PROGRESS.', 'PLEASE WAIT.']
+            }
+            growDown
+          >
+            {warm ? 'Visit in progress. Please wait a moment.' : 'Visit in progress. Please wait.'}
+          </JourneyHeadline>
+        </div>
+      </MirrorStationShell>
+    )
+  }
 
   if (phase === 'loading' || phase === 'handoff') {
     return (

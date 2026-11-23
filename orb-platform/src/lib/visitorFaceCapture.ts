@@ -18,7 +18,11 @@ const CAPTURE_HEIGHT = 960
 // never got a landmark-validated upgrade to replace it with). Refusing a
 // near-black frame outright means capture naturally retries on the next
 // tick instead of ever accepting it.
-const MEAN_LUMINANCE_FLOOR = 12 // 0-255; a lit face reads well above this
+const MEAN_LUMINANCE_FLOOR = 12 // 0-255; unanchored frame floor
+// Behind a one-way mirror in a dark curtained room, MediaPipe can still lock
+// all 478 landmarks at luminance ~7-11; accept those while still rejecting
+// solid-black decoder frames (0-3).
+const LANDMARK_LUMINANCE_FLOOR = 4
 
 let current: string | null = null
 
@@ -85,7 +89,8 @@ export function captureVisitorFaceFrame(
 
   const luminance = sampleMeanLuminance(video, sx, sy, sw, sh)
   const landmarkCount = landmarks?.length ?? 0
-  if (luminance !== null && luminance < MEAN_LUMINANCE_FLOOR) {
+  const floor = landmarkCount > 0 ? LANDMARK_LUMINANCE_FLOOR : MEAN_LUMINANCE_FLOOR
+  if (luminance !== null && luminance < floor) {
     postWallDiagnostic('face_capture', {
       accepted: false,
       reason: 'near_black_frame',
