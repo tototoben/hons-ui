@@ -10,6 +10,14 @@ describe('wall capture params', () => {
     expect(parsed?.cue).toMatchObject({ ageBand: 'young', smile: true })
   })
 
+  it('reads captureVisitId when central includes one', () => {
+    const parsed = parseWallCaptureParams(
+      '?view=1&wallRole=copy&captureSeed=42&dialogue=0&captureVisitId=v-abc123',
+    )
+    expect(parsed?.seed).toBe(42)
+    expect(parsed?.visitId).toBe('v-abc123')
+  })
+
   it('is off for the installation windows and bad seeds', () => {
     expect(parseWallCaptureParams('?view=1&wallRole=code')).toBeNull()
     expect(parseWallCaptureParams('?captureSeed=0')).toBeNull()

@@ -113,7 +113,13 @@ export function ThirdStationWall({ role: roleProp }: { role?: WallRole }) {
     >
       {calibrate ? <WallCalibrate role={role} /> : null}
       {calibrate ? null : capture ? (
-        <WallCollageBlanket role={role} photobashSeed={capture.seed} collageCue={capture.cue} visitorReveal="sweep" />
+        <WallCollageBlanket
+          role={role}
+          photobashSeed={capture.seed}
+          collageCue={capture.cue}
+          captureVisitId={capture.visitId}
+          visitorReveal="full"
+        />
       ) : dialogueLive ? (
         // During the dialogue: the conversation shows on the bottom Lenovo
         // (copy); every other panel -- the TVs included -- shows the

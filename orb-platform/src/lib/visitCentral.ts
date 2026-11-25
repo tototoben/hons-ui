@@ -149,6 +149,23 @@ export function peekVisitorFaceFromCentral(): string | null {
   return payload?.faceCapture ?? null
 }
 
+/** Station 1 photo for one specific visit ID (used by headless wall capture). */
+export async function fetchVisitFaceCapture(visitId: string): Promise<string | null> {
+  const base = centralApiBase()
+  if (!base || !visitId) return null
+  try {
+    const response = await fetch(
+      `${base}/api/visits/${encodeURIComponent(visitId)}`,
+      { cache: 'no-store' },
+    )
+    if (!response.ok) return null
+    const body = (await response.json()) as ActiveVisit
+    return stationOnePayload(body)?.faceCapture ?? null
+  } catch {
+    return null
+  }
+}
+
 /** Read-only persona prompt from central (recomputed from aggregated station data). */
 export async function fetchVisitPersona(visitId: string): Promise<VisitPersona | null> {
   const base = centralApiBase()

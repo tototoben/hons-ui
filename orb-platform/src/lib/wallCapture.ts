@@ -1,13 +1,14 @@
 import { parseCollageCue, type CollageCue } from './collageCue'
 
-export type WallCaptureParams = { seed: number; cue: CollageCue }
+export type WallCaptureParams = { seed: number; cue: CollageCue; visitId?: string }
 
 /**
  * Direct-render override for central's headless-Chrome wall capture (QL
- * ticket). A fresh headless tab has no live reveal state (conductor
- * BroadcastChannel, Central poll), so central passes the exact seed/cue to
- * render and each role draws that collage straight away. Never set by the
- * real installation windows. Ported from ui 6b55deb, which never reached main.
+ * ticket / SELPHY postcard). A fresh headless tab has no live reveal state
+ * (conductor BroadcastChannel, Central poll), so central passes the exact
+ * seed/cue (and optional visitId for the visitor's Station 1 photo) to render
+ * and each role draws that collage straight away. Never set by the real
+ * installation windows. Ported from ui 6b55deb, which never reached main.
  */
 export function parseWallCaptureParams(
   search: string = typeof window === 'undefined' ? '' : window.location.search,
@@ -26,5 +27,6 @@ export function parseWallCaptureParams(
       cue = {}
     }
   }
-  return { seed, cue }
+  const rawVisitId = params.get('captureVisitId')?.trim()
+  return rawVisitId ? { seed, cue, visitId: rawVisitId } : { seed, cue }
 }

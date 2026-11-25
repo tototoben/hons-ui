@@ -7,6 +7,7 @@ import { ensureCollageBank, peekCollageBank } from '../lib/wallCollageBank'
 import { computeFaceAlign } from '../lib/faceBankAlign'
 import { getVisitorFaceCapture } from '../lib/visitorFaceCapture'
 import {
+  fetchVisitFaceCapture,
   peekActiveVisits,
   peekRevealVisitorFace,
   pickRevealVisit,
@@ -65,6 +66,7 @@ export function WallCollageBlanket({
   photobashSeed = 1,
   collageCue = {},
   dialogue,
+  captureVisitId,
   visitorReveal = 'sweep',
 }: {
   role: WallRole
@@ -74,11 +76,15 @@ export function WallCollageBlanket({
    * flipbook then follows the actual speech (speech_level) instead of
    * the ambient seeded rhythm. */
   dialogue?: RevealDialogueState
+  /** Explicit visit ID for headless wall capture; fetches that exact visit's
+   * Station 1 faceCapture from Central rather than polling the active reveal. */
+  captureVisitId?: string
   /** How the visitor's own pieces appear over the bank collage:
    * 'dialogue' = one piece per talk segment of the live dialogue;
-   * 'sweep' = the original 45s wall-clock sweep (ticket capture);
+   * 'sweep' = the original 45s wall-clock sweep;
+   * 'full' = show all visitor pieces immediately (headless capture);
    * 'off' = bank collage only. */
-  visitorReveal?: 'sweep' | 'dialogue' | 'off'
+  visitorReveal?: 'sweep' | 'dialogue' | 'full' | 'off'
 }) {
   const seed = photobashSeed || 1
   const cueKey = collageCueKey(collageCue)
@@ -160,11 +166,21 @@ export function WallCollageBlanket({
   useEffect(() => {
     let cancelled = false
     const loadFace = async () => {
-      await refreshVisitCache(true)
-      // Strictly the reveal visit's own photo (or the same-browser dev
-      // fallback). Never a stand-in from Station 3/2: that put the NEXT
-      // visitor's face on the wall during a no-photo reveal (2026-09-12).
-      const dataUrl = peekRevealVisitorFace() ?? getVisitorFaceCapture()
+      let dataUrl: string | null = null
+      let source: 'central' | 'local' = 'central'
+      if (captureVisitId) {
+        // Explicit headless capture for a specific visit: fetch that exact
+        // visit's Station 1 photo directly (works both during reveal and after).
+        dataUrl = await fetchVisitFaceCapture(captureVisitId)
+      } else {
+        await refreshVisitCache(true)
+        // Strictly the reveal visit's own photo (or the same-browser dev
+        // fallback). Never a stand-in from Station 3/2: that put the NEXT
+        // visitor's face on the wall during a no-photo reveal (2026-09-12).
+        const centralFace = peekRevealVisitorFace()
+        dataUrl = centralFace ?? getVisitorFaceCapture()
+        source = centralFace ? 'central' : 'local'
+      }
       if (!dataUrl) {
         // No visitor at the wall, or one without a photo: drop whatever
         // face was loaded before, so it cannot be drawn for this visitor.
@@ -194,9 +210,9 @@ export function WallCollageBlanket({
                 width: image.naturalWidth,
                 height: image.naturalHeight,
                 bytes: dataUrl.length,
-                source: peekRevealVisitorFace() ? 'central' : 'local',
+                source,
               },
-              pickRevealVisit(peekActiveVisits())?.visit_id,
+              captureVisitId ?? pickRevealVisit(peekActiveVisits())?.visit_id,
             )
           }
           setVisitorImage(image)
@@ -209,18 +225,20 @@ export function WallCollageBlanket({
         })
     }
     void loadFace()
-    const timer = window.setInterval(() => {
-      void loadFace()
-    }, 2000)
+    const timer = captureVisitId
+      ? null
+      : window.setInterval(() => {
+          void loadFace()
+        }, 2000)
     return () => {
       cancelled = true
-      window.clearInterval(timer)
+      if (timer !== null) window.clearInterval(timer)
       // A load cancelled here never reached setVisitorImage; forget its URL
       // so the next mount loads it again instead of skipping it as done
       // (React StrictMode mounts twice in dev, which hid the visitor face).
       loadedDataUrlRef.current = null
     }
-  }, [])
+  }, [captureVisitId, role])
 
   useEffect(() => {
     let cancelled = false
@@ -253,7 +271,10 @@ export function WallCollageBlanket({
       if (canvas && ctx) {
         let revealedCount = 0
         let nextOpacity = 0
-        if (visitorReveal === 'sweep') {
+        if (visitorReveal === 'full') {
+          revealedCount = rects.length
+          nextOpacity = 0
+        } else if (visitorReveal === 'sweep') {
           const swept = collageRevealAt(now - start, COLLAGE_REVEAL_MS, rects.length)
           revealedCount = swept.revealedCount
           nextOpacity = swept.nextOpacity

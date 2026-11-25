@@ -91,11 +91,43 @@ export function MirrorCameraLayer({ mode }: { mode: MirrorOverlayMode }) {
     let painted: MirrorCameraSample | null = null
     let raf = 0
 
+    const tryCaptureFace = (video: HTMLVideoElement | null, landmarks: NormalizedLandmark[]) => {
+      if (!video) return
+      const hasExisting = Boolean(getVisitorFaceCapture())
+      const hasVideoFrame =
+        video.videoWidth > 0 &&
+        video.videoHeight > 0 &&
+        (video.readyState >= 2 || video.currentTime > 0)
+      if (!hasVideoFrame) return
+      const hasGoodLandmarks = landmarks.length >= 100
+      const now = performance.now()
+      const intervalElapsed = now - lastCaptureAt.current >= FACE_CAPTURE_INTERVAL_MS
+
+      // Capture as soon as video has frames (throttled when retrying rejected
+      // dark frames without landmarks), and upgrade whenever good landmarks land.
+      const shouldCapture =
+        (!hasExisting && (lastCaptureAt.current === 0 || intervalElapsed)) ||
+        (hasGoodLandmarks && intervalElapsed)
+
+      if (shouldCapture) {
+        lastCaptureAt.current = now
+        const frame = captureVisitorFaceFrame(video, landmarks)
+        if (frame) setVisitorFaceCapture(frame)
+      }
+    }
+
     const paint = (force = false) => {
       const handle = cameraRef.current
       const sample = handle.sampleRef?.current ?? snapshot
-      // One repaint per detect tick, not per animation frame.
-      if (!force && sample === painted) return
+      // One repaint per detect tick, not per animation frame — but still allow
+      // throttled face capture fallback if video frames arrive before MediaPipe
+      // emits its first detect tick.
+      if (!force && sample === painted) {
+        if (mode !== 'none' && !getVisitorFaceCapture()) {
+          tryCaptureFace(handle.videoRef.current, sample.landmarks)
+        }
+        return
+      }
       painted = sample
 
       const stage = stageRef.current
@@ -117,28 +149,7 @@ export function MirrorCameraLayer({ mode }: { mode: MirrorOverlayMode }) {
         drawLandmarks(canvas, video, sample.landmarks, sample.signals, mode, trackingRgb)
       }
 
-      if (video) {
-        const hasExisting = Boolean(getVisitorFaceCapture())
-        const hasVideoFrame =
-          video.videoWidth > 0 &&
-          video.videoHeight > 0 &&
-          (video.readyState >= 2 || video.currentTime > 0)
-        const hasGoodLandmarks = sample.landmarks.length >= 100
-        const now = performance.now()
-
-        // Capture immediately if we don't have a capture yet and video has frames,
-        // or upgrade the capture at FACE_CAPTURE_INTERVAL_MS if we have good landmarks.
-        const shouldCapture =
-          hasVideoFrame &&
-          (!hasExisting ||
-            (hasGoodLandmarks && now - lastCaptureAt.current >= FACE_CAPTURE_INTERVAL_MS))
-
-        if (shouldCapture) {
-          lastCaptureAt.current = now
-          const frame = captureVisitorFaceFrame(video, sample.landmarks)
-          if (frame) setVisitorFaceCapture(frame)
-        }
-      }
+      tryCaptureFace(video, sample.landmarks)
     }
 
     // Paint on mount rather than waiting a frame, so the overlay is never
