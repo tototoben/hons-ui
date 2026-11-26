@@ -257,6 +257,13 @@
   margin-bottom: var(--question-desk-bottom);
 }
 
+.journey-intake-kicker {
+  margin: 0;
+  color: var(--mirror-quiet);
+  font: 300 clamp(20px, 2.8vh, 34px)/1.25 "Helvetica Neue", sans-serif;
+  letter-spacing: 0.01em;
+}
+
 .journey-intake label,
 .journey-message h1,
 .journey-question h1,
