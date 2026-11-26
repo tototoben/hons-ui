@@ -159,8 +159,10 @@ export async function fetchVisitFaceCapture(visitId: string): Promise<string | n
       { cache: 'no-store' },
     )
     if (!response.ok) return null
-    const body = (await response.json()) as ActiveVisit
-    return stationOnePayload(body)?.faceCapture ?? null
+    const body = (await response.json()) as { visit?: ActiveVisit } | ActiveVisit
+    const visit =
+      body && typeof body === 'object' && 'visit' in body ? (body.visit ?? null) : (body as ActiveVisit)
+    return stationOnePayload(visit)?.faceCapture ?? null
   } catch {
     return null
   }

@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   centralApiBase,
   fetchPersonaForCurrentVisit,
+  fetchVisitFaceCapture,
   fetchVisitPersona,
   isStationTurnActive,
   peekStationOneForStation,
@@ -208,5 +209,26 @@ describe('pickRevealVisit (strict)', () => {
 
   it('peekRevealVisitorFace is null with no reveal visit, even if others have photos', () => {
     expect(peekRevealVisitorFace()).toBeNull()
+  })
+
+  it('fetchVisitFaceCapture unwraps Central { visit: ... } response', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        visit: {
+          visit_id: 'v-cap',
+          state: 'ended',
+          station_data: { '1': { faceCapture: 'data:image/jpeg;base64,AAA' } },
+        },
+      }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const face = await fetchVisitFaceCapture('v-cap')
+    expect(face).toBe('data:image/jpeg;base64,AAA')
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://localhost:8087/api/visits/v-cap',
+      { cache: 'no-store' },
+    )
   })
 })
