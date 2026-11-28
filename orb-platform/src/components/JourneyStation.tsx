@@ -355,15 +355,22 @@ function JourneyScreen() {
     <MirrorStationShell station="I" cameraMode={cameraModeFor(phase)}>
       {debraVisible ? <DebraGuide /> : null}
 
+      {state.stage === 'one' && question?.id === 'callName' ? (
+        <div className="journey-intro-kicker">
+          <JourneyHeadline
+            as="p"
+            fontPx={42}
+            lines={caps(["Let's make you a partner for life.", 'Start by answering:'])}
+          >
+            {"Let's make you a partner for life. Start by answering:"}
+          </JourneyHeadline>
+        </div>
+      ) : null}
+
       {question?.type === 'text' ? (
         <JourneyTextQuestion
           key={`${state.stage}-${question.id}`}
           id={question.id}
-          kicker={
-            state.stage === 'one' && question.id === 'callName'
-              ? "Let's make you a partner for life. Start by answering:"
-              : undefined
-          }
           prompt={question.prompt}
           lines={caps(question.lines)}
           numeric={'numeric' in question ? question.numeric : undefined}
@@ -527,7 +534,6 @@ function Message({
 
 function JourneyTextQuestion({
   id,
-  kicker,
   prompt,
   lines,
   numeric,
@@ -535,7 +541,6 @@ function JourneyTextQuestion({
   onSubmit,
 }: {
   id: string
-  kicker?: string
   prompt: string
   lines: string[]
   numeric?: boolean
@@ -556,7 +561,6 @@ function JourneyTextQuestion({
 
   return (
     <form className="journey-intake" onSubmit={submit}>
-      {kicker ? <p className="journey-intake-kicker">{kicker}</p> : null}
       <label htmlFor={fieldId}>
         <JourneyHeadline as="span" lines={lines}>
           {prompt}
